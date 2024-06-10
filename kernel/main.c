@@ -1,21 +1,14 @@
-static void cls(void) {
-
-	char *vmem = (char *)0xb8000;
-	for (int i = 0; i < 25 * 80; i++) *vmem++ = 0;
-}
-
-static void printk(const char *s) {
-
-	char *vmem = (char *)0xb8000;
-	while (*s) {
-
-		*vmem++ = *s++;
-		*vmem++ = 0xc;
-	}
-}
+#include <stdint.h>
+#include <string.h>
+#include <stdarg.h>
+#include <e.clair/mm/gdt.h>
+#include <e.clair/tty.h>
 
 extern void kernel_main() {
 
-	cls();
-	printk("E.Clair kernel");
+	gdt_init();
+
+	/* print stuff */
+	tty_init();
+	tty_printf("higher half: %x\n", (uint32_t)kernel_main);
 }

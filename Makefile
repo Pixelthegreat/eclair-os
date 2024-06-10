@@ -1,11 +1,17 @@
 .PHONY: kernel setup clean run
 
+QEMUARGS=-drive id=ata0.0,file=build/bootdisk.img,format=raw
+
 # primary targets #
-all: kernel
+all: kernel bootdisk
 
 kernel:
 	@echo == kernel \(e.clair\) ==
 	@make -s -f kernel/Makefile all
+
+bootdisk: kernel
+	@echo == bootdisk ==
+	@./bootdisk.sh
 
 # setup routines #
 setup:
@@ -15,4 +21,7 @@ clean:
 	@rm -v build/kernel/* build/e.clair
 
 run:
-	qemu-system-x86_64 -kernel build/e.clair
+	qemu-system-x86_64 $(QEMUARGS)
+
+run_debug:
+	qemu-system-x86_64 $(QEMUARGS) -d int

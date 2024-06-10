@@ -1,5 +1,8 @@
 # build files #
 build
+tmp
+boot/device.map
+bootdisk.img
 
 # vim #
 *.swp
