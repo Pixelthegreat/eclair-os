@@ -1,4 +1,8 @@
 %define ADDR_START 0xC0000000
+	
+	global multiboot_data_magic
+	global multiboot_data_info
+	
 	extern kernel_main
 	extern _kernel_start
 	extern _kernel_end
@@ -33,11 +37,19 @@ boot_page_dir:
 	resb 4096
 boot_page_table1:
 	resb 4096
+multiboot_data_magic:
+	resb 4
+multiboot_data_info:
+	resb 4
 
 ; kernel entry ;
 section .multiboot.text
 	global _start
 _start:
+	; multiboot structure info ;
+	mov [multiboot_data_magic-ADDR_START], eax
+	mov [multiboot_data_info-ADDR_START], ebx
+	
 	mov edi, boot_page_table1 - ADDR_START
 	mov esi, 0
 	mov ecx, 1023

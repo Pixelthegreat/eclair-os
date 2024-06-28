@@ -1,7 +1,7 @@
 #ifndef STDARG_H
 #define STDARG_H
 
-#include <stddef.h>
+#include <e.clair/types.h>
 
 #ifdef ECLAIR64
 #define _ARG_ALIGN_SZ 8

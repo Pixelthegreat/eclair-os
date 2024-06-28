@@ -1,7 +1,6 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdarg.h>
+#include <e.clair/types.h>
+#include <e.clair/string.h>
+#include <e.clair/varg.h>
 #include <e.clair/io/port.h>
 #include <e.clair/tty.h>
 

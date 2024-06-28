@@ -1,5 +1,5 @@
-#include <stdint.h>
-#include <string.h>
+#include <e.clair/types.h>
+#include <e.clair/string.h>
 #include <e.clair/mm/gdt.h>
 
 static gdt_segment_descriptor_t gdt[GDT_SEGMENT_COUNT];

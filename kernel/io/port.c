@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <e.clair/types.h>
 #include <e.clair/io/port.h>
 
 /* output byte */

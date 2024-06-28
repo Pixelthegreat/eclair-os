@@ -1,8 +1,7 @@
 #ifndef ECLAIR_TTY_H
 #define ECLAIR_TTY_H
 
-#include <stddef.h>
-#include <stdint.h>
+#include <e.clair/types.h>
 
 /* variables to set */
 extern size_t tty_width, tty_height;

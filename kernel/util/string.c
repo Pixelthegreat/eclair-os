@@ -1,6 +1,5 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
+#include <e.clair/types.h>
+#include <e.clair/string.h>
 
 /* get length of string */
 extern size_t strlen(const char *str) {

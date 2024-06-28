@@ -1,7 +1,7 @@
 #ifndef ECLAIR_IO_PORT_H
 #define ECLAIR_IO_PORT_H
 
-#include <stdint.h>
+#include <e.clair/types.h>
 
 extern void port_outb(uint16_t port, uint8_t data);
 extern uint8_t port_inb(uint16_t port);
