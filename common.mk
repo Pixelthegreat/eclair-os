@@ -4,7 +4,7 @@ SRC_FILENAME=@echo $(notdir $<)
 DST_FILENAME=@echo $(notdir $@)
 
 CC=$(TARGET)-gcc
-LD=$(TARGET)-ld
+LD=$(TARGET)-gcc
 ASM=nasm
 AR=$(TARGET)-ar
 

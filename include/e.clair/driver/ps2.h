@@ -58,6 +58,9 @@
 #define PS2_OUTPORT_P1_DATA 0x80
 
 /* ps2 device commands */
+#define PS2_DEV_CMD_IDENTIFY 0xf2
+#define PS2_DEV_CMD_ENABLE_SCAN 0xf4
+#define PS2_DEV_CMD_DISABLE_SCAN 0xf5
 #define PS2_DEV_CMD_RESEND 0xfe
 #define PS2_DEV_CMD_RESET 0xff
 
@@ -74,6 +77,7 @@ extern void ps2_init(void); /* initialize */
 extern void ps2_wait_read(void); /* wait for read */
 extern void ps2_wait_write(void); /* wait for write */
 extern int ps2_reset_device(int d); /* reset device */
+extern int ps2_get_device_type(int d); /* get device type */
 extern void ps2_irq1(idt_regs_t *regs); /* irq1 for first ps/2 device */
 extern void ps2_irq12(idt_regs_t *regs); /* irq12 for second ps/2 device */
 

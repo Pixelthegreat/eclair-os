@@ -34,6 +34,8 @@ extern void page_map_table(page_id_t p, page_frame_id_t f); /* map a page table 
 extern void page_map(page_id_t p, page_frame_id_t f); /* map a page to a frame */
 extern page_id_t page_alloc(uint32_t n, page_frame_id_t *flist); /* allocate a contiguous number of pages */
 extern void page_invalidate(page_id_t p); /* invalidate an entry in the tlb */
-extern void page_free(page_id_t p); /* free page */
+extern bool page_is_mapped(page_id_t p); /* check if page is mapped */
+extern page_frame_id_t page_get_frame(page_id_t p); /* get frame from page */
+extern void page_unmap(page_id_t p); /* unmap page */
 
 #endif /* ECLAIR_MM_PAGING_H */

@@ -1,12 +1,12 @@
 include common.mk
 
 # arguments #
-CFLAGS=-c -m32 -ffreestanding -Iinclude
+CFLAGS=-c -ffreestanding -Iinclude
 ASMFLAGS=-f$(ASMARCH)
-LDFLAGS=-T kernel/linker.ld -m$(LDARCH)
+LDFLAGS=-T kernel/linker.ld -ffreestanding -nostdlib -lgcc
 
 # object files #
-OBJFILES=build/kernel/multiboota.o build/kernel/multiboot.o build/kernel/main.o build/kernel/gdt.o build/kernel/string.o build/kernel/port.o build/kernel/tty.o build/kernel/idt.o build/kernel/idta.o build/kernel/ps2.o build/kernel/paging.o
+OBJFILES=build/kernel/multiboota.o build/kernel/multiboot.o build/kernel/main.o build/kernel/gdt.o build/kernel/string.o build/kernel/port.o build/kernel/tty.o build/kernel/idt.o build/kernel/idta.o build/kernel/ps2.o build/kernel/paging.o build/kernel/heap.o
 
 all: build/e.clair
 
@@ -58,3 +58,7 @@ build/kernel/ps2.o: kernel/driver/ps2.c include/e.clair/driver/ps2.h
 build/kernel/paging.o: kernel/mm/paging.c include/e.clair/mm/paging.h
 	$(SRC_FILENAME)
 	$(CC) $(CFLAGS) -o build/kernel/paging.o kernel/mm/paging.c
+
+build/kernel/heap.o: kernel/heap.c include/e.clair/heap.h
+	$(SRC_FILENAME)
+	$(CC) $(CFLAGS) -o build/kernel/heap.o kernel/heap.c

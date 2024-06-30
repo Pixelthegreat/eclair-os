@@ -1,2 +1,2 @@
 # configuration info #
-TARGET=x86_64-elf
+TARGET=i686-elf

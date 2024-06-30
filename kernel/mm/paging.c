@@ -72,16 +72,15 @@ extern void page_init(void) {
 	page_dir = (page_dir_entry_t *)(cr3 + 0xC0000000);
 	page_start = (uint32_t)_kernel_end / 4096 + 1;
 
-	/* look for open entry in page directory */
-	page_id_t pt = page_dir_find_entry();
-	if (!pt) return;
-
 	/* map the page dir entry to the page dir */
+	page_id_t pt = page_dir_find_entry();
 	page_map_table(pt, cr3 / 4096); /* divided by 4K for the frame id */
 	page_table_id = pt << 10;
 	page_table = (page_tab_entry_t *)(page_table_id << 12);
+	page_start = page_table_id + 1024;
 
-	page_start = page_table_id + 1024; /* set the page start area past our dedicated page table area */
+	/* identity map first 1M */
+	//for (page_id_t p = 0; p < 256; p++) page_map(p, p);
 }
 
 /* find free page directory entry */
@@ -107,6 +106,16 @@ extern void page_map_table(page_id_t p, page_frame_id_t f) {
 /* map page to frame */
 extern void page_map(page_id_t p, page_frame_id_t f) {
 
+	page_id_t pt = p/1024;
+
+	/* map table if necessary */
+	if (!page_dir[pt]) {
+			
+		page_frame_id_t fr = page_frame_alloc();
+		page_map_table(pt, fr);
+	}
+
+	/* map page */
 	page_table[p] = PAGE_ENT(f) | PAGE_FLAG_P | PAGE_FLAG_RW;
 	page_invalidate(p);
 }
@@ -131,18 +140,9 @@ extern page_id_t page_alloc(uint32_t n, page_frame_id_t *flist) {
 		if (cur >= n) break;
 	}
 
-	/* map pages (and tables, if necessary) */
-	for (uint32_t i = st; i < st + cur; i++) {
-
-		page_id_t pt = i/1024;
-		page_id_t p = i%1024;
-		if (!page_dir[pt]) {
-			
-			page_frame_id_t f = page_frame_alloc();
-			page_map_table(pt, f);
-		}
+	/* map pages */
+	for (uint32_t i = st; i < st + cur; i++)
 		page_map(i, flist[i-st]);
-	}
 
 	/* return start id */
 	return st;
@@ -152,4 +152,27 @@ extern page_id_t page_alloc(uint32_t n, page_frame_id_t *flist) {
 extern void page_invalidate(page_id_t p) {
 
 	__asm__("invlpg (%0)": : "r"(p << 12): "memory");
+}
+
+/* check if page is mapped */
+extern bool page_is_mapped(page_id_t p) {
+
+	if (page_dir[p/1024] && page_table[p]) return true;
+	return false;
+}
+
+/* get frame from page */
+extern page_frame_id_t page_get_frame(page_id_t p) {
+
+	if (!page_dir[p/1024]) return 0;
+	return (page_table[p] & 0xfffff000) / 4096;
+}
+
+/* unmap page */
+extern void page_unmap(page_id_t p) {
+
+	if (!page_dir[p/1024]) return;
+
+	page_table[p] = 0;
+	page_invalidate(p);
 }

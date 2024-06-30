@@ -8,6 +8,6 @@ This is a new OS project. I won't be abandoning Strange OS. In fact, I am planni
 ## build and run
 Before building, you must run the `genbootdisk.sh` script in order to generate the template bootdisk.
 
-This project assumes that you are using a Unix-like environment (i.e. Linux, BSD, Mac OS) and you have an x86-64 ELF gcc cross compiler installed. If you're system uses ELF format executables and is an x86-64 machine, you may be able to use your system's gcc installation. However, it is not recommended. Nevertheless, if you have a cross compiler (or would like to use your system compiler anyway), edit the `TARGET` variable in `config.mk` with the associated target triple.
+This project assumes that you are using a Unix-like environment (i.e. Linux, BSD, Mac OS) and you have a generic x86 ELF (i686-elf) gcc cross compiler installed. If you're system uses ELF format executables and is an x86 or x86-64 machine, you may be able to use your system's gcc installation. However, it is not recommended. Nevertheless, if you have a cross compiler (or would like to use your system compiler anyway), edit the `TARGET` variable in `config.mk` with the associated target triple.
 
 To build the project, just run `make` as you normally would. Run `make run` to run the project in qemu.

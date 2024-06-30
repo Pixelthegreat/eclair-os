@@ -6,9 +6,6 @@
 /* initialize */
 extern void ps2_init(void) {
 
-	idt_set_irq_callback(1, ps2_irq1);
-	return;
-
 	/* disable ps2 ports */
 	ps2_wait_write();
 	port_outb(PS2_PORT_CMD_STAT, PS2_CMD_DISABLE_P1);
@@ -38,7 +35,7 @@ extern void ps2_init(void) {
 	ps2_wait_write();
 	port_outb(PS2_PORT_CMD_STAT, PS2_CMD_TEST_CTRL);
 	ps2_wait_read();
-if (port_inb(PS2_PORT_DATA) != 0x55) {
+	if (port_inb(PS2_PORT_DATA) != 0x55) {
 
 		tty_printf("[ps/2 8042] self test failed\n");
 		return;
@@ -99,8 +96,8 @@ if (port_inb(PS2_PORT_DATA) != 0x55) {
 	ps2_wait_read();
 	fl = port_inb(PS2_PORT_DATA);
 
-	fl = fl | PS2_CONFIG_P1_INT | PS2_CONFIG_SYS | PS2_CONFIG_P1_CLOCK;
-	if (p2_pres) fl = fl | PS2_CONFIG_P2_INT | PS2_CONFIG_P2_CLOCK;
+	fl |= PS2_CONFIG_P1_INT;
+	if (p2_pres) fl |= PS2_CONFIG_P2_INT;
 
 	ps2_wait_write();
 	port_outb(PS2_PORT_CMD_STAT, PS2_CMD_WRITE_B0);
@@ -153,14 +150,36 @@ extern int ps2_reset_device(int d) {
 	return 0;
 }
 
+/* get device type */
+extern int ps2_get_device_type(int d) {
+
+	if (d) {
+		ps2_wait_write();
+		port_outb(PS2_PORT_CMD_STAT, PS2_CMD_WRITE_NEXT_P2_INB);
+	}
+
+	/* disable scanning */
+	uint8_t res = PS2_DEV_CMD_RES_RESEND;
+	while (res == PS2_DEV_CMD_RES_RESEND) {
+
+		ps2_wait_write();
+		port_outb(PS2_PORT_DATA, PS2_DEV_CMD_DISABLE_SCAN);
+
+		ps2_wait_read();
+		res = port_inb(PS2_PORT_DATA);
+	}
+	if (res != PS2_DEV_CMD_RES_ACK) return -1;
+	return 0;
+}
+
 /* irq1 for first ps/2 device */
 extern void ps2_irq1(idt_regs_t *regs) {
 
-	tty_printf("T\n");
+	(void)port_inb(PS2_PORT_DATA);
 }
 
 /* irq12 for second ps/2 device */
 extern void ps2_irq12(idt_regs_t *regs) {
 
-	tty_printf("B\n");
+	(void)port_inb(PS2_PORT_DATA);
 }

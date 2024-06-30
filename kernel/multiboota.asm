@@ -108,6 +108,6 @@ section .text
 	; enter kernel ;
 	call kernel_main
 	
-	cli
-	hlt
+	;cli
+	;hlt
 	jmp $
