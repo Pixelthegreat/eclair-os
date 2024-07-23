@@ -1,6 +1,6 @@
 .PHONY: kernel setup clean run
 
-QEMUARGS=-drive id=ata0.0,file=build/bootdisk.img,format=raw
+QEMUARGS=-drive if=ide,id=ata0.0,index=0,file=build/bootdisk.img,format=raw
 
 # primary targets #
 all: kernel bootdisk

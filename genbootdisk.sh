@@ -1,7 +1,7 @@
 #!/bin/sh
 # bootdisk generation script for eclair-os (script adapted from strange-os) #
 
-MODULES='boot biosdisk part_msdos fat configfile normal multiboot2'
+MODULES='boot biosdisk part_msdos ext2 configfile normal multiboot2'
 
 echo generating file...
 dd if=/dev/zero of=bootdisk.img count=1 bs=16M

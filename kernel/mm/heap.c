@@ -1,9 +1,10 @@
 #include <e.clair/types.h>
 #include <e.clair/tty.h>
 #include <e.clair/mm/paging.h>
-#include <e.clair/heap.h>
+#include <e.clair/mm/heap.h>
 
 static heap_block_t *head = NULL;
+static heap_block_t *last = NULL;
 
 /* initialize heap */
 extern void heap_init(void) {
@@ -17,35 +18,38 @@ extern void heap_init(void) {
 	head->avail = false;
 	head->page = pg;
 	head->prev = NULL;
-	head->next = head + 1;
-
-	/* next */
-	head->next->size = 0;
-	head->next->avail = true;
-	head->next->page = pg;
-	head->next->prev = head;
-	head->next->next = NULL;
+	head->next = NULL;
 }
 
 /* find unused block */
 extern heap_block_t *heap_find(heap_block_t *b, size_t sz) {
 
 	heap_block_t *p = b;
-	while (p != NULL) {
+	heap_block_t *l = NULL;
+	while (p) {
 
 		/* usable */
-		if ((p->size >= sz || p->next == NULL) && p->avail)
+		if ((p->size >= sz || !p->next) && p->avail)
 			return p;
 
+		l = p;
 		p = p->next;
 	}
-	return NULL;
+	
+	/* set next block */
+	l->next = (void *)(l + 1) + l->size;
+	l->next->size = 0;
+	l->next->avail = true;
+	l->next->page = (uint32_t)l->next / 4096;
+	l->next->prev = l;
+	l->next->next = NULL;
+	return l->next;
 }
 
 /* split block */
 extern void heap_split(heap_block_t *b, size_t sz) {
 
-	if (!b->next || b->size < sz + sizeof(heap_block_t)) return;
+	if (b->size < sz + sizeof(heap_block_t)) return;
 
 	/* set the next block */
 	heap_block_t *n = (heap_block_t *)((void *)(b + 1) + sz);
@@ -57,25 +61,32 @@ extern void heap_split(heap_block_t *b, size_t sz) {
 
 	b->size = sz;
 	b->next = n;
+
+	if (n->next) n->next->prev = n;
 }
 
 /* merge with previous block */
 static heap_block_t *heap_merge_back(heap_block_t *b) {
 
-	if (!b->prev || !b->prev->avail) return b;
+	while (b->prev && b->prev->avail) {
 
-	b->prev->size += sizeof(heap_block_t) + b->size;
-	b->prev->next = b->next;
-	return b->prev;
+		b->prev->size += sizeof(heap_block_t) + b->size;
+		b->prev->next = b->next;
+		if (b->next) b->next->prev = b->prev;
+		b = b->prev;
+	}
+	return b;
 }
 
 /* merge with next block */
 static void heap_merge_front(heap_block_t *b) {
 
-	if (!b->next || !b->next->avail) return;
+	while (b->next && b->next->avail && (b->next->size > 0 || !b->next->next)) {
 
-	b->size += sizeof(heap_block_t) + b->next->size;
-	b->next = b->next->next;
+		b->size += sizeof(heap_block_t) + b->next->size;
+		b->next = b->next->next;
+		if (b->next) b->next->prev = b;
+	}
 }
 
 /* merge block */
@@ -114,23 +125,13 @@ extern void *kmalloc(size_t sz) {
 
 	/* set values */
 	b->avail = false;
-	if (!b->size) b->size = sz;
 
 	/* split block if possible */
 	heap_split(b, sz);
-
-	/* set values for next */
-	if (!b->next) {
-
-		b->next = (void *)(b + 1) + sz;
-		b->next->size = 0;
-		b->next->avail = true;
-		b->next->page = (uint32_t)b->next / 4096;
-		b->next->prev = b;
-		b->next->next = NULL;
-	}
+	b->size = sz;
 
 	/* return data pointer */
+	last = b;
 	return (void *)(b + 1);
 }
 
@@ -148,7 +149,7 @@ extern void kfree(void *p) {
 
 	/* unmap pages */
 	page_id_t pg = b->page + 1;
-	while ((pg * 4096 + 4096) < (uint32_t)b->next) {
+	while (((pg + 1) * 4096) < (uint32_t)b->next) {
 
 		page_frame_free(page_get_frame(pg));
 		page_unmap(pg);

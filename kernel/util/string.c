@@ -11,6 +11,32 @@ extern size_t strlen(const char *str) {
 	return sz;
 }
 
+/* copy string */
+extern char *strcpy(char *dst, const char *src) {
+
+	size_t idx = 0;
+	while (src[idx]) {
+
+		dst[idx] = src[idx];
+		idx++;
+	}
+	dst[idx] = 0;
+	return dst;
+}
+
+/* copy string with max length */
+extern char *strncpy(char *dst, const char *src, size_t cnt) {
+
+	size_t idx = 0;
+	while (idx < (cnt-1) && src[idx]) {
+
+		dst[idx] = src[idx];
+		idx++;
+	}
+	dst[idx] = 0;
+	return dst;
+}
+
 /* fill a buffer with specified character */
 extern void *memset(void *dst, int ch, size_t cnt) {
 

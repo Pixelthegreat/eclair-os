@@ -1,7 +1,10 @@
 #include <e.clair/types.h>
 #include <e.clair/io/port.h>
 #include <e.clair/tty.h>
+#include <e.clair/driver/device.h>
 #include <e.clair/driver/ps2.h>
+
+static device_t *dev_p0 = NULL, *dev_p1 = NULL;
 
 /* initialize */
 extern void ps2_init(void) {
@@ -103,6 +106,14 @@ extern void ps2_init(void) {
 	port_outb(PS2_PORT_CMD_STAT, PS2_CMD_WRITE_B0);
 	ps2_wait_write();
 	port_outb(PS2_PORT_DATA, fl);
+
+	/* detect device types */
+	//int dev_p0_type = ps2_get_device_type(0);
+	//tty_printf("%d\n", dev_p0_type);
+
+	/* create devices */
+	dev_p0 = device_new(DEVICE_TYPE_INPUT, DEVICE_SUBTYPE_INPUT_PS2, "PS/2 Device", sizeof(device_input_t));
+	if (p2_pres) dev_p1 = device_new(DEVICE_TYPE_INPUT, DEVICE_SUBTYPE_INPUT_PS2, "PS/2 Device", sizeof(device_input_t));
 }
 
 /* wait for read */

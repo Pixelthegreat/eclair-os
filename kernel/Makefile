@@ -6,7 +6,7 @@ ASMFLAGS=-f$(ASMARCH)
 LDFLAGS=-T kernel/linker.ld -ffreestanding -nostdlib -lgcc
 
 # object files #
-OBJFILES=build/kernel/multiboota.o build/kernel/multiboot.o build/kernel/main.o build/kernel/gdt.o build/kernel/string.o build/kernel/port.o build/kernel/tty.o build/kernel/idt.o build/kernel/idta.o build/kernel/ps2.o build/kernel/paging.o build/kernel/heap.o
+OBJFILES=build/kernel/multiboota.o build/kernel/multiboot.o build/kernel/main.o build/kernel/gdt.o build/kernel/string.o build/kernel/port.o build/kernel/tty.o build/kernel/idt.o build/kernel/idta.o build/kernel/ps2.o build/kernel/paging.o build/kernel/heap.o build/kernel/device.o build/kernel/ata.o
 
 all: build/e.clair
 
@@ -59,6 +59,14 @@ build/kernel/paging.o: kernel/mm/paging.c include/e.clair/mm/paging.h
 	$(SRC_FILENAME)
 	$(CC) $(CFLAGS) -o build/kernel/paging.o kernel/mm/paging.c
 
-build/kernel/heap.o: kernel/heap.c include/e.clair/heap.h
+build/kernel/heap.o: kernel/mm/heap.c include/e.clair/mm/heap.h
 	$(SRC_FILENAME)
-	$(CC) $(CFLAGS) -o build/kernel/heap.o kernel/heap.c
+	$(CC) $(CFLAGS) -o build/kernel/heap.o kernel/mm/heap.c
+
+build/kernel/device.o: kernel/driver/device.c include/e.clair/driver/device.h
+	$(SRC_FILENAME)
+	$(CC) $(CFLAGS) -o build/kernel/device.o kernel/driver/device.c
+
+build/kernel/ata.o: kernel/driver/ata.c include/e.clair/driver/ata.h
+	$(SRC_FILENAME)
+	$(CC) $(CFLAGS) -o build/kernel/ata.o kernel/driver/ata.c
