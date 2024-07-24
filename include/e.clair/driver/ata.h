@@ -24,6 +24,8 @@
 
 /* device commands */
 #define ATA_COMMAND_IDENTIFY 0xec
+#define ATA_COMMAND_READ_SECTORS 0x20
+#define ATA_COMMAND_WRITE_SECTORS 0x30
 
 /* functions */
 extern void ata_init(void); /* initialize */

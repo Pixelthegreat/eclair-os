@@ -67,3 +67,27 @@ extern void device_translate_biosdev(uint32_t dev, device_subtype_t *subtp, int 
 		*n = 0;
 	}
 }
+
+/* search for root device */
+extern device_t *device_find_root(void) {
+
+	return device_find(DEVICE_TYPE_STORAGE, DEVICE_SUBTYPE_STORAGE_ATA, 0);
+}
+
+/* read n blocks from storage device */
+extern void device_storage_read(device_t *dev, uint32_t addr, size_t n, void *buf) {
+
+	if (dev->type != DEVICE_TYPE_STORAGE) return;
+
+	device_storage_t *stdev = (device_storage_t *)dev;
+	if (stdev->read) stdev->read(dev, addr, n, buf);
+}
+
+/* write n blocks to storage device */
+extern void device_storage_write(device_t *dev, uint32_t addr, size_t n, void *buf) {
+
+	if (dev->type != DEVICE_TYPE_STORAGE) return;
+
+	device_storage_t *stdev = (device_storage_t *)dev;
+	if (stdev->write) stdev->write(dev, addr, n, buf);
+}

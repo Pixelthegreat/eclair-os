@@ -18,6 +18,8 @@ typedef unsigned long uint64_t;
 
 /* stddef stuff */
 typedef long size_t;
+typedef long ssize_t;
+typedef unsigned long off_t;
 
 #define NULL ((void *)0)
 

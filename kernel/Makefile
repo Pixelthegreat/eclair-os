@@ -6,7 +6,7 @@ ASMFLAGS=-f$(ASMARCH)
 LDFLAGS=-T kernel/linker.ld -ffreestanding -nostdlib -lgcc
 
 # object files #
-OBJFILES=build/kernel/multiboota.o build/kernel/multiboot.o build/kernel/main.o build/kernel/gdt.o build/kernel/string.o build/kernel/port.o build/kernel/tty.o build/kernel/idt.o build/kernel/idta.o build/kernel/ps2.o build/kernel/paging.o build/kernel/heap.o build/kernel/device.o build/kernel/ata.o
+OBJFILES=build/kernel/multiboota.o build/kernel/multiboot.o build/kernel/main.o build/kernel/gdt.o build/kernel/string.o build/kernel/port.o build/kernel/tty.o build/kernel/idt.o build/kernel/idta.o build/kernel/ps2.o build/kernel/paging.o build/kernel/heap.o build/kernel/device.o build/kernel/ata.o build/kernel/fs.o
 
 all: build/e.clair
 
@@ -70,3 +70,7 @@ build/kernel/device.o: kernel/driver/device.c include/e.clair/driver/device.h
 build/kernel/ata.o: kernel/driver/ata.c include/e.clair/driver/ata.h
 	$(SRC_FILENAME)
 	$(CC) $(CFLAGS) -o build/kernel/ata.o kernel/driver/ata.c
+
+build/kernel/fs.o: kernel/vfs/fs.c include/e.clair/vfs/fs.h
+	$(SRC_FILENAME)
+	$(CC) $(CFLAGS) -o build/kernel/fs.o kernel/vfs/fs.c

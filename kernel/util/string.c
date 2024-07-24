@@ -37,6 +37,21 @@ extern char *strncpy(char *dst, const char *src, size_t cnt) {
 	return dst;
 }
 
+/* compare strings */
+extern int strcmp(const char *a, const char *b) {
+
+	for (; *a == *b && *a; a++, b++);
+	return *(unsigned char *)a - *(unsigned char *)b;
+}
+
+/* compare strings to nth byte */
+extern int strncmp(const char *a, const char *b, size_t n) {
+
+	if (!n--) return 0;
+	for (; *a && *b && n && *a == *b; a++, b++, n--);
+	return *(unsigned char *)a - *(unsigned char *)b;
+}
+
 /* fill a buffer with specified character */
 extern void *memset(void *dst, int ch, size_t cnt) {
 

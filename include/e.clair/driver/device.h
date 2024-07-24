@@ -33,6 +33,7 @@ typedef struct device {
 	device_type_t type; /* type */
 	device_subtype_t subtype; /* subtype */
 	char desc[DEVICE_DESC_MAX_CHARS]; /* device description */
+	uint32_t impl; /* implementation specific value */
 } device_t;
 
 /* input device */
@@ -41,8 +42,8 @@ typedef struct device_input {
 } device_input_t;
 
 /* storage device */
-typedef uint32_t (*device_storage_read_t)(device_t *, uint32_t, uint32_t, void *);
-typedef uint32_t (*device_storage_write_t)(device_t *, uint32_t, uint32_t, void *);
+typedef void (*device_storage_read_t)(device_t *, uint32_t, size_t, void *);
+typedef void (*device_storage_write_t)(device_t *, uint32_t, size_t, void *);
 
 typedef struct device_storage {
 	device_t base; /* base device info */
@@ -57,5 +58,9 @@ extern device_t *device_new(device_type_t type, device_subtype_t subtype, const 
 extern void device_print_all(void); /* debug */
 extern device_t *device_find(device_type_t type, device_subtype_t subtype, int n); /* find nth device of type and subtype */
 extern void device_translate_biosdev(uint32_t dev, device_subtype_t *subtp, int *n); /* translate a bios device number */
+extern device_t *device_find_root(void); /* search for root device */
+
+extern void device_storage_read(device_t *dev, uint32_t addr, size_t n, void *buf); /* read n blocks from storage device */
+extern void device_storage_write(device_t *dev, uint32_t addr, size_t n, void *buf); /* write n blocks to storage device */
 
 #endif /* DEVICE_H */
