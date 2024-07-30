@@ -8,6 +8,9 @@
 #include <e.clair/mm/heap.h>
 #include <e.clair/driver/device.h>
 #include <e.clair/vfs/fs.h>
+#include <e.clair/fs/mbr.h>
+#include <e.clair/fs/ext2.h>
+#include <e.clair/driver/pit.h>
 
 extern void kernel_main() {
 
@@ -20,14 +23,25 @@ extern void kernel_main() {
 	device_init();
 	fs_init();
 
-	/* hello */
 	device_t *root = device_find_root();
+	if (!root) return;
 
-	uint16_t *buf = (uint16_t *)kmalloc(512);
-	device_storage_read(root, 0, 1, buf);
+	mbr_t *mbr = mbr_get_table(root);
+	if (!mbr) return;
 
-	tty_printf("Boot signature: 0x%x\n", buf[255]);
+	fs_node_t *node = mbr_fs_probe(root, mbr);
+	if (!node) return;
 
-	buf[255] = 0xccbb;
-	device_storage_write(root, 0, 1, buf);
+	fs_node_t *bootdir = fs_finddir(node, "boot");
+	if (bootdir) {
+
+		fs_node_t *kernel = fs_finddir(bootdir, "e.clair");
+		if (kernel) {
+
+			tty_printf("kernel size: 0x%x\n", kernel->len);
+		}
+	}
+
+	/* hello */
+	tty_printf("hello, world!\n");
 }

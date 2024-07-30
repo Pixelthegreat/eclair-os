@@ -124,6 +124,7 @@ extern void idt_set_gate(uint32_t n, void *p, uint8_t tp) {
 extern void idt_isr_handler(idt_regs_t *regs) {
 
 	tty_printf("Exception: %d\n", regs->n_int);
+	if (regs->n_int == 14) tty_printf("Error code: %d\n", regs->err_code);
 	while (1) {}
 }
 

@@ -11,6 +11,7 @@ typedef enum device_type {
 	DEVICE_TYPE_NONE = 0,
 	DEVICE_TYPE_INPUT,
 	DEVICE_TYPE_STORAGE,
+	DEVICE_TYPE_TIMER,
 
 	DEVICE_TYPE_COUNT,
 } device_type_t;

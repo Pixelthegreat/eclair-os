@@ -5,7 +5,7 @@
 
 struct fs_node;
 
-/* file types */
+/* file types (matches ext2 for simplicity) */
 #define FS_FILE 0x1
 #define FS_DIRECTORY 0x2
 #define FS_CHARDEVICE 0x4
@@ -13,6 +13,7 @@ struct fs_node;
 #define FS_PIPE 0x10
 #define FS_SYMLINK 0x20
 #define FS_MOUNTPOINT 0x40
+#define FS_SOCKET 0x80
 
 /* file open flags */
 #define FS_READ 0x1
@@ -23,8 +24,7 @@ typedef ssize_t (*fs_read_t)(struct fs_node *, off_t, size_t, uint8_t *);
 typedef ssize_t (*fs_write_t)(struct fs_node *, off_t, size_t, uint8_t *);
 typedef void (*fs_open_t)(struct fs_node *, uint32_t flags);
 typedef void (*fs_close_t)(struct fs_node *);
-typedef struct fs_dirent *(*fs_readdir_t)(struct fs_node *, uint32_t); /* TODO: return dirent */
-typedef struct fs_node *(*fs_finddir_t)(struct fs_node *, const char *); /* find in directory */
+typedef bool (*fs_filldir_t)(struct fs_node *);
 
 #define FS_NAMESZ 128
 
@@ -48,6 +48,7 @@ typedef struct fs_node {
 	uint32_t impl; /* file system implementation info */
 	uint32_t oflags; /* open flags */
 	int refcnt; /* reference count for open files */
+	struct fs_node *parent; /* parent node */
 	struct fs_node *ptr; /* alias pointer for mountpoints and symlinks */
 	fs_dirent_t *first; /* first directory entry */
 	fs_dirent_t *last; /* last directory entry */
@@ -55,8 +56,7 @@ typedef struct fs_node {
 	fs_write_t write; /* write to file */
 	fs_open_t open; /* open file */
 	fs_close_t close; /* close file */
-	fs_readdir_t readdir; /* read directory entry */
-	fs_finddir_t finddir; /* find in directory */
+	fs_filldir_t filldir; /* fill directory node with entries */
 } fs_node_t;
 
 extern fs_node_t *fs_root; /* root node */

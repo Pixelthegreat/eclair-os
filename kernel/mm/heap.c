@@ -116,9 +116,9 @@ extern void *kmalloc(size_t sz) {
 
 	/* map pages */
 	uint32_t boff = (uint32_t)b - b->page * 4096;
-	uint32_t pagel = (boff + (b->next? b->size: sz) + (sizeof(heap_block_t) * 2)) / 4096 + 1;
+	uint32_t pagel = (boff + sz + (sizeof(heap_block_t) * 2)) / 4096 + 1;
+	
 	for (uint32_t i = b->page; i < b->page + pagel; i++) {
-
 		if (!page_is_mapped(i))
 			page_map(i, page_frame_alloc());
 	}

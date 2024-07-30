@@ -28,7 +28,7 @@ extern char *strcpy(char *dst, const char *src) {
 extern char *strncpy(char *dst, const char *src, size_t cnt) {
 
 	size_t idx = 0;
-	while (idx < (cnt-1) && src[idx]) {
+	while (idx < cnt && src[idx]) {
 
 		dst[idx] = src[idx];
 		idx++;
@@ -55,7 +55,15 @@ extern int strncmp(const char *a, const char *b, size_t n) {
 /* fill a buffer with specified character */
 extern void *memset(void *dst, int ch, size_t cnt) {
 
-	if (dst == NULL) return NULL;
+	if (!dst) return NULL;
 	for (size_t i = 0; i < cnt; i++) ((uint8_t *)dst)[i] = (uint8_t)ch;
+	return dst;
+}
+
+/* copy bytes */
+extern void *memcpy(void *dst, const void *src, size_t cnt) {
+
+	if (!dst) return NULL;
+	for (size_t i = 0; i < cnt; i++) ((uint8_t *)dst)[i] = ((uint8_t *)src)[i];
 	return dst;
 }

@@ -3,6 +3,7 @@
 #include <e.clair/tty.h>
 #include <e.clair/multiboot.h>
 #include <e.clair/mm/heap.h>
+#include <e.clair/driver/pit.h>
 #include <e.clair/driver/ps2.h>
 #include <e.clair/driver/ata.h>
 #include <e.clair/driver/device.h>
@@ -14,6 +15,7 @@ static int ndevs = 0; /* number of devices */
 /* initialize all devices */
 extern void device_init(void) {
 
+	pit_init();
 	ps2_init();
 	ata_init();
 }

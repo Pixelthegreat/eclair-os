@@ -37,6 +37,8 @@ boot_page_dir:
 	resb 4096
 boot_page_table1:
 	resb 4096
+boot_page_table2:
+	resb 4096
 multiboot_data_magic:
 	resb 4
 multiboot_data_info:
@@ -52,7 +54,7 @@ _start:
 	
 	mov edi, boot_page_table1 - ADDR_START
 	mov esi, 0
-	mov ecx, 1023
+	mov ecx, 2047
 
 .f1:
 	; only map kernel ;
@@ -78,7 +80,9 @@ _start:
 
 	; map in directory ;
 	mov dword[boot_page_dir - ADDR_START], boot_page_table1 - ADDR_START + 0x003
+	mov dword[boot_page_dir - ADDR_START + 4], boot_page_table2 - ADDR_START + 0x1000 + 0x003
 	mov dword[boot_page_dir - ADDR_START + 768 * 4], boot_page_table1 - ADDR_START + 0x003
+	mov dword[boot_page_dir - ADDR_START + 769 * 4], boot_page_table2 - ADDR_START + 0x1000 + 0x003
 	
 	; update page directory pointer ;
 	mov ecx, boot_page_dir - ADDR_START

@@ -56,6 +56,7 @@ static void ata_read_lba(device_t *dev, uint32_t addr, size_t n, void *buf) {
 	int c = dev->impl / 2;
 	int d = dev->impl % 2;
 	uint16_t port = c? ATA_PORT_SECONDARY: ATA_PORT_PRIMARY;
+	uint8_t cmd = (n == 1)? ATA_COMMAND_READ_SECTORS: ATA_COMMAND_READ_MULTIPLE;
 
 	ata_use_dev(c, d);
 
@@ -67,7 +68,7 @@ static void ata_read_lba(device_t *dev, uint32_t addr, size_t n, void *buf) {
 	port_outb(port + ATA_PORT_DEVICE, (0x40 | (d << 4)) | ((addr >> 24) & 0xf));
 	
 	/* send command */
-	port_outb(port + ATA_PORT_COMMAND, ATA_COMMAND_READ_SECTORS);
+	port_outb(port + ATA_PORT_COMMAND, cmd);
 	if (ata_wait_flag(port, ATA_STATUS_BSY) < 0 || !(status & ATA_STATUS_DRQ))
 		return;
 
@@ -80,6 +81,7 @@ static void ata_write_lba(device_t *dev, uint32_t addr, size_t n, void *buf) {
 	int c = dev->impl / 2;
 	int d = dev->impl % 2;
 	uint16_t port = c? ATA_PORT_SECONDARY: ATA_PORT_PRIMARY;
+	uint8_t cmd = (n == 1)? ATA_COMMAND_WRITE_SECTORS: ATA_COMMAND_WRITE_MULTIPLE;
 
 	ata_use_dev(c, d);
 
@@ -91,7 +93,7 @@ static void ata_write_lba(device_t *dev, uint32_t addr, size_t n, void *buf) {
 	port_outb(port + ATA_PORT_DEVICE, (0x40 | (d << 4)) | ((addr >> 24) & 0xf));
 
 	/* send command */
-	port_outb(port + ATA_PORT_COMMAND, ATA_COMMAND_WRITE_SECTORS);
+	port_outb(port + ATA_PORT_COMMAND, cmd);
 	if (ata_wait_flag(port, ATA_STATUS_BSY) < 0 || !(status & ATA_STATUS_DRQ))
 		return;
 	

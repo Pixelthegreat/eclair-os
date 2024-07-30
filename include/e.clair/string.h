@@ -10,5 +10,6 @@ extern int strcmp(const char *a, const char *b); /* compare strings */
 extern int strncmp(const char *a, const char *b, size_t n); /* compare strings to nth byte */
 
 extern void *memset(void *dst, int ch, size_t cnt); /* fill a buffer with the specified character */
+extern void *memcpy(void *dst, const void *src, size_t cnt); /* copy bytes */
 
 #endif /* STRING_H */

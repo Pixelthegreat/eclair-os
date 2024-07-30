@@ -26,6 +26,8 @@
 #define ATA_COMMAND_IDENTIFY 0xec
 #define ATA_COMMAND_READ_SECTORS 0x20
 #define ATA_COMMAND_WRITE_SECTORS 0x30
+#define ATA_COMMAND_READ_MULTIPLE 0xc4
+#define ATA_COMMAND_WRITE_MULTIPLE 0xc5
 
 /* functions */
 extern void ata_init(void); /* initialize */

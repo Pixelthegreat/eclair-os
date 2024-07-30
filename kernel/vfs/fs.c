@@ -17,7 +17,8 @@ extern fs_dirent_t *fs_dirent_new(const char *name) {
 
 	fs_dirent_t *dent = (fs_dirent_t *)kmalloc(sizeof(fs_dirent_t));
 
-	strncpy(dent->name, name, FS_NAMESZ);
+	if (name) strncpy(dent->name, name, FS_NAMESZ);
+	else dent->name[0] = 0;
 	dent->node = NULL;
 	dent->prev = NULL;
 	dent->next = NULL;
@@ -36,14 +37,18 @@ extern fs_node_t *fs_node_new(fs_node_t *parent, uint32_t flags) {
 	if (parent) {
 
 		node->data = parent->data;
+		node->mask = parent->mask;
+		node->uid = parent->uid;
+		node->gid = parent->gid;
 		node->impl = parent->impl;
 
 		node->read = parent->read;
 		node->write = parent->write;
 		node->open = parent->open;
 		node->close = parent->close;
-		node->readdir = parent->readdir;
-		node->finddir = parent->finddir;
+		node->filldir = parent->filldir;
+
+		node->parent = parent;
 	}
 
 	return node;
@@ -118,6 +123,13 @@ extern void fs_close(fs_node_t *node) {
 /* read directory entry */
 extern fs_dirent_t *fs_readdir(fs_node_t *node, uint32_t idx) {
 
+	if (!node) return NULL;
+	while (node->ptr) node = node->ptr;
+
+	/* fill directory entries (should have . and ..) */
+	if (!node->first) node->filldir(node);
+
+	/* dirents */
 	fs_dirent_t *dent = node->first;
 	uint32_t i = 0;
 	while (dent) {
@@ -126,23 +138,20 @@ extern fs_dirent_t *fs_readdir(fs_node_t *node, uint32_t idx) {
 		dent = dent->next;
 		i++;
 	}
-	
-	/* fs readdir function expected to fill directory if necessary */
-	if (node->readdir) return node->readdir(node, idx);
 	return NULL;
 }
 
 /* find in directory */
 extern fs_node_t *fs_finddir(fs_node_t *node, const char *name) {
 
-	fs_dirent_t *dent = node->first;
-	while (dent) {
+	if (!node || !(node->flags & FS_DIRECTORY)) return NULL;
 
-		if (!strncmp(dent->name, name, FS_NAMESZ)) return dent->node;
-		dent = dent->next;
+	fs_dirent_t *dent;
+	uint32_t idx = 0;
+	while ((dent = fs_readdir(node, idx++)) != NULL) {
+
+		if (!strcmp(dent->name, name))
+			return dent->node;
 	}
-
-	/* exepected to fill directory if necessary */
-	if (node->finddir) return node->finddir(node, name);
 	return NULL;
 }

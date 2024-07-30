@@ -1,4 +1,5 @@
 #include <e.clair/types.h>
+#include <e.clair/string.h>
 #include <e.clair/tty.h>
 #include <e.clair/mm/paging.h>
 
@@ -113,6 +114,10 @@ extern void page_map(page_id_t p, page_frame_id_t f) {
 			
 		page_frame_id_t fr = page_frame_alloc();
 		page_map_table(pt, fr);
+
+		for (int i = 0; i < 1024; i++) {
+			page_table[pt * 1024 + i] = 0;
+		}
 	}
 
 	/* map page */
