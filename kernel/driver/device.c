@@ -6,6 +6,7 @@
 #include <e.clair/driver/pit.h>
 #include <e.clair/driver/ps2.h>
 #include <e.clair/driver/ata.h>
+#include <e.clair/driver/vgacon.h>
 #include <e.clair/driver/device.h>
 
 #define MAX_DEVS 32
@@ -15,6 +16,7 @@ static int ndevs = 0; /* number of devices */
 /* initialize all devices */
 extern void device_init(void) {
 
+	vgacon_init_tty();
 	pit_init();
 	ps2_init();
 	ata_init();

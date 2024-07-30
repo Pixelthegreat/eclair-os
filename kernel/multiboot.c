@@ -1,6 +1,7 @@
 #include <e.clair/types.h>
 #include <e.clair/tty.h>
 #include <e.clair/mm/paging.h>
+#include <e.clair/driver/vgacon.h>
 #include <e.clair/multiboot.h>
 
 #define NBUFSZ 12
@@ -8,6 +9,8 @@ static page_frame_id_t frames[NBUFSZ]; /* buffer to store page frame numbers */
 
 static multiboot_info_t *info = NULL;
 static multiboot_saved_info_t saved;
+
+void *global_framebuffer_test = NULL;
 
 /* initialize */
 extern void multiboot_init(void) {
@@ -23,6 +26,7 @@ extern void multiboot_init(void) {
 		if (tagptr->type == MULTIBOOT_TAG_CMDLINE) {
 
 			multiboot_cmdline_tag_t *tag = (multiboot_cmdline_tag_t *)tagptr;
+			saved.f_cmdline = true;
 			saved.cmdline = tag->cmdline;
 		}
 
@@ -30,6 +34,7 @@ extern void multiboot_init(void) {
 		else if (tagptr->type == MULTIBOOT_TAG_DEV) {
 
 			multiboot_dev_tag_t *tag = (multiboot_dev_tag_t *)tagptr;
+			saved.f_bootdev = true;
 			saved.biosdev = tag->biosdev;
 			saved.part = tag->part;
 			saved.subpart = tag->subpart;
@@ -39,8 +44,15 @@ extern void multiboot_init(void) {
 		else if (tagptr->type == MULTIBOOT_TAG_MEM) {
 
 			multiboot_mem_tag_t *tag = (multiboot_mem_tag_t *)tagptr;
+			saved.f_memlayout = true;
 			saved.memlow = tag->memlow;
 			saved.memup = tag->memup;
+		}
+
+		/* framebuffer */
+		else if (tagptr->type == MULTIBOOT_TAG_FRAMEBUFFER) {
+
+			//
 		}
 
 		/* increment */
@@ -52,8 +64,10 @@ extern void multiboot_init(void) {
 /* get multiboot structure */
 extern void multiboot_map_structure(void) {
 
+	if (info) return;
+
 	page_frame_id_t fr = (uint32_t)multiboot_data_info / 4096;
-	uint32_t poff = (uint32_t)multiboot_data_info - (fr * 4096);
+	uint32_t poff = (uint32_t)multiboot_data_info % 4096;
 	
 	/* determine frames to allocate */
 	size_t nfrs = 1; page_id_t page;
@@ -77,8 +91,8 @@ extern void multiboot_map_structure(void) {
 
 		frames[i] = fr + nfrs + i;
 		page_frame_use(frames[i]);
+		page_map(page + nfrs + i, frames[i]);
 	}
-	(void)page_alloc(frcnt - nfrs, frames);
 }
 
 /* get structure */

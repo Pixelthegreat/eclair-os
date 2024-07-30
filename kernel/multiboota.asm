@@ -1,4 +1,9 @@
 %define ADDR_START 0xC0000000
+%define WIDTH 640
+%define HEIGHT 480
+%define DEPTH 24
+
+%define MAGIC 0xe85250d6
 	
 	global multiboot_data_magic
 	global multiboot_data_info
@@ -10,13 +15,29 @@
 section .multiboot.data
 header_start:
 	; magic number ;
-header_magic dd 0xe85250d6
+header_magic dd MAGIC
 	; architecture ;
 header_arch dd 0
 	; length ;
 header_length dd header_end - header_start
 	; checksum ;
-header_checksum dd 0x100000000 - (0xe85250d6 + (header_end - header_start))
+header_checksum dd -(MAGIC + (header_end - header_start))
+	; framebuffer tag ;
+header_framebuffer_tag:
+	;dw 5
+	;dw 0
+	;dd 20
+	;dd WIDTH
+	;dd HEIGHT
+	;dd DEPTH
+	;dd 0 ; padding ;
+	; information request tag ;
+header_inforeq_tag:
+	dw 1
+	dw 0
+	dd 16
+	dd 8 ; framebuffer ;
+	dd 0 ; reserved ;
 	; end tag ;
 header_end_tag:
 	dw 0

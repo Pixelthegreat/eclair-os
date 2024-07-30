@@ -25,6 +25,15 @@ struct ext2_fs_info {
 	void *block; /* block data */
 };
 
+/* open file info */
+struct ext2_file_info {
+	uint32_t bblk; /* block id */
+	uint32_t bidx; /* block index */
+	void *bdata; /* currently read block */
+	void *bpdata; /* block pointer data */
+	ext2_inode_t inode; /* inode data */
+};
+
 /* translate ext2 inode type */
 static uint32_t ext2_translate_type(uint32_t type) {
 
@@ -95,31 +104,81 @@ static void ext2_read_inode(struct ext2_fs_info *info, uint32_t inode, ext2_inod
 
 /* read block from inode data */
 /* todo: support doubly and triply indirect block pointers */
-static bool ext2_read_inode_block(struct ext2_fs_info *info, ext2_inode_t *inode, uint32_t idx, void *buf) {
+static uint32_t ext2_read_inode_block(struct ext2_fs_info *info, ext2_inode_t *inode, uint32_t idx, void *buf) {
 
 	if (idx < 12) {
 
 		uint32_t block = inode->dbptr[idx];
-		if (!block) return false;
+		if (!block) return 0;
 
 		ext2_read_block(info, block, buf);
-		return true;
+		return block;
 	}
 
 	/* singly indirect block pointer */
 	else if (idx < 12 + (info->blocksize / 4)) {
 
-		if (!inode->sibptr) return false;
+		if (!inode->sibptr) return 0;
 		ext2_read_block(info, inode->sibptr, buf);
 
 		uint32_t block = ((uint32_t *)buf)[idx-12];
-		if (!block) return false;
+		if (!block) return 0;
 
 		ext2_read_block(info, block, buf);
-		return true;
+		return block;
 	}
 
-	return false;
+	return 0;
+}
+
+/* read from file */
+static ssize_t ext2_read(fs_node_t *node, off_t offset, size_t nbytes, uint8_t *buf) {
+
+	struct ext2_fs_info *info = (struct ext2_fs_info *)node->data;
+	struct ext2_file_info *file = (struct ext2_file_info *)node->odata;
+
+	/* copy bytes */
+	size_t count;
+	for (count = 0; count < nbytes; count++) {
+
+		size_t pos = offset + count;
+		if (pos >= node->len) return count;
+
+		/* read next block */
+		if (!file->bblk || (pos / info->blocksize) != file->bidx) {
+
+			file->bidx = pos / info->blocksize;
+
+			if (!file->bdata) file->bdata = kmalloc(info->blocksize);
+			file->bblk = ext2_read_inode_block(info, &file->inode, file->bidx, file->bdata);
+
+			if (!file->bblk) return count;
+		}
+
+		buf[count] = ((uint8_t *)file->bdata)[pos % info->blocksize];
+	}
+	return count;
+}
+
+/* open file */
+static void ext2_open(fs_node_t *node, uint32_t flags) {
+
+	node->odata = kmalloc(sizeof(struct ext2_file_info));
+	
+	struct ext2_file_info *file = (struct ext2_file_info *)node->odata;
+	file->bblk = 0;
+	file->bidx = 0;
+	file->bdata = NULL;
+	file->bpdata = NULL;
+	ext2_read_inode((struct ext2_fs_info *)node->data, node->inode, &file->inode);
+}
+
+/* close file */
+static void ext2_close(fs_node_t *node) {
+
+	struct ext2_file_info *file = (struct ext2_file_info *)node->odata;
+	if (file->bdata) kfree(file->bdata);
+	if (file->bpdata) kfree(file->bpdata);
 }
 
 /* filldir */
@@ -208,6 +267,9 @@ extern fs_node_t *ext2_mbr_mount(fs_node_t *mountp, device_t *dev, mbr_ent_t *pa
 	node->parent = mountp->parent;
 
 	/* operations */
+	node->read = ext2_read;
+	node->open = ext2_open;
+	node->close = ext2_close;
 	node->filldir = ext2_filldir;
 	
 	mountp->ptr = node;

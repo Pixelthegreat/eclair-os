@@ -114,8 +114,8 @@ typedef struct ext2_inode {
 #define EXT2_DIR 0x4000
 #define EXT2_BLKDEV 0x6000
 #define EXT2_REG 0x8000
-#define EXT2_SLINK 0xA0000
-#define EXT2_SOCK 0xC0000
+#define EXT2_SLINK 0xA000
+#define EXT2_SOCK 0xC000
 
 /* directory entry */
 typedef struct ext2_dirent {

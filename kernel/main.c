@@ -12,16 +12,20 @@
 #include <e.clair/fs/ext2.h>
 #include <e.clair/driver/pit.h>
 
+#define BUFSZ 512
+static char buf[BUFSZ];
+
 extern void kernel_main() {
 
 	gdt_init();
 	idt_init();
 	idt_enable();
-	tty_init();
 	page_init();
+	multiboot_init();
 	heap_init();
-	device_init();
 	fs_init();
+	tty_init();
+	device_init();
 
 	device_t *root = device_find_root();
 	if (!root) return;
@@ -32,16 +36,16 @@ extern void kernel_main() {
 	fs_node_t *node = mbr_fs_probe(root, mbr);
 	if (!node) return;
 
-	fs_node_t *bootdir = fs_finddir(node, "boot");
-	if (bootdir) {
-
-		fs_node_t *kernel = fs_finddir(bootdir, "e.clair");
-		if (kernel) {
-
-			tty_printf("kernel size: 0x%x\n", kernel->len);
-		}
-	}
-
 	/* hello */
-	tty_printf("hello, world!\n");
+	fs_node_t *hello = fs_finddir(node, "hello.txt");
+	if (!hello) return;
+
+	fs_open(hello, FS_READ);
+
+	ssize_t nread = fs_read(hello, 0, BUFSZ, buf);
+	buf[26] = 0;
+
+	tty_printf("%s\nBytes read: %d\n", buf, nread);
+
+	fs_close(hello);
 }

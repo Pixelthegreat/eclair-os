@@ -6,4 +6,7 @@ bootdisk.img
 
 # vim #
 *.swp
+
+# personal files #
 notes
+tools

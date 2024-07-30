@@ -6,7 +6,7 @@ ASMFLAGS=-f$(ASMARCH)
 LDFLAGS=-T kernel/linker.ld -ffreestanding -nostdlib -lgcc
 
 # object files #
-OBJFILES=build/kernel/multiboota.o build/kernel/multiboot.o build/kernel/main.o build/kernel/gdt.o build/kernel/string.o build/kernel/port.o build/kernel/tty.o build/kernel/idt.o build/kernel/idta.o build/kernel/ps2.o build/kernel/paging.o build/kernel/heap.o build/kernel/device.o build/kernel/ata.o build/kernel/fs.o build/kernel/mbr.o build/kernel/ext2.o build/kernel/pit.o
+OBJFILES=build/kernel/multiboota.o build/kernel/multiboot.o build/kernel/main.o build/kernel/gdt.o build/kernel/string.o build/kernel/port.o build/kernel/tty.o build/kernel/idt.o build/kernel/idta.o build/kernel/ps2.o build/kernel/paging.o build/kernel/heap.o build/kernel/device.o build/kernel/ata.o build/kernel/fs.o build/kernel/mbr.o build/kernel/ext2.o build/kernel/pit.o build/kernel/vgacon.o
 
 all: build/e.clair
 
@@ -86,3 +86,7 @@ build/kernel/ext2.o: kernel/fs/ext2.c include/e.clair/fs/ext2.h
 build/kernel/pit.o: kernel/driver/pit.c include/e.clair/driver/pit.h
 	$(SRC_FILENAME)
 	$(CC) $(CFLAGS) -o build/kernel/pit.o kernel/driver/pit.c
+
+build/kernel/vgacon.o: kernel/driver/vgacon.c include/e.clair/driver/vgacon.h
+	$(SRC_FILENAME)
+	$(CC) $(CFLAGS) -o build/kernel/vgacon.o kernel/driver/vgacon.c

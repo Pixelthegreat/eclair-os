@@ -18,6 +18,7 @@ sudo mount "/dev/mapper/$looppart" ../tmp
 sudo mkdir -pv ../tmp/boot ../tmp/boot/grub
 sudo cp -v ../boot/grub.cfg ../tmp/boot/grub
 sudo cp -v ./e.clair ../tmp/boot
+sudo cp -v ../base/hello.txt ../tmp
 
 # unmount device #
 sudo umount ../tmp

@@ -35,6 +35,22 @@ typedef struct multiboot_cmdline_tag {
 	char cmdline[0];
 } __attribute__((packed)) multiboot_cmdline_tag_t;
 
+/* framebuffer info */
+#define MULTIBOOT_TAG_FRAMEBUFFER 8
+
+#define MULTIBOOT_FB_TYPE_RGB 1
+
+typedef struct multiboot_framebuffer_tag {
+	multiboot_tag_t tag;
+	uint32_t loaddr; /* low 32 bits of address */
+	uint32_t hiaddr; /* high 32 bits of address */
+	uint32_t pitch; /* number of bytes between rows */
+	uint32_t width; /* width of framebuffer */
+	uint32_t height; /* height of framebuffer */
+	uint8_t bpp; /* bits per pixel */
+	uint8_t type; /* type of framebuffer */
+} __attribute__((packed)) multiboot_framebuffer_tag_t;
+
 /* main info */
 typedef struct multiboot_info {
 	uint32_t size;
@@ -44,6 +60,9 @@ typedef struct multiboot_info {
 
 /* useful structure for saved info */
 typedef struct multiboot_saved_info {
+	bool f_cmdline; /* found command line tag */
+	bool f_memlayout; /* found memory layout tag */
+	bool f_bootdev; /* found boot device */
 	const char *cmdline; /* boot command line */
 	uint32_t memlow; /* lower memory limit */
 	uint32_t memup; /* upper memory limit */

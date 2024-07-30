@@ -91,23 +91,24 @@ extern void fs_node_print(fs_node_t *node) {
 /* read from file */
 extern ssize_t fs_read(fs_node_t *node, off_t offset, size_t nbytes, uint8_t *buf) {
 
-	if (!node->refcnt || !(node->flags & FS_READ) || !node->read) return 0;
+	if (!node->refcnt || !(node->oflags & FS_READ) || !node->read) return 0;
 	return node->read(node, offset, nbytes, buf);
 }
 
 /* write to file */
 extern ssize_t fs_write(fs_node_t *node, off_t offset, size_t nbytes, uint8_t *buf) {
 
-	if (!node->refcnt || !(node->flags & FS_WRITE) || node->write) return 0;
-	return node->read(node, offset, nbytes, buf);
+	if (!node->refcnt || !(node->oflags & FS_WRITE) || !node->write) return 0;
+	return node->write(node, offset, nbytes, buf);
 }
 
 /* open file */
 extern void fs_open(fs_node_t *node, uint32_t flags) {
 
-	if (node->refcnt && node->flags != flags) return;
+	if (node->refcnt && node->oflags != flags) return;
 
 	if (node->open) node->open(node, flags);
+	node->oflags = flags;
 	node->refcnt++;
 }
 
@@ -146,12 +147,12 @@ extern fs_node_t *fs_finddir(fs_node_t *node, const char *name) {
 
 	if (!node || !(node->flags & FS_DIRECTORY)) return NULL;
 
-	fs_dirent_t *dent;
-	uint32_t idx = 0;
-	while ((dent = fs_readdir(node, idx++)) != NULL) {
+	fs_dirent_t *dent = fs_readdir(node, 0);
+	while (dent != NULL) {
 
 		if (!strcmp(dent->name, name))
 			return dent->node;
+		dent = dent->next;
 	}
 	return NULL;
 }

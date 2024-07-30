@@ -48,6 +48,7 @@ typedef struct fs_node {
 	uint32_t impl; /* file system implementation info */
 	uint32_t oflags; /* open flags */
 	int refcnt; /* reference count for open files */
+	void *odata; /* user data pointer for open files */
 	struct fs_node *parent; /* parent node */
 	struct fs_node *ptr; /* alias pointer for mountpoints and symlinks */
 	fs_dirent_t *first; /* first directory entry */
