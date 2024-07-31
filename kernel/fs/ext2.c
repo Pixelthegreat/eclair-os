@@ -132,7 +132,7 @@ static uint32_t ext2_read_inode_block(struct ext2_fs_info *info, ext2_inode_t *i
 }
 
 /* read from file */
-static ssize_t ext2_read(fs_node_t *node, off_t offset, size_t nbytes, uint8_t *buf) {
+static kssize_t ext2_read(fs_node_t *node, uint32_t offset, size_t nbytes, uint8_t *buf) {
 
 	struct ext2_fs_info *info = (struct ext2_fs_info *)node->data;
 	struct ext2_file_info *file = (struct ext2_file_info *)node->odata;

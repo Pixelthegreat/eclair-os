@@ -1,7 +1,6 @@
 #ifndef ECLAIR_DRIVER_PS2_H
 #define ECLAIR_DRIVER_PS2_H
 
-#include <e.clair/types.h>
 #include <e.clair/idt.h>
 
 /* ports for ps/2 8042 controller */

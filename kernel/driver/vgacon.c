@@ -58,11 +58,11 @@ static void vgacon_printc(char c) {
 }
 
 /* read */
-extern ssize_t vgacon_read(fs_node_t *_dev, off_t offset, size_t nbytes, uint8_t *buf) {
+extern kssize_t vgacon_read(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint8_t *buf) {
 }
 
 /* write */
-extern ssize_t vgacon_write(fs_node_t *_dev, off_t offset, size_t nbytes, uint8_t *buf) {
+extern kssize_t vgacon_write(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint8_t *buf) {
 
 	for (size_t i = 0; i < nbytes; i++)
 		vgacon_printc(((char *)buf)[i]);

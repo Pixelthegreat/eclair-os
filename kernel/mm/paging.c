@@ -181,3 +181,9 @@ extern void page_unmap(page_id_t p) {
 	page_table[p] = 0;
 	page_invalidate(p);
 }
+
+/* get kernel page directory */
+extern void *page_get_directory(void) {
+
+	return (void *)page_dir - 0xC0000000;
+}

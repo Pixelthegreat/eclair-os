@@ -20,8 +20,8 @@ struct fs_node;
 #define FS_WRITE 0x2
 
 /* file operations */
-typedef ssize_t (*fs_read_t)(struct fs_node *, off_t, size_t, uint8_t *);
-typedef ssize_t (*fs_write_t)(struct fs_node *, off_t, size_t, uint8_t *);
+typedef kssize_t (*fs_read_t)(struct fs_node *, uint32_t, size_t, uint8_t *);
+typedef kssize_t (*fs_write_t)(struct fs_node *, uint32_t, size_t, uint8_t *);
 typedef void (*fs_open_t)(struct fs_node *, uint32_t flags);
 typedef void (*fs_close_t)(struct fs_node *);
 typedef bool (*fs_filldir_t)(struct fs_node *);
@@ -71,8 +71,8 @@ extern fs_node_t *fs_node_new(fs_node_t *parent, uint32_t flags); /* create new 
 extern void fs_node_add_dirent(fs_node_t *node, fs_dirent_t *dent); /* add dirent */
 extern void fs_node_print(fs_node_t *node); /* print node tree */
 
-extern ssize_t fs_read(fs_node_t *node, off_t offset, size_t nbytes, uint8_t *buf); /* read from file */
-extern ssize_t fs_write(fs_node_t *node, off_t offset, size_t nbytes, uint8_t *buf); /* write to file */
+extern kssize_t fs_read(fs_node_t *node, uint32_t offset, size_t nbytes, uint8_t *buf); /* read from file */
+extern kssize_t fs_write(fs_node_t *node, uint32_t offset, size_t nbytes, uint8_t *buf); /* write to file */
 extern void fs_open(fs_node_t *node, uint32_t flags); /* open file */
 extern void fs_close(fs_node_t *node); /* close file */
 extern fs_dirent_t *fs_readdir(fs_node_t *node, uint32_t idx); /* read directory entry */

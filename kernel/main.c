@@ -11,9 +11,15 @@
 #include <e.clair/fs/mbr.h>
 #include <e.clair/fs/ext2.h>
 #include <e.clair/driver/pit.h>
+#include <e.clair/process.h>
 
 #define BUFSZ 512
 static char buf[BUFSZ];
+
+static process_t *kproc = NULL;
+static process_t *proc = NULL;
+
+static void procfn();
 
 extern void kernel_main() {
 
@@ -26,26 +32,26 @@ extern void kernel_main() {
 	fs_init();
 	tty_init();
 	device_init();
+	process_init();
 
-	device_t *root = device_find_root();
-	if (!root) return;
+	/* setup processes */
+	kproc = process_get_active();
+	proc = process_new(buf+BUFSZ, procfn);
+	proc->pagedir = kproc->pagedir;
 
-	mbr_t *mbr = mbr_get_table(root);
-	if (!mbr) return;
+	asm volatile("cli");
+	while (1) {
 
-	fs_node_t *node = mbr_fs_probe(root, mbr);
-	if (!node) return;
+		tty_printf("A");
+		process_switch(proc);
+	}
+}
 
-	/* hello */
-	fs_node_t *hello = fs_finddir(node, "hello.txt");
-	if (!hello) return;
+static void procfn() {
 
-	fs_open(hello, FS_READ);
+	while (1) {
 
-	ssize_t nread = fs_read(hello, 0, BUFSZ, buf);
-	buf[26] = 0;
-
-	tty_printf("%s\nBytes read: %d\n", buf, nread);
-
-	fs_close(hello);
+		tty_printf("B");
+		process_switch(kproc);
+	}
 }

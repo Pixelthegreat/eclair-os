@@ -111,6 +111,9 @@ extern void heap_print(void) {
 /* allocate */
 extern void *kmalloc(size_t sz) {
 
+	/* quick and dirty alignment fix */
+	sz = ALIGN(sz, 4);
+
 	heap_block_t *b = heap_find(head, sz);
 	if (b == NULL) return NULL;
 

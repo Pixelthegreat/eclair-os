@@ -89,14 +89,14 @@ extern void fs_node_print(fs_node_t *node) {
 }
 
 /* read from file */
-extern ssize_t fs_read(fs_node_t *node, off_t offset, size_t nbytes, uint8_t *buf) {
+extern kssize_t fs_read(fs_node_t *node, uint32_t offset, size_t nbytes, uint8_t *buf) {
 
 	if (!node->refcnt || !(node->oflags & FS_READ) || !node->read) return 0;
 	return node->read(node, offset, nbytes, buf);
 }
 
 /* write to file */
-extern ssize_t fs_write(fs_node_t *node, off_t offset, size_t nbytes, uint8_t *buf) {
+extern kssize_t fs_write(fs_node_t *node, uint32_t offset, size_t nbytes, uint8_t *buf) {
 
 	if (!node->refcnt || !(node->oflags & FS_WRITE) || !node->write) return 0;
 	return node->write(node, offset, nbytes, buf);

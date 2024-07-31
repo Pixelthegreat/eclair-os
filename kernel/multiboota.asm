@@ -7,6 +7,7 @@
 	
 	global multiboot_data_magic
 	global multiboot_data_info
+	global kernel_stack_top
 	
 	extern kernel_main
 	extern _kernel_start
@@ -50,6 +51,7 @@ section .bootstrap_stack nobits
 stack_bottom:
 	resb 32768 ; 32 KiB ;
 stack_top:
+kernel_stack_top:
 
 ; page tables ;
 section .bss nobits
