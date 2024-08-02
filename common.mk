@@ -2,6 +2,7 @@ include config.mk
 
 SRC_FILENAME=@echo $(notdir $<)
 DST_FILENAME=@echo $(notdir $@)
+BUILD_TARGETNAME=@echo == $@ ==
 
 CC=$(TARGET)-gcc
 LD=$(TARGET)-gcc

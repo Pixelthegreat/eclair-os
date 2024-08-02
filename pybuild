@@ -1,0 +1,170 @@
+#!/usr/bin/env python3
+# PyBuild - a simple build system for use in low-level applications
+import sys
+import os
+
+# constants #
+START_MAKEFILE = """include common.mk
+"""
+
+# argument parser #
+class ArgumentParser:
+    HELP = 0x1 # display help #
+    DEPENDENCY = 0x2 # generate a dependency makefile instead of a standalone #
+
+    def __init__(self, argv):
+        self.argv = argv
+
+    # print usage #
+    def print_usage(self):
+        print(f'Usage: {self.argv[0]} [options]\n\noptions:\n\t-help\tPrint usage\n\t-dep\tGenerate dependency makefiles (include *.mk)')
+
+    # parse arguments #
+    def parse(self):
+        flags = 0
+
+        for arg in self.argv:
+            if arg[0] == '-':
+                if arg == '-help':
+                    self.print_usage()
+                    flags |= ArgumentParser.HELP
+                elif arg == '-dep':
+                    flags |= ArgumentParser.DEPENDENCY
+                else:
+                    print(f'Unrecognized option: \'{arg}\'')
+                    self.print_usage()
+                    flags |= ArgumentParser.HELP
+
+        return flags
+
+# makefile generator #
+class MakefileGenerator:
+    def __init__(self, modules, flags=None):
+        self.modules = []
+        self.string = None
+        self.dep = False # generate dependency makefiles #
+
+        for name in modules:
+            self.modules.append(__import__(name).module)
+
+        # interpret flags #
+        if flags is not None:
+            self.dep = bool(flags & ArgumentParser.DEPENDENCY)
+
+    # generate all associated makefiles #
+    def generate_all(self):
+        for mod in self.modules:
+            self.generate(mod)
+
+    # generate associated makefile #
+    def generate(self, mod):
+        makefile_fname = f'{mod["name"]}.mk'
+        print(f'Generating {makefile_fname}...')
+
+        self.string = START_MAKEFILE if not self.dep else ''
+
+        # add constants #
+        for target in mod['targets']:
+            self.add_constants(target)
+
+        # add target list #
+        self.string += '\nall:' if not self.dep else f'\nall_{target["name"]}:'
+        for target in mod['targets']:
+            self.string += ' ' + target['out']
+
+        # targets #
+        for target in mod['targets']:
+            self.add_target(target)
+
+        # save file #
+        self.string += '\n'
+        with open(makefile_fname, 'w') as fp:
+            fp.write(self.string)
+        self.string = None
+
+    # add constants #
+    def add_constants(self, target):
+        name = target['name'].upper()
+        objdir = target['objdir']
+
+        if not self.dep: self.string += '\n'
+
+        # cflags #
+        self.string += f'{name}_CFLAGS=-c'
+        if 'cflags' in target:
+            self.string += ' ' + target['cflags']
+
+        # asmflags #
+        self.string += f'\n{name}_ASMFLAGS='
+        if 'asmflags' in target:
+            self.string += target['asmflags']
+
+        # ldflags #
+        self.string += f'\n{name}_LDFLAGS='
+        if 'ldflags' in target:
+            self.string += target['ldflags']
+
+        # objfiles #
+        self.string += f'\n{name}_OBJFILES='
+        if 'c-files' in target: self.add_objfiles(objdir, target['c-files'])
+        if 'asm-files' in target: self.add_objfiles(objdir, target['asm-files'])
+        self.string += '\n'
+
+    # add object files #
+    def add_objfiles(self, objdir, files):
+        for src in files:
+            fname = src[0] if isinstance(src, tuple) else src
+            self.string += os.path.join(objdir, os.path.splitext(os.path.basename(fname))[0] + '.o ')
+
+    # add target #
+    def add_target(self, target):
+        name = target['name'].upper()
+        out = target['out']
+
+        self.string += f'\n\n{out}: $({name}_OBJFILES)\n\t$(DST_FILENAME)\n\t@$(LD) -o {out} $({name}_OBJFILES) $({name}_LDFLAGS)'
+
+        # add source rules #
+        if 'c-files' in target: self.add_source_rules(target, target['c-files'])
+        if 'asm-files' in target: self.add_source_rules(target, target['asm-files'], ext='asm')
+
+    # add source rules #
+    def add_source_rules(self, target, files, ext='c'):
+        comp='ASM' if ext == 'asm' else 'CC'
+        flags='ASMFLAGS' if ext == 'asm' else 'CFLAGS'
+        name = target['name'].upper()
+        srcdir = target['srcdir']
+        objdir = target['objdir']
+        depsdir = target['depsdir']
+
+        for src in files:
+            fname = src[0] if isinstance(src, tuple) else src
+            deps = src[1:] if isinstance(src, tuple) else None
+            objfile = os.path.splitext(os.path.basename(fname))[0] + '.o'
+
+            fname = os.path.join(srcdir, fname)
+            objfile = os.path.join(objdir, objfile)
+
+            self.string += f'\n\n{objfile}: {fname}'
+            if deps:
+                for dep in deps:
+                    self.string += ' ' + os.path.join(depsdir, dep)
+
+            self.string += f'\n\t$(SRC_FILENAME)\n\t@$({comp}) $({name}_{flags}) -o {objfile} {fname}'
+
+# main #
+def main():
+    from modules import modules
+
+    # parse arguments #
+    argparse = ArgumentParser(sys.argv)
+    flags = argparse.parse()
+
+    if flags & ArgumentParser.HELP:
+        return
+
+    # generate makefiles #
+    makegen = MakefileGenerator(modules, flags)
+    makegen.generate_all()
+
+if __name__ == '__main__':
+    main()

@@ -2,6 +2,7 @@
 #include <e.clair/tty.h>
 #include <e.clair/mm/paging.h>
 #include <e.clair/driver/vgacon.h>
+#include <e.clair/driver/fb.h>
 #include <e.clair/multiboot.h>
 
 #define NBUFSZ 12
@@ -50,7 +51,18 @@ extern void multiboot_init(void) {
 		/* framebuffer */
 		else if (tagptr->type == MULTIBOOT_TAG_FRAMEBUFFER) {
 
-			//
+			multiboot_framebuffer_tag_t *tag = (multiboot_framebuffer_tag_t *)tagptr;
+			if (1) {
+
+				saved.f_framebuf = true;
+				saved.fb_addr = (void *)tag->loaddr;
+				saved.fb_pitch = tag->pitch;
+				saved.fb_width = tag->width;
+				saved.fb_height = tag->height;
+				saved.fb_bpp = tag->bpp;
+
+				fb_map(&saved);
+			}
 		}
 
 		/* increment */

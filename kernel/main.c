@@ -10,7 +10,15 @@
 #include <e.clair/vfs/fs.h>
 #include <e.clair/fs/mbr.h>
 #include <e.clair/fs/ext2.h>
-#include <e.clair/driver/pit.h>
+#include <e.clair/process.h>
+
+#define BUFSZ 512
+static char buf[BUFSZ];
+
+static process_t *kproc = NULL;
+static process_t *proc = NULL;
+
+static void procfn();
 
 extern void kernel_main() {
 
@@ -23,17 +31,29 @@ extern void kernel_main() {
 	fs_init();
 	tty_init();
 	device_init();
+	process_init();
 
-	/* hello */
-	for (int i = 0; i < 8; i++) {
-		for (int j = 1; j < 3; j++) {
+	kproc = process_active;
+	proc = process_new(buf+BUFSZ, procfn);
+	proc->pagedir = kproc->pagedir;
 
-			tty_printf("\x1b[%d;%dmHello, world!   ", j, i+30);
-		}
-		tty_print("\n");
+	kproc->next = proc;
+	proc->next = kproc;
+
+	process_start();
+
+	while (1) {
+		asm("sti");
+
+		tty_printf("A");
 	}
-	tty_print("\x1b[0m\n");
+}
 
-	/* cause page fault */
-	*(uint32_t *)NULL = 0;
+static void procfn() {
+
+	while (1) {
+		asm("sti");
+
+		tty_printf("B");
+	}
 }

@@ -23,6 +23,7 @@ extern process_t *process_active;
 /* functions */
 extern void process_init(void); /* initialize */
 extern process_t *process_new(void *esp, void *seteip); /* create new process */
+extern void process_start(void); /* start process irq */
 extern void process_switch(process_t *proc); /* switch processes */
 extern void process_schedule(void); /* schedule process */
 

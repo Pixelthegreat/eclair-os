@@ -63,12 +63,18 @@ typedef struct multiboot_saved_info {
 	bool f_cmdline; /* found command line tag */
 	bool f_memlayout; /* found memory layout tag */
 	bool f_bootdev; /* found boot device */
+	bool f_framebuf; /* found framebuffer */
 	const char *cmdline; /* boot command line */
 	uint32_t memlow; /* lower memory limit */
 	uint32_t memup; /* upper memory limit */
 	uint32_t biosdev; /* bios boot device */
 	uint32_t part; /* partition */
 	uint32_t subpart; /* sub-partition */
+	void *fb_addr; /* framebuffer address */
+	uint32_t fb_pitch; /* space in bytes between lines */
+	uint32_t fb_width; /* framebuffer width */
+	uint32_t fb_height; /* framebuffer height */
+	uint32_t fb_bpp; /* bits per pixel */
 } multiboot_saved_info_t;
 
 /* preloaded values */

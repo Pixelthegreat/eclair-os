@@ -34,11 +34,11 @@ header_framebuffer_tag:
 	;dd 0 ; padding ;
 	; information request tag ;
 header_inforeq_tag:
-	dw 1
-	dw 0
-	dd 16
-	dd 8 ; framebuffer ;
-	dd 0 ; reserved ;
+	;dw 1
+	;dw 0
+	;dd 16
+	;dd 8 ; framebuffer ;
+	;dd 0 ; reserved ;
 	; end tag ;
 header_end_tag:
 	dw 0

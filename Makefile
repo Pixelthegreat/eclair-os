@@ -1,4 +1,6 @@
-.PHONY: kernel setup clean run
+include common.mk
+
+.PHONY: kernel bootdisk setup clean run
 
 QEMUARGS=-drive if=ide,id=ata0.0,index=0,file=build/bootdisk.img,format=raw
 
@@ -6,16 +8,18 @@ QEMUARGS=-drive if=ide,id=ata0.0,index=0,file=build/bootdisk.img,format=raw
 all: kernel bootdisk
 
 kernel:
-	@echo == kernel \(e.clair\) ==
-	@make -s -f kernel/Makefile all
+	$(BUILD_TARGETNAME)
+	@make -s -f kernel.mk all
 
+# bootdisk setup #
 bootdisk: kernel
-	@echo == bootdisk ==
+	$(BUILD_TARGETNAME)
 	@./bootdisk.sh
 
 # setup routines #
 setup:
 	@mkdir -pv build build/kernel
+	@./pybuild
 
 clean:
 	@rm -v build/kernel/* build/e.clair

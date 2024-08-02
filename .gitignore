@@ -3,6 +3,8 @@ build
 tmp
 boot/device.map
 bootdisk.img
+__pycache__
+kernel.mk
 
 # vim #
 *.swp
@@ -10,3 +12,4 @@ bootdisk.img
 # personal files #
 notes
 tools
+old
