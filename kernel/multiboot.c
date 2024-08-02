@@ -10,8 +10,6 @@ static page_frame_id_t frames[NBUFSZ]; /* buffer to store page frame numbers */
 static multiboot_info_t *info = NULL;
 static multiboot_saved_info_t saved;
 
-void *global_framebuffer_test = NULL;
-
 /* initialize */
 extern void multiboot_init(void) {
 

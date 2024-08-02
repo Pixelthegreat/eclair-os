@@ -4,6 +4,7 @@
 #include <e.clair/multiboot.h>
 #include <e.clair/mm/heap.h>
 #include <e.clair/driver/pit.h>
+#include <e.clair/driver/rtc.h>
 #include <e.clair/driver/ps2.h>
 #include <e.clair/driver/ata.h>
 #include <e.clair/driver/vgacon.h>
@@ -18,6 +19,7 @@ extern void device_init(void) {
 
 	vgacon_init_tty();
 	pit_init();
+	rtc_init();
 	ps2_init();
 	ata_init();
 }

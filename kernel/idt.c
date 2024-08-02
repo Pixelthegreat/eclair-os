@@ -2,6 +2,7 @@
 #include <e.clair/io/port.h>
 #include <e.clair/mm/gdt.h>
 #include <e.clair/tty.h>
+#include <e.clair/panic.h>
 #include <e.clair/idt.h>
 
 static idt_descriptor_t idt_desc;
@@ -123,10 +124,8 @@ extern void idt_set_gate(uint32_t n, void *p, uint8_t tp) {
 /* main isr handler */
 extern void idt_isr_handler(idt_regs_t *regs) {
 
-	tty_printf("Exception: %d\n", regs->n_int);
-	tty_printf("EIP: 0x%x\n", regs->eip);
-	if (regs->n_int == 14) tty_printf("Error code: %d\n", regs->err_code);
-	while (1) {}
+	tty_printf("Exception: %d (code: 0x%x)\n", regs->n_int, regs->err_code);
+	kpanic(regs->n_int == 14? PANIC_CODE_FAULT: 0, "CPU exception", regs);
 }
 
 /* main irq handler */
@@ -144,4 +143,11 @@ extern void idt_set_irq_callback(uint32_t n, idt_isr_t isr) {
 
 	if (n > 15) return;
 	isrs[32 + n] = isr;
+}
+
+/* send eoi command to first pic */
+extern void idt_send_eoi(void) {
+
+	port_outb(IDT_PIC0_CMD, IDT_PIC_CMD_EOI);
+	port_outb(IDT_PIC1_CMD, IDT_PIC_CMD_EOI);
 }

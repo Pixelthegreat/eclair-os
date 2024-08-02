@@ -6,13 +6,13 @@ ASMFLAGS=-f$(ASMARCH)
 LDFLAGS=-T kernel/linker.ld -ffreestanding -nostdlib -lgcc
 
 # object files #
-OBJFILES=build/kernel/multiboota.o build/kernel/multiboot.o build/kernel/main.o build/kernel/gdt.o build/kernel/string.o build/kernel/port.o build/kernel/tty.o build/kernel/idt.o build/kernel/idta.o build/kernel/ps2.o build/kernel/paging.o build/kernel/heap.o build/kernel/device.o build/kernel/ata.o build/kernel/fs.o build/kernel/mbr.o build/kernel/ext2.o build/kernel/pit.o build/kernel/vgacon.o build/kernel/process.o build/kernel/processa.o
+OBJFILES=build/kernel/multiboota.o build/kernel/multiboot.o build/kernel/main.o build/kernel/gdt.o build/kernel/string.o build/kernel/port.o build/kernel/tty.o build/kernel/idt.o build/kernel/idta.o build/kernel/ps2.o build/kernel/paging.o build/kernel/heap.o build/kernel/device.o build/kernel/ata.o build/kernel/fs.o build/kernel/mbr.o build/kernel/ext2.o build/kernel/pit.o build/kernel/vgacon.o build/kernel/process.o build/kernel/processa.o build/kernel/rtc.o build/kernel/panic.o
 
 all: build/e.clair
 
 build/e.clair: $(OBJFILES) kernel/linker.ld
 	$(DST_FILENAME)
-	$(LD) $(LDFLAGS) -o build/e.clair $(OBJFILES)
+	$(LD) -o build/e.clair $(OBJFILES) $(LDFLAGS)
 
 # objs #
 build/kernel/multiboota.o: kernel/multiboota.asm
@@ -98,3 +98,11 @@ build/kernel/process.o: kernel/process.c include/e.clair/process.h
 build/kernel/processa.o: kernel/processa.asm include/e.clair/process.h
 	$(SRC_FILENAME)
 	$(ASM) $(ASMFLAGS) -o build/kernel/processa.o kernel/processa.asm
+
+build/kernel/rtc.o: kernel/driver/rtc.c include/e.clair/driver/rtc.h
+	$(SRC_FILENAME)
+	$(CC) $(CFLAGS) -o build/kernel/rtc.o kernel/driver/rtc.c
+
+build/kernel/panic.o: kernel/panic.c include/e.clair/panic.h
+	$(SRC_FILENAME)
+	$(CC) $(CFLAGS) -o build/kernel/panic.o kernel/panic.c

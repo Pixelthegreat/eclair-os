@@ -52,6 +52,17 @@ extern int strncmp(const char *a, const char *b, size_t n) {
 	return *(unsigned char *)a - *(unsigned char *)b;
 }
 
+/* find character in string */
+extern char *strchr(const char *str, int ch) {
+
+	while (*str) {
+		if ((int)*str == ch)
+			return (char *)str;
+		str++;
+	}
+	return NULL;
+}
+
 /* fill a buffer with specified character */
 extern void *memset(void *dst, int ch, size_t cnt) {
 

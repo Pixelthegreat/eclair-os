@@ -15,9 +15,49 @@ static fs_node_t *dev = NULL;
 #define VGA_OFFSET_LOW 0x0f
 #define VGA_OFFSET_HIGH 0x0e
 
+#define DEFAULT_COLOR 0x7
+static uint8_t color = DEFAULT_COLOR;
+
 static uint8_t *vidmem = (uint8_t *)0xC03FF000;
 static uint32_t idx = 0;
 
+#define ESCBUFSZ 32
+static char escbuf[32]; /* escape code buffer */
+static size_t nescbuf = 0; /* number of chars in buffer */
+static bool escready = false; /* ready to interpret sequence */
+
+static const char *endstr = "mM"; /* escape code endings */
+
+/* style colors */
+static uint8_t stcolors[10] = {
+	0x0, /* black */
+	0x4, /* red */
+	0x2, /* green */
+	0x6, /* yellow */
+	0x1, /* blue */
+	0x5, /* magenta */
+	0x3, /* cyan */
+	0x7, /* white */
+	DEFAULT_COLOR,
+	DEFAULT_COLOR,
+};
+
+#define IS_DIGIT(c) ((c) >= '0' && (c) <= '9')
+
+/* read integer from escape code buffer */
+static uint32_t read_esc_int(uint32_t p, int *d) {
+
+	char c = escbuf[p];
+	int r = 0;
+	for (; IS_DIGIT(c); c = escbuf[++p])
+		r = r * 10 + (c - '0');
+	*d = r;
+
+	if (c == ';') p++; /* argument separator */
+	return p;
+}
+
+/* update scrolling */
 static void vgacon_scroll(void) {
 
 	if (idx < VGA_WIDTH * VGA_HEIGHT) return;
@@ -35,19 +75,98 @@ static void vgacon_scroll(void) {
 /* clear screen */
 static void vgacon_clear(void) {
 
-	memset(vidmem, 0, VGA_WIDTH * VGA_HEIGHT * 2);
+	for (uint32_t i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+
+		vidmem[i * 2] = 0;
+		vidmem[i * 2 + 1] = color;
+	}
 }
 
 /* print character */
 static void vgacon_printc(char c) {
 
 	if (c == '\n') idx += VGA_WIDTH - (idx % VGA_WIDTH);
+
+	/* escape code */
+	else if (c == 0x1b) {
+		nescbuf = 1;
+		escbuf[0] = 0x1b;
+	}
+	else if (nescbuf == 1 && c == '[') escbuf[nescbuf++] = '[';
+	else if (nescbuf >= 2) {
+
+		/* ready */
+		if (nescbuf >= ESCBUFSZ-1) {
+
+			escready = true;
+			escbuf[nescbuf] = 0;
+		}
+		else {
+
+			escbuf[nescbuf++] = c;
+			if (strchr(endstr, c)) {
+
+				escready = true;
+				escbuf[nescbuf] = 0;
+			}
+		}
+	}
+
+	/* normal character */
 	else {
 
+		nescbuf = 0; /* reset escape buffer count */
+		escready = false;
+
 		vidmem[idx * 2] = c;
-		vidmem[idx * 2 + 1] = 0x7;
+		vidmem[idx * 2 + 1] = color;
 		idx++;
 	}
+
+	/* interpret escape code */
+	if (escready) {
+
+		char cmd = escbuf[nescbuf-1];
+		nescbuf = 0;
+		escready = false;
+
+		/* change style */
+		if (cmd == 'm') {
+
+			int num = 1;
+			uint32_t pos = 2;
+			bool bright = false;
+			while (escbuf[pos] && escbuf[pos] != cmd) {
+
+				pos = read_esc_int(pos, &num);
+
+				/* reset */
+				if (num == 0) {
+					bright = false;
+					color = DEFAULT_COLOR;
+				}
+
+				/* bright/bold */
+				else if (num == 2) bright = true;
+
+				/* dim/faint */
+				else if (num == 1) bright = false;
+
+				/* color */
+				else if (num >= 30 && num < 50) {
+
+					int bg = (num-30) / 10;
+					uint8_t col = stcolors[(num-30) % 10] + (bright? 8: 0);
+
+					/* set color */
+					color &= 0xf << (bg? 0: 4);
+					color |= col << (bg? 4: 0);
+				}
+			}
+		}
+	}
+
+	/* update scrolling */
 	vgacon_scroll();
 
 	/* update cursor position */

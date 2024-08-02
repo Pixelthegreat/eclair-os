@@ -51,12 +51,12 @@ extern void gdt_init(void) {
 	gdt_desc.addr = (unsigned long)gdt;
 
 	/* load gdt */
-	__asm__("lgdt (gdt_desc)\n"
-		"mov $16,%ax\n"
-		"mov %ax,%ds\n"
-		"mov %ax,%es\n"
-		"mov %ax,%fs\n"
-		"mov %ax,%gs\n"
-		"jmp $8,$random_label\n"
-		"random_label:");
+	__asm__ volatile("lgdt (gdt_desc)\n"
+			 "mov $16,%ax\n"
+			 "mov %ax,%ds\n"
+			 "mov %ax,%es\n"
+			 "mov %ax,%fs\n"
+			 "mov %ax,%gs\n"
+			 "jmp $8,$random_label\n"
+			 "random_label:");
 }
