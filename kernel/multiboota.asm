@@ -135,6 +135,6 @@ section .text
 	; enter kernel ;
 	call kernel_main
 	
-	;cli
-	;hlt
-	jmp $
+.loop:
+	hlt
+	jmp .loop

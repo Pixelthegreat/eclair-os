@@ -80,6 +80,26 @@ extern device_t *device_find_root(void) {
 	return device_find(DEVICE_TYPE_STORAGE, DEVICE_SUBTYPE_STORAGE_ATA, 0);
 }
 
+/* read next int from device */
+extern uint32_t device_input_read(device_t *dev, bool block) {
+
+	device_input_t *inpdev = (device_input_t *)dev;
+
+	/* wait for values to become available */
+	if (inpdev->s_buf == inpdev->e_buf) {
+		if (block) {
+			while (inpdev->s_buf == inpdev->e_buf)
+				__asm__("hlt");
+		}
+		else return 0;
+	}
+
+	/* get value */
+	uint32_t val = inpdev->buf[inpdev->s_buf];
+	inpdev->s_buf = (inpdev->s_buf + 1) % DEVICE_INPUT_BUFSZ;
+	return val;
+}
+
 /* read n blocks from storage device */
 extern void device_storage_read(device_t *dev, uint32_t addr, size_t n, void *buf) {
 

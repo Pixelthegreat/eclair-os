@@ -4,7 +4,7 @@
 #include <e.clair/io/port.h>
 #include <e.clair/driver/rtc.h>
 
-#define RTC_RATE 7 /* 1024 hz */
+#define RTC_RATE 6 /* 1 kHz (32768 >> (6-1)) */
 
 uint64_t rtc_pass = 0; /* time to pass every irq */
 uint64_t rtc_ns = 0; /* time nanosecond value */

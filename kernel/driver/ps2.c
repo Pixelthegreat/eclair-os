@@ -1,13 +1,156 @@
 #include <e.clair/types.h>
+#include <e.clair/string.h>
 #include <e.clair/io/port.h>
 #include <e.clair/tty.h>
 #include <e.clair/driver/device.h>
 #include <e.clair/driver/ps2.h>
 
+static bool wait_int = true; /* ignore interrupts */
 static device_t *dev_p0 = NULL, *dev_p1 = NULL;
+static bool rel = false; /* key was released */
+static bool other = false; /* key was pressed */
+
+static uint8_t ps2_send_command(uint8_t cmd);
+
+/* scancode lookup tables */
+static uint32_t scancodes2[256];
+static uint32_t scancodes2_other[256];
+
+/* translate scancode */
+static uint32_t translate_code(uint8_t b) {
+
+	if (b == 0xf0) { /* key was released */
+
+		rel = true;
+		return 0;
+	}
+	if (b == 0xe0) { /* other key */
+
+		other = true;
+		return 0;
+	}
+
+	uint32_t key = other? scancodes2_other[b]: scancodes2[b];
+	if (rel) key |= DEVICE_KEYCODE_RELEASE;
+
+	rel = false;
+	other = false;
+	return key;
+}
+
+/* fill scancode sets with appropriate translations */
+static void ps2_fill_scancode_sets(void) {
+
+	scancodes2[0x01] = DEVICE_KEYCODE_F9;
+	scancodes2[0x03] = DEVICE_KEYCODE_F5;
+	scancodes2[0x04] = DEVICE_KEYCODE_F3;
+	scancodes2[0x05] = DEVICE_KEYCODE_F1;
+	scancodes2[0x06] = DEVICE_KEYCODE_F6;
+	scancodes2[0x07] = DEVICE_KEYCODE_F12;
+	scancodes2[0x09] = DEVICE_KEYCODE_F10;
+	scancodes2[0x0a] = DEVICE_KEYCODE_F8;
+	scancodes2[0x0b] = DEVICE_KEYCODE_F6;
+	scancodes2[0x0c] = DEVICE_KEYCODE_F4;
+
+	scancodes2[0x0d] = DEVICE_KEYCODE_TAB;
+	scancodes2[0x0e] = DEVICE_KEYCODE_BACKTICK;
+	scancodes2[0x11] = DEVICE_KEYCODE_LEFT_ALT;
+	scancodes2[0x12] = DEVICE_KEYCODE_LEFT_SHIFT;
+	scancodes2[0x14] = DEVICE_KEYCODE_LEFT_CONTROL;
+
+	scancodes2[0x15] = DEVICE_KEYCODE_Q;
+	scancodes2[0x16] = DEVICE_KEYCODE_1;
+	scancodes2[0x1a] = DEVICE_KEYCODE_Z;
+	scancodes2[0x1b] = DEVICE_KEYCODE_S;
+	scancodes2[0x1c] = DEVICE_KEYCODE_A;
+	scancodes2[0x1d] = DEVICE_KEYCODE_W;
+	scancodes2[0x1e] = DEVICE_KEYCODE_2;
+	scancodes2[0x21] = DEVICE_KEYCODE_C;
+	scancodes2[0x22] = DEVICE_KEYCODE_X;
+	scancodes2[0x23] = DEVICE_KEYCODE_D;
+	scancodes2[0x24] = DEVICE_KEYCODE_E;
+	scancodes2[0x25] = DEVICE_KEYCODE_4;
+	scancodes2[0x26] = DEVICE_KEYCODE_3;
+	scancodes2[0x29] = DEVICE_KEYCODE_SPACE;
+	scancodes2[0x2a] = DEVICE_KEYCODE_V;
+	scancodes2[0x2b] = DEVICE_KEYCODE_F;
+	scancodes2[0x2c] = DEVICE_KEYCODE_T;
+	scancodes2[0x2d] = DEVICE_KEYCODE_R;
+	scancodes2[0x2e] = DEVICE_KEYCODE_5;
+	scancodes2[0x31] = DEVICE_KEYCODE_N;
+	scancodes2[0x32] = DEVICE_KEYCODE_B;
+	scancodes2[0x33] = DEVICE_KEYCODE_H;
+	scancodes2[0x34] = DEVICE_KEYCODE_G;
+	scancodes2[0x35] = DEVICE_KEYCODE_Y;
+	scancodes2[0x36] = DEVICE_KEYCODE_6;
+	scancodes2[0x3a] = DEVICE_KEYCODE_M;
+	scancodes2[0x3b] = DEVICE_KEYCODE_J;
+	scancodes2[0x3c] = DEVICE_KEYCODE_U;
+	scancodes2[0x3d] = DEVICE_KEYCODE_7;
+	scancodes2[0x3e] = DEVICE_KEYCODE_8;
+	scancodes2[0x41] = DEVICE_KEYCODE_COMMA;
+	scancodes2[0x42] = DEVICE_KEYCODE_K;
+	scancodes2[0x43] = DEVICE_KEYCODE_I;
+	scancodes2[0x44] = DEVICE_KEYCODE_O;
+	scancodes2[0x45] = DEVICE_KEYCODE_0;
+	scancodes2[0x46] = DEVICE_KEYCODE_9;
+	scancodes2[0x49] = DEVICE_KEYCODE_DOT;
+	scancodes2[0x4a] = DEVICE_KEYCODE_SLASH;
+	scancodes2[0x4b] = DEVICE_KEYCODE_L;
+	scancodes2[0x4c] = DEVICE_KEYCODE_SEMICOLON;
+	scancodes2[0x4d] = DEVICE_KEYCODE_P;
+	scancodes2[0x4e] = DEVICE_KEYCODE_MINUS;
+	scancodes2[0x52] = DEVICE_KEYCODE_QUOTE;
+	scancodes2[0x54] = DEVICE_KEYCODE_LEFT_BRACKET;
+	scancodes2[0x55] = DEVICE_KEYCODE_EQUALS;
+
+	scancodes2[0x58] = DEVICE_KEYCODE_CAPS_LOCK;
+	scancodes2[0x59] = DEVICE_KEYCODE_RIGHT_SHIFT;
+	scancodes2[0x5a] = DEVICE_KEYCODE_RETURN;
+	scancodes2[0x5b] = DEVICE_KEYCODE_RIGHT_BRACKET;
+	scancodes2[0x5d] = DEVICE_KEYCODE_BACKSLASH;
+	scancodes2[0x66] = DEVICE_KEYCODE_BACKSPACE;
+
+	scancodes2[0x69] = DEVICE_KEYCODE_NUMPAD_1;
+	scancodes2[0x6b] = DEVICE_KEYCODE_NUMPAD_4;
+	scancodes2[0x6c] = DEVICE_KEYCODE_NUMPAD_7;
+	scancodes2[0x70] = DEVICE_KEYCODE_NUMPAD_0;
+	scancodes2[0x71] = DEVICE_KEYCODE_NUMPAD_DOT;
+	scancodes2[0x72] = DEVICE_KEYCODE_NUMPAD_2;
+	scancodes2[0x73] = DEVICE_KEYCODE_NUMPAD_5;
+	scancodes2[0x74] = DEVICE_KEYCODE_NUMPAD_6;
+	scancodes2[0x75] = DEVICE_KEYCODE_NUMPAD_8;
+	scancodes2[0x76] = DEVICE_KEYCODE_ESCAPE;
+	scancodes2[0x77] = DEVICE_KEYCODE_NUM_LOCK;
+	scancodes2[0x78] = DEVICE_KEYCODE_F11;
+	scancodes2[0x79] = DEVICE_KEYCODE_NUMPAD_PLUS;
+	scancodes2[0x7a] = DEVICE_KEYCODE_NUMPAD_3;
+	scancodes2[0x7b] = DEVICE_KEYCODE_NUMPAD_MINUS;
+	scancodes2[0x7c] = DEVICE_KEYCODE_NUMPAD_ASTERISK;
+	scancodes2[0x7d] = DEVICE_KEYCODE_NUMPAD_9;
+
+	/* other scancodes */
+	scancodes2_other[0x11] = DEVICE_KEYCODE_RIGHT_ALT;
+	scancodes2_other[0x14] = DEVICE_KEYCODE_RIGHT_CONTROL;
+	scancodes2_other[0x4a] = DEVICE_KEYCODE_NUMPAD_SLASH;
+	scancodes2_other[0x5a] = DEVICE_KEYCODE_NUMPAD_ENTER;
+
+	scancodes2_other[0x69] = DEVICE_KEYCODE_END;
+	scancodes2_other[0x6b] = DEVICE_KEYCODE_LEFT;
+	scancodes2_other[0x6c] = DEVICE_KEYCODE_HOME;
+	scancodes2_other[0x70] = DEVICE_KEYCODE_INSERT;
+	scancodes2_other[0x71] = DEVICE_KEYCODE_DELETE;
+	scancodes2_other[0x72] = DEVICE_KEYCODE_DOWN;
+	scancodes2_other[0x74] = DEVICE_KEYCODE_RIGHT;
+	scancodes2_other[0x75] = DEVICE_KEYCODE_UP;
+	scancodes2_other[0x7a] = DEVICE_KEYCODE_PAGE_DOWN;
+	scancodes2_other[0x7d] = DEVICE_KEYCODE_PAGE_UP;
+}
 
 /* initialize */
 extern void ps2_init(void) {
+
+	ps2_fill_scancode_sets();
 
 	/* disable ps2 ports */
 	ps2_wait_write();
@@ -107,13 +250,18 @@ extern void ps2_init(void) {
 	ps2_wait_write();
 	port_outb(PS2_PORT_DATA, fl);
 
-	/* detect device types */
-	//int dev_p0_type = ps2_get_device_type(0);
-	//tty_printf("%d\n", dev_p0_type);
-
 	/* create devices */
 	dev_p0 = device_new(DEVICE_TYPE_INPUT, DEVICE_SUBTYPE_INPUT_PS2, "PS/2 Device", sizeof(device_input_t));
+
+	device_input_t *inpdev_p0 = (device_input_t *)dev_p0;
+
+	inpdev_p0->s_buf = 0;
+	inpdev_p0->e_buf = 0;
+
 	if (p2_pres) dev_p1 = device_new(DEVICE_TYPE_INPUT, DEVICE_SUBTYPE_INPUT_PS2, "PS/2 Device", sizeof(device_input_t));
+
+	/* disable ignoring of interrupts */
+	wait_int = false;
 }
 
 /* wait for read */
@@ -130,6 +278,21 @@ extern void ps2_wait_write(void) {
 	while ((stat = port_inb(PS2_PORT_CMD_STAT)) & PS2_STATUS_IN_BUF);
 }
 
+/* send ps2 command */
+static uint8_t ps2_send_command(uint8_t cmd) {
+
+	uint8_t res = PS2_DEV_CMD_RES_RESEND;
+	while (res == PS2_DEV_CMD_RES_RESEND) {
+
+		ps2_wait_write();
+		port_outb(PS2_PORT_DATA, cmd);
+
+		ps2_wait_read();
+		res = port_inb(PS2_PORT_DATA);
+	}
+	return res;
+}
+
 /* reset device */
 extern int ps2_reset_device(int d) {
 
@@ -139,16 +302,8 @@ extern int ps2_reset_device(int d) {
 		port_outb(PS2_PORT_CMD_STAT, PS2_CMD_WRITE_NEXT_P2_INB);
 	}
 
-	/* write reset command */
-	uint8_t res = PS2_DEV_CMD_RES_RESEND;
-	while (res == PS2_DEV_CMD_RES_RESEND) {
-
-		ps2_wait_write();
-		port_outb(PS2_PORT_DATA, PS2_DEV_CMD_RESET);
-
-		ps2_wait_read();
-		res = port_inb(PS2_PORT_DATA);
-	}
+	/* send reset command */
+	uint8_t res = ps2_send_command(PS2_DEV_CMD_RESET);
 
 	/* expects ack (acknowledged) followed by success */
 	if (res != PS2_DEV_CMD_RES_ACK) return -1;
@@ -169,24 +324,32 @@ extern int ps2_get_device_type(int d) {
 		port_outb(PS2_PORT_CMD_STAT, PS2_CMD_WRITE_NEXT_P2_INB);
 	}
 
-	/* disable scanning */
-	uint8_t res = PS2_DEV_CMD_RES_RESEND;
-	while (res == PS2_DEV_CMD_RES_RESEND) {
+	uint8_t res = ps2_send_command(PS2_DEV_CMD_IDENTIFY);
+	if (res != PS2_DEV_CMD_RES_ACK) {
 
-		ps2_wait_write();
-		port_outb(PS2_PORT_DATA, PS2_DEV_CMD_DISABLE_SCAN);
-
-		ps2_wait_read();
-		res = port_inb(PS2_PORT_DATA);
+		tty_printf("0x%x\n", res);
+		return -1;
 	}
-	if (res != PS2_DEV_CMD_RES_ACK) return -1;
 	return 0;
 }
 
 /* irq1 for first ps/2 device */
 extern void ps2_irq1(idt_regs_t *regs) {
 
-	(void)port_inb(PS2_PORT_DATA);
+	uint8_t b = port_inb(PS2_PORT_DATA);
+
+	uint32_t key = translate_code(b);
+	if (!key) return;
+
+	/* ignore */
+	if (wait_int) return;
+
+	/* add to input buffer */
+	device_input_t *inpdev = (device_input_t *)dev_p0;
+	if (!inpdev) return;
+
+	inpdev->buf[inpdev->e_buf] = key;
+	inpdev->e_buf = (inpdev->e_buf + 1) % DEVICE_INPUT_BUFSZ;
 }
 
 /* irq12 for second ps/2 device */

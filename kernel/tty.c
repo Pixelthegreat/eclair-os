@@ -22,6 +22,13 @@ extern void tty_set_device(fs_node_t *devn) {
 	fs_open(devn, FS_READ | FS_WRITE);
 }
 
+/* get character device */
+extern fs_node_t *tty_get_device(void) {
+
+	return ttydev;
+}
+
+
 /* write characters */
 extern void tty_write(void *buf, size_t n) {
 

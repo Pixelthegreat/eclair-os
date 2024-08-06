@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# PyBuild - a simple build system for use in low-level applications
+# a simple build system
 import sys
 import os
 

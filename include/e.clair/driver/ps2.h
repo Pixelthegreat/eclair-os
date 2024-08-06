@@ -63,6 +63,8 @@
 #define PS2_DEV_CMD_RESEND 0xfe
 #define PS2_DEV_CMD_RESET 0xff
 
+#define PS2_KBD_CMD_SET_SCANCODES 0xf0
+
 /* device command results */
 #define PS2_DEV_CMD_RES_ERR0 0x00
 #define PS2_DEV_CMD_RES_PASS 0xaa
