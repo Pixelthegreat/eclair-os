@@ -19,7 +19,7 @@ extern void device_init(void) {
 
 	vgacon_init_tty();
 	pit_init();
-	rtc_init();
+	//rtc_init();
 	ps2_init();
 	ata_init();
 }

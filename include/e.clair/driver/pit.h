@@ -4,6 +4,8 @@
 #include <e.clair/types.h>
 #include <e.clair/idt.h>
 
+#define PIT_FREQ(x) (1193182 / (x))
+
 /* io ports */
 #define PIT_PORT_CHANNEL0 0x40
 #define PIT_PORT_CHANNEL1 0x41
