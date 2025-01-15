@@ -10,7 +10,15 @@
 #include <e.clair/vfs/fs.h>
 #include <e.clair/fs/mbr.h>
 #include <e.clair/fs/ext2.h>
-#include <e.clair/process.h>
+#include <e.clair/task.h>
+
+#define SBUFSZ 512
+static char sbuf[SBUFSZ];
+
+static task_t *test_task;
+static fs_node_t *ttydev;
+
+static void test_func();
 
 extern void kernel_main() {
 
@@ -23,6 +31,33 @@ extern void kernel_main() {
 	fs_init();
 	tty_init();
 	device_init();
+	task_init();
 
-	tty_printf("Hello, world!\n");
+	ttydev = tty_get_device();
+
+	test_task = task_new(sbuf+SBUFSZ, test_func);
+	test_task->cr3 = ktask->cr3;
+
+	while (true) {
+		
+		tty_printf("\e[32mHello, world!\e[39m\n");
+
+		for (int i = 0; i < 6000000; i++);
+
+		task_lockcli();
+		task_schedule();
+		task_unlockcli();
+	}
+}
+
+static void test_func() {
+
+	task_unlockcli();
+
+	while (true) {
+		
+		tty_printf("\e[31mHello, world?\e[39m\n");
+
+		task_nano_sleep(500000000);
+	}
 }

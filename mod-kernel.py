@@ -48,11 +48,13 @@ module = {
                             ('main.c'),
                             ('multiboot.c', 'multiboot.h'),
                             ('panic.c', 'panic.h'),
+                            ('task.c', 'task.h'),
                             ('tty.c', 'tty.h'),
                         ),
                     'asm-files': (
                             ('idta.asm', 'idt.h'),
                             ('multiboota.asm', 'multiboot.h'),
+                            ('taska.asm', 'task.h'),
                         )
                 },
             )
