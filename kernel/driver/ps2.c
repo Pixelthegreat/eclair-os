@@ -1,9 +1,9 @@
-#include <e.clair/types.h>
-#include <e.clair/string.h>
-#include <e.clair/io/port.h>
-#include <e.clair/tty.h>
-#include <e.clair/driver/device.h>
-#include <e.clair/driver/ps2.h>
+#include <kernel/types.h>
+#include <kernel/string.h>
+#include <kernel/io/port.h>
+#include <kernel/tty.h>
+#include <kernel/driver/device.h>
+#include <kernel/driver/ps2.h>
 
 static bool wait_int = true; /* ignore interrupts */
 static device_t *dev_p0 = NULL, *dev_p1 = NULL;

@@ -1,7 +1,7 @@
 #ifndef ECLAIR_MM_PAGING_H
 #define ECLAIR_MM_PAGING_H
 
-#include <e.clair/types.h>
+#include <kernel/types.h>
 
 typedef uint32_t page_dir_entry_t; /* page directory entry */
 typedef uint32_t page_tab_entry_t; /* page table entry */

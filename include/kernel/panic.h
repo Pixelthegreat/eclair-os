@@ -1,7 +1,7 @@
 #ifndef ECLAIR_PANIC_H
 #define ECLAIR_PANIC_H
 
-#include <e.clair/idt.h>
+#include <kernel/idt.h>
 
 /* panic codes */
 enum {

@@ -1,7 +1,7 @@
 #ifndef ECLAIR_IDT_H
 #define ECLAIR_IDT_H
 
-#include <e.clair/types.h>
+#include <kernel/types.h>
 
 typedef struct idt_descriptor {
 	uint16_t size; /* size of descriptor */

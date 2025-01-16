@@ -1,14 +1,14 @@
-#include <e.clair/types.h>
-#include <e.clair/string.h>
-#include <e.clair/tty.h>
-#include <e.clair/multiboot.h>
-#include <e.clair/mm/heap.h>
-#include <e.clair/driver/pit.h>
-#include <e.clair/driver/rtc.h>
-#include <e.clair/driver/ps2.h>
-#include <e.clair/driver/ata.h>
-#include <e.clair/driver/vgacon.h>
-#include <e.clair/driver/device.h>
+#include <kernel/types.h>
+#include <kernel/string.h>
+#include <kernel/tty.h>
+#include <kernel/multiboot.h>
+#include <kernel/mm/heap.h>
+#include <kernel/driver/pit.h>
+#include <kernel/driver/rtc.h>
+#include <kernel/driver/ps2.h>
+#include <kernel/driver/ata.h>
+#include <kernel/driver/vgacon.h>
+#include <kernel/driver/device.h>
 
 #define MAX_DEVS 32
 static device_t *devs[MAX_DEVS]; /* device pointers */

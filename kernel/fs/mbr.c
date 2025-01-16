@@ -1,9 +1,9 @@
-#include <e.clair/types.h>
-#include <e.clair/tty.h>
-#include <e.clair/mm/heap.h>
-#include <e.clair/driver/device.h>
-#include <e.clair/fs/ext2.h>
-#include <e.clair/fs/mbr.h>
+#include <kernel/types.h>
+#include <kernel/tty.h>
+#include <kernel/mm/heap.h>
+#include <kernel/driver/device.h>
+#include <kernel/fs/ext2.h>
+#include <kernel/fs/mbr.h>
 
 /* get mbr table from device */
 extern mbr_t *mbr_get_table(device_t *dev) {

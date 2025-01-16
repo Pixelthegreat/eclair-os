@@ -1,7 +1,7 @@
-#include <e.clair/types.h>
-#include <e.clair/tty.h>
-#include <e.clair/mm/paging.h>
-#include <e.clair/mm/heap.h>
+#include <kernel/types.h>
+#include <kernel/tty.h>
+#include <kernel/mm/paging.h>
+#include <kernel/mm/heap.h>
 
 static heap_block_t *head = NULL;
 static heap_block_t *last = NULL;

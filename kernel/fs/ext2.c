@@ -1,9 +1,9 @@
-#include <e.clair/types.h>
-#include <e.clair/string.h>
-#include <e.clair/tty.h>
-#include <e.clair/mm/heap.h>
-#include <e.clair/vfs/fs.h>
-#include <e.clair/fs/ext2.h>
+#include <kernel/types.h>
+#include <kernel/string.h>
+#include <kernel/tty.h>
+#include <kernel/mm/heap.h>
+#include <kernel/vfs/fs.h>
+#include <kernel/fs/ext2.h>
 
 #define EXT2_BLOCK_GROUP(info, inode) (((inode)-1) / (info)->sb.nbginodes)
 #define EXT2_INDEX(info, inode) (((inode)-1) % (info)->sb.nbginodes)

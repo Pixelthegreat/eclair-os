@@ -1,8 +1,8 @@
-#include <e.clair/types.h>
-#include <e.clair/string.h>
-#include <e.clair/tty.h>
-#include <e.clair/mm/heap.h>
-#include <e.clair/vfs/fs.h>
+#include <kernel/types.h>
+#include <kernel/string.h>
+#include <kernel/tty.h>
+#include <kernel/mm/heap.h>
+#include <kernel/vfs/fs.h>
 
 fs_node_t *fs_root; /* root node */
 

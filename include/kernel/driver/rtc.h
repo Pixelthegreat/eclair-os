@@ -1,8 +1,8 @@
 #ifndef ECLAIR_DRIVER_RTC_H
 #define ECLAIR_DRIVER_RTC_H
 
-#include <e.clair/types.h>
-#include <e.clair/io/port.h>
+#include <kernel/types.h>
+#include <kernel/io/port.h>
 
 /* io ports */
 #define RTC_PORT_INDEX 0x70

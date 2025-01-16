@@ -1,9 +1,9 @@
-#include <e.clair/types.h>
-#include <e.clair/tty.h>
-#include <e.clair/mm/heap.h>
-#include <e.clair/io/port.h>
-#include <e.clair/driver/device.h>
-#include <e.clair/driver/ata.h>
+#include <kernel/types.h>
+#include <kernel/tty.h>
+#include <kernel/mm/heap.h>
+#include <kernel/io/port.h>
+#include <kernel/driver/device.h>
+#include <kernel/driver/ata.h>
 
 #define ATA_WAIT_MAX 4096
 

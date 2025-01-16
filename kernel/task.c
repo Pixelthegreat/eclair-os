@@ -1,9 +1,9 @@
-#include <e.clair/types.h>
-#include <e.clair/tty.h>
-#include <e.clair/driver/pit.h>
-#include <e.clair/mm/heap.h>
-#include <e.clair/mm/paging.h>
-#include <e.clair/task.h>
+#include <kernel/types.h>
+#include <kernel/tty.h>
+#include <kernel/driver/pit.h>
+#include <kernel/mm/heap.h>
+#include <kernel/mm/paging.h>
+#include <kernel/task.h>
 
 #define FREQ 1193
 

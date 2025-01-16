@@ -1,8 +1,8 @@
 #ifndef ECLAIR_DRIVER_PIT_H
 #define ECLAIR_DRIVER_PIT_H
 
-#include <e.clair/types.h>
-#include <e.clair/idt.h>
+#include <kernel/types.h>
+#include <kernel/idt.h>
 
 #define PIT_FREQ(x) (1193182 / (x))
 

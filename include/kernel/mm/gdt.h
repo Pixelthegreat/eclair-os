@@ -1,7 +1,7 @@
 #ifndef ECLAIR_MM_GDT_H
 #define ECLAIR_MM_GDT_H
 
-#include <e.clair/types.h>
+#include <kernel/types.h>
 
 /* main descriptor */
 typedef struct gdt_descriptor {

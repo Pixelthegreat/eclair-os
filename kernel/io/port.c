@@ -1,5 +1,5 @@
-#include <e.clair/types.h>
-#include <e.clair/io/port.h>
+#include <kernel/types.h>
+#include <kernel/io/port.h>
 
 /* output byte */
 extern void port_outb(uint16_t port, uint8_t data) {

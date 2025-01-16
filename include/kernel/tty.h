@@ -1,8 +1,8 @@
 #ifndef ECLAIR_TTY_H
 #define ECLAIR_TTY_H
 
-#include <e.clair/types.h>
-#include <e.clair/vfs/fs.h>
+#include <kernel/types.h>
+#include <kernel/vfs/fs.h>
 
 /* functions */
 extern void tty_init(void); /* initialize */

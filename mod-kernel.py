@@ -6,7 +6,7 @@ module = {
                     'out': 'build/e.clair',
                     'srcdir': 'kernel',
                     'objdir': 'build/kernel',
-                    'depsdir': 'include/e.clair',
+                    'depsdir': 'include/kernel',
 
                     # flags #
                     'cflags': '-ffreestanding -Iinclude',

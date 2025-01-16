@@ -1,10 +1,10 @@
 #ifndef ECLAIR_FS_EXT2_H
 #define ECLAIR_FS_EXT2_H
 
-#include <e.clair/types.h>
-#include <e.clair/driver/device.h>
-#include <e.clair/vfs/fs.h>
-#include <e.clair/fs/mbr.h>
+#include <kernel/types.h>
+#include <kernel/driver/device.h>
+#include <kernel/vfs/fs.h>
+#include <kernel/fs/mbr.h>
 
 /* superblock */
 typedef struct ext2_superblock {

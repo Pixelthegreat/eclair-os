@@ -1,7 +1,7 @@
 #ifndef ECLAIR_VFS_FS_H
 #define ECLAIR_VFS_FS_H
 
-#include <e.clair/types.h>
+#include <kernel/types.h>
 
 struct fs_node;
 

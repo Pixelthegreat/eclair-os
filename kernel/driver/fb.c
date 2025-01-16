@@ -1,7 +1,7 @@
-#include <e.clair/types.h>
-#include <e.clair/multiboot.h>
-#include <e.clair/mm/paging.h>
-#include <e.clair/driver/fb.h>
+#include <kernel/types.h>
+#include <kernel/multiboot.h>
+#include <kernel/mm/paging.h>
+#include <kernel/driver/fb.h>
 
 void *fb_addr = NULL;
 uint32_t fb_width = 0;

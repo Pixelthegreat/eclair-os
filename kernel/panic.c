@@ -1,7 +1,7 @@
-#include <e.clair/types.h>
-#include <e.clair/tty.h>
-#include <e.clair/idt.h>
-#include <e.clair/panic.h>
+#include <kernel/types.h>
+#include <kernel/tty.h>
+#include <kernel/idt.h>
+#include <kernel/panic.h>
 
 static const char *codedesc[PANIC_CODE_COUNT] = {
 	NULL,

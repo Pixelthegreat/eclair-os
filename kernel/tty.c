@@ -1,9 +1,9 @@
-#include <e.clair/types.h>
-#include <e.clair/string.h>
-#include <e.clair/varg.h>
-#include <e.clair/io/port.h>
-#include <e.clair/vfs/fs.h>
-#include <e.clair/tty.h>
+#include <kernel/types.h>
+#include <kernel/string.h>
+#include <kernel/varg.h>
+#include <kernel/io/port.h>
+#include <kernel/vfs/fs.h>
+#include <kernel/tty.h>
 
 static fs_node_t *ttydev = NULL;
 

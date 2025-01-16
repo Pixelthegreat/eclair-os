@@ -1,16 +1,16 @@
-#include <e.clair/types.h>
-#include <e.clair/string.h>
-#include <e.clair/mm/gdt.h>
-#include <e.clair/idt.h>
-#include <e.clair/mm/paging.h>
-#include <e.clair/tty.h>
-#include <e.clair/multiboot.h>
-#include <e.clair/mm/heap.h>
-#include <e.clair/driver/device.h>
-#include <e.clair/vfs/fs.h>
-#include <e.clair/fs/mbr.h>
-#include <e.clair/fs/ext2.h>
-#include <e.clair/task.h>
+#include <kernel/types.h>
+#include <kernel/string.h>
+#include <kernel/mm/gdt.h>
+#include <kernel/idt.h>
+#include <kernel/mm/paging.h>
+#include <kernel/tty.h>
+#include <kernel/multiboot.h>
+#include <kernel/mm/heap.h>
+#include <kernel/driver/device.h>
+#include <kernel/vfs/fs.h>
+#include <kernel/fs/mbr.h>
+#include <kernel/fs/ext2.h>
+#include <kernel/task.h>
 
 #define SBUFSZ 512
 static char sbuf[SBUFSZ];

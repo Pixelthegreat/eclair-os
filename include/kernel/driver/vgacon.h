@@ -1,7 +1,7 @@
 #ifndef ECLAIR_DRIVER_VGACON_H
 #define ECLAIR_DRIVER_VGACON_H
 
-#include <e.clair/types.h>
+#include <kernel/types.h>
 
 /* functions */
 extern void vgacon_init(void); /* base init */

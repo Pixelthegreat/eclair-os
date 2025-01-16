@@ -1,7 +1,7 @@
 #ifndef ECLAIR_MULTIBOOT_H
 #define ECLAIR_MULTIBOOT_H
 
-#include <e.clair/types.h>
+#include <kernel/types.h>
 
 typedef struct multiboot_tag {
 	uint32_t type;

@@ -1,8 +1,8 @@
 #ifndef ECLAIR_HEAP_H
 #define ECLAIR_HEAP_H
 
-#include <e.clair/types.h>
-#include <e.clair/mm/paging.h>
+#include <kernel/types.h>
+#include <kernel/mm/paging.h>
 
 typedef struct heap_block {
 	size_t size; /* size of block */

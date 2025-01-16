@@ -1,10 +1,10 @@
-#include <e.clair/types.h>
-#include <e.clair/string.h>
-#include <e.clair/tty.h>
-#include <e.clair/io/port.h>
-#include <e.clair/vfs/fs.h>
-#include <e.clair/driver/device.h>
-#include <e.clair/driver/vgacon.h>
+#include <kernel/types.h>
+#include <kernel/string.h>
+#include <kernel/tty.h>
+#include <kernel/io/port.h>
+#include <kernel/vfs/fs.h>
+#include <kernel/driver/device.h>
+#include <kernel/driver/vgacon.h>
 
 static fs_node_t *dev = NULL;
 

@@ -1,9 +1,9 @@
 #ifndef ECLAIR_FS_MBR_H
 #define ECLAIR_FS_MBR_H
 
-#include <e.clair/types.h>
-#include <e.clair/driver/device.h>
-#include <e.clair/vfs/fs.h>
+#include <kernel/types.h>
+#include <kernel/driver/device.h>
+#include <kernel/vfs/fs.h>
 
 /* mbr entry */
 typedef struct mbr_ent {

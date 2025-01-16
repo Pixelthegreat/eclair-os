@@ -2,7 +2,7 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
-#include <e.clair/types.h>
+#include <kernel/types.h>
 
 typedef int device_id_t;
 

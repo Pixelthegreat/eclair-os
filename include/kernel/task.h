@@ -1,7 +1,7 @@
 #ifndef ECLAIR_TASK_H
 #define ECLAIR_TASK_H
 
-#include <e.clair/types.h>
+#include <kernel/types.h>
 
 #define TASK_READY 0
 #define TASK_RUNNING 1

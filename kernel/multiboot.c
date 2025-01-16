@@ -1,9 +1,9 @@
-#include <e.clair/types.h>
-#include <e.clair/tty.h>
-#include <e.clair/mm/paging.h>
-#include <e.clair/driver/vgacon.h>
-#include <e.clair/driver/fb.h>
-#include <e.clair/multiboot.h>
+#include <kernel/types.h>
+#include <kernel/tty.h>
+#include <kernel/mm/paging.h>
+#include <kernel/driver/vgacon.h>
+#include <kernel/driver/fb.h>
+#include <kernel/multiboot.h>
 
 #define NBUFSZ 12
 static page_frame_id_t frames[NBUFSZ]; /* buffer to store page frame numbers */

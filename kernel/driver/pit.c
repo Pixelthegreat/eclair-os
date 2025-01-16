@@ -1,8 +1,8 @@
-#include <e.clair/types.h>
-#include <e.clair/tty.h>
-#include <e.clair/idt.h>
-#include <e.clair/io/port.h>
-#include <e.clair/driver/pit.h>
+#include <kernel/types.h>
+#include <kernel/tty.h>
+#include <kernel/idt.h>
+#include <kernel/io/port.h>
+#include <kernel/driver/pit.h>
 
 static bool called = false;
 

@@ -1,6 +1,6 @@
-#include <e.clair/types.h>
-#include <e.clair/string.h>
-#include <e.clair/mm/gdt.h>
+#include <kernel/types.h>
+#include <kernel/string.h>
+#include <kernel/mm/gdt.h>
 
 static gdt_segment_descriptor_t gdt[GDT_SEGMENT_COUNT];
 static gdt_descriptor_t gdt_desc;

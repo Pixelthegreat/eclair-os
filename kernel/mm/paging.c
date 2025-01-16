@@ -1,7 +1,7 @@
-#include <e.clair/types.h>
-#include <e.clair/string.h>
-#include <e.clair/tty.h>
-#include <e.clair/mm/paging.h>
+#include <kernel/types.h>
+#include <kernel/string.h>
+#include <kernel/tty.h>
+#include <kernel/mm/paging.h>
 
 /* 4G / 4K (page size) / 8 (bits in a byte) */
 #define BITMAP_SIZE 131072

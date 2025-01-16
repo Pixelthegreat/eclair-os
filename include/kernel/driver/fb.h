@@ -1,8 +1,8 @@
 #ifndef ECLAIR_DRIVER_FB_H
 #define ECLAIR_DRIVER_FB_H
 
-#include <e.clair/types.h>
-#include <e.clair/multiboot.h>
+#include <kernel/types.h>
+#include <kernel/multiboot.h>
 
 extern void *fb_addr; /* direct pointer to framebuffer */
 extern uint32_t fb_width; /* width of framebuffer */

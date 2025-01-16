@@ -1,9 +1,9 @@
-#include <e.clair/types.h>
-#include <e.clair/io/port.h>
-#include <e.clair/mm/gdt.h>
-#include <e.clair/tty.h>
-#include <e.clair/panic.h>
-#include <e.clair/idt.h>
+#include <kernel/types.h>
+#include <kernel/io/port.h>
+#include <kernel/mm/gdt.h>
+#include <kernel/tty.h>
+#include <kernel/panic.h>
+#include <kernel/idt.h>
 
 static idt_descriptor_t idt_desc;
 static idt_gate_descriptor_t idt[256];
