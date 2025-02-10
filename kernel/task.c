@@ -6,6 +6,7 @@
 #include <kernel/task.h>
 
 #define FREQ 1193
+static const uint64_t FREQ_HZ = PIT_FREQ(FREQ);
 
 task_t *ktask = NULL;
 task_t *task_active = NULL;
@@ -34,9 +35,10 @@ extern uint32_t kernel_stack_top;
 static void task_add_to_list(struct task_list *list, task_t *task) {
 
 	task->prev = list->last;
-	task->next = list->first;
+	task->next = NULL;
 	if (!list->first) list->first = task;
-	if (list->last) task->next = list->last;
+	if (list->last) list->last->next = task;
+	list->last = task;
 }
 
 /* remove task from list */
@@ -44,6 +46,8 @@ static void task_remove_from_list(struct task_list *list, task_t *task) {
 
 	if (list->last == task) list->last = task->prev;
 	if (list->first == task) list->first = task->next;
+	if (task->prev) task->prev->next = task->next;
+	if (task->next) task->next->prev = task->prev;
 	task->prev = NULL;
 	task->next = NULL;
 }
@@ -60,7 +64,7 @@ static void task_irq(idt_regs_t *regs) {
 
 	task_lockpost();
 
-	timens += 1000000000 / PIT_FREQ(FREQ);
+	timens += 1000000000 / FREQ_HZ;
 
 	/* wake up sleepers */
 	task_t *cur = sleeping->first;
@@ -103,6 +107,8 @@ extern void task_init(void) {
 /* create task */
 extern task_t *task_new(void *esp, void *seteip) {
 
+	task_lockcli();
+
 	task_t *task = (task_t *)kmalloc(sizeof(task_t));
 	task->esp0 = esp;
 	task->esp = esp;
@@ -119,6 +125,7 @@ extern task_t *task_new(void *esp, void *seteip) {
 		task->esp -= 16;
 	}
 
+	task_unlockcli();
 	return task;
 }
 

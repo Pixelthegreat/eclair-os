@@ -7,7 +7,7 @@ __pycache__
 kernel.mk
 
 # vim #
-*.swp
+**.swp
 
 # personal files #
 notes

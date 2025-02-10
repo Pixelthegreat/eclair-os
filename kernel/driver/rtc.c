@@ -48,3 +48,18 @@ extern void rtc_set_callback(rtc_callback_t cb) {
 
 	idt_set_irq_callback(8, cb);
 }
+
+/* get register values */
+extern void rtc_get_registers(rtc_cmos_regs_t *regs) {
+
+	regs->seconds = rtc_read_cmos_reg(RTC_CMOS_REG_SECONDS);
+	regs->minutes = rtc_read_cmos_reg(RTC_CMOS_REG_MINUTES);
+	regs->hours = rtc_read_cmos_reg(RTC_CMOS_REG_HOURS);
+	regs->weekday = rtc_read_cmos_reg(RTC_CMOS_REG_WEEKDAY);
+	regs->dayofmonth = rtc_read_cmos_reg(RTC_CMOS_REG_DAYOFMONTH);
+	regs->month = rtc_read_cmos_reg(RTC_CMOS_REG_MONTH);
+	regs->year = rtc_read_cmos_reg(RTC_CMOS_REG_YEAR);
+	regs->century = rtc_read_cmos_reg(RTC_CMOS_REG_CENTURY);
+	regs->status[0] = rtc_read_cmos_reg(RTC_CMOS_REG_STATUS_A);
+	regs->status[1] = rtc_read_cmos_reg(RTC_CMOS_REG_STATUS_B);
+}
