@@ -5,6 +5,8 @@
 #include <kernel/mm/paging.h>
 #include <kernel/task.h>
 
+#define NTICKS 10
+
 #define FREQ 1193
 static const uint64_t FREQ_HZ = PIT_FREQ(FREQ);
 
@@ -78,6 +80,10 @@ static void task_irq(idt_regs_t *regs) {
 		cur = next;
 	}
 
+	/* end of time slice */
+	if (task_active->nticks && !--task_active->nticks)
+		task_schedule();
+
 	task_unlockpost();
 }
 
@@ -91,6 +97,7 @@ extern void task_init(void) {
 	ktask = task_new(&kernel_stack_top, NULL);
 	ktask->cr3 = page_get_directory();
 	ktask->state = TASK_RUNNING;
+	ktask->nticks = NTICKS;
 	task_remove_from_list(ready, ktask); /* remove from ready list */
 
 	task_active = ktask;
@@ -114,6 +121,8 @@ extern task_t *task_new(void *esp, void *seteip) {
 	task->esp = esp;
 	task->cr3 = NULL;
 	task->state = TASK_READY;
+	task->waketime = 0;
+	task->nticks = 0;
 
 	task_add_to_list(ready, task);
 
@@ -144,6 +153,7 @@ extern void task_schedule(void) {
 		task_t *next = ready->first;
 		task_remove_from_list(ready, next);
 		next->state = TASK_RUNNING;
+		next->nticks = NTICKS;
 
 		if (task_active->state == TASK_RUNNING) {
 

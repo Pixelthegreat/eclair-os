@@ -19,6 +19,7 @@ typedef struct task {
 	struct task *next; /* next task */
 	uint32_t state; /* task state */
 	uint64_t waketime; /* wake up time for sleeping task */
+	uint32_t nticks; /* number of ticks left */
 } task_t;
 
 extern task_t *ktask; /* base kernel task */

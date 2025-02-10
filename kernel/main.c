@@ -15,14 +15,16 @@
 #define SBUFSZ 512
 static char sbuf[SBUFSZ];
 static char sbuf2[SBUFSZ];
+static char sbuf3[SBUFSZ];
 
 static task_t *test_task;
 static task_t *other_task;
+static task_t *alt_task;
 static fs_node_t *ttydev;
 
 static void test_func();
-
 static void other_func();
+static void alt_func();
 
 extern void kernel_main() {
 
@@ -45,13 +47,14 @@ extern void kernel_main() {
 	other_task = task_new(sbuf2+SBUFSZ, other_func);
 	other_task->cr3 = ktask->cr3;
 
-	task_lockcli();
-	task_schedule();
-	task_unlockcli();
+	alt_task = task_new(sbuf3+SBUFSZ, alt_func);
+	alt_task->cr3 = ktask->cr3;
 
+	char buf[32];
 	while (true) {
 
-		asm volatile("hlt");
+		//asm volatile("hlt");
+		fs_read(ttydev, 0, 32, buf);
 	}
 }
 
@@ -76,5 +79,17 @@ static void other_func() {
 		tty_printf("\e[32mHello, world!\e[39m\n");
 
 		task_sleep(2);
+	}
+}
+
+static void alt_func() {
+
+	task_unlockcli();
+
+	while (true) {
+
+		tty_printf("\e[33mHello, world.\e[39m\n");
+
+		task_sleep(4);
 	}
 }
