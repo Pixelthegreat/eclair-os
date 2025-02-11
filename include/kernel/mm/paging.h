@@ -38,5 +38,6 @@ extern bool page_is_mapped(page_id_t p); /* check if page is mapped */
 extern page_frame_id_t page_get_frame(page_id_t p); /* get frame from page */
 extern void page_unmap(page_id_t p); /* unmap page */
 extern void *page_get_directory(void); /* get kernel page directory */
+extern void *page_clone_directory(page_frame_id_t frame, page_id_t page); /* clone kernel page directory */
 
 #endif /* ECLAIR_MM_PAGING_H */

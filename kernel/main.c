@@ -33,6 +33,7 @@ extern void kernel_main() {
 	idt_enable();
 	page_init();
 	multiboot_init();
+	task_init_memory();
 	heap_init();
 	fs_init();
 	tty_init();
@@ -42,13 +43,8 @@ extern void kernel_main() {
 	ttydev = tty_get_device();
 
 	test_task = task_new(sbuf+SBUFSZ, test_func);
-	test_task->cr3 = ktask->cr3;
-
 	other_task = task_new(sbuf2+SBUFSZ, other_func);
-	other_task->cr3 = ktask->cr3;
-
 	alt_task = task_new(sbuf3+SBUFSZ, alt_func);
-	alt_task->cr3 = ktask->cr3;
 
 	char buf[32];
 	while (true) {

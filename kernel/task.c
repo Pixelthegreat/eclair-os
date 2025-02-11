@@ -25,13 +25,22 @@ static struct task_list *sleeping = NULL;
 
 static uint64_t timens = 0; /* time in nanoseconds */
 
+/* task map */
+#define NTASKS 128
+
+static task_t *taskmap[NTASKS]; /* map of tasks associated with id */
+static struct {
+	page_frame_id_t frame; /* frame */
+	page_id_t page; /* page */
+} pagedirs[NTASKS]; /* per-task memory space */
+
 /* lock counters */
 static uint32_t nlockcli = 0;
 
 uint32_t task_nlockpost = 0;
 uint32_t task_postponed = 0; /* postponed task switches */
 
-extern uint32_t kernel_stack_top;
+extern uint32_t kernel_stack_top; /* top of .bss kernel stack */
 
 /* add task to list */
 static void task_add_to_list(struct task_list *list, task_t *task) {
@@ -87,6 +96,16 @@ static void task_irq(idt_regs_t *regs) {
 	task_unlockpost();
 }
 
+/* allocate necessary memory before heap */
+extern void task_init_memory(void) {
+
+	for (int i = 0; i < NTASKS; i++) {
+
+		pagedirs[i].frame = page_frame_alloc();
+		pagedirs[i].page = page_alloc(1, &pagedirs[i].frame);
+	}
+}
+
 /* initialize multitasking */
 extern void task_init(void) {
 
@@ -116,6 +135,15 @@ extern task_t *task_new(void *esp, void *seteip) {
 
 	task_lockcli();
 
+	uint32_t id = 0;
+	for (; id < NTASKS && taskmap[id]; id++);
+	if (id >= NTASKS) {
+
+		task_unlockcli();
+		return NULL;
+	}
+
+	/* create task */
 	task_t *task = (task_t *)kmalloc(sizeof(task_t));
 	task->esp0 = esp;
 	task->esp = esp;
@@ -123,8 +151,13 @@ extern task_t *task_new(void *esp, void *seteip) {
 	task->state = TASK_READY;
 	task->waketime = 0;
 	task->nticks = 0;
+	task->id = id;
 
 	task_add_to_list(ready, task);
+	taskmap[id] = task;
+
+	/* clone page directory */
+	if (id) task->cr3 = page_clone_directory(pagedirs[id].frame, pagedirs[id].page);
 
 	/* add eip to stack */
 	if (seteip != NULL) {

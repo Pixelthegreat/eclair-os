@@ -20,6 +20,7 @@ typedef struct task {
 	uint32_t state; /* task state */
 	uint64_t waketime; /* wake up time for sleeping task */
 	uint32_t nticks; /* number of ticks left */
+	uint32_t id; /* task id */
 } task_t;
 
 extern task_t *ktask; /* base kernel task */
@@ -29,6 +30,7 @@ extern uint32_t task_nlockpost; /* number of task switch locks */
 extern uint32_t task_postponed; /* postponed task switches */
 
 /* functions */
+extern void task_init_memory(void); /* allocate necessary memory before heap */
 extern void task_init(void); /* initialize multitasking */
 extern task_t *task_new(void *esp, void *seteip); /* create task */
 extern void task_switch(task_t *task); /* switch to next task */

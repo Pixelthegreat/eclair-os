@@ -12,12 +12,13 @@ static uint8_t bitmap[BITMAP_SIZE];
 
 /* page mapper */
 static page_dir_entry_t *page_dir = NULL;
+static page_dir_entry_t *page_dir_wrap = NULL;
 static page_id_t page_start = 0;
 static page_id_t page_table_id = 0;
 static page_tab_entry_t *page_table = NULL;
 
 /* get an address to a page table from the page directory */
-#define PAGE_TAB(p) ((page_tab_entry_t *)(page_dir[(p)] & 0xfffff000))
+#define PAGE_TAB(p) ((page_tab_entry_t *)(page_dir_wrap[(p)] & 0xfffff000))
 
 /* initialize frame allocator */
 extern void page_frame_init(void) {
@@ -28,7 +29,7 @@ extern void page_frame_init(void) {
 	/* last frame of kernel */
 	page_frame_id_t fr = p / 4096;
 
-	for (uint32_t i = 0; i <= fr; i++)
+	for (uint32_t i = 0; i <= fr+128; i++)
 		bitmap[i / 8] |= 1 << (i % 8);
 }
 
@@ -47,6 +48,7 @@ extern page_frame_id_t page_frame_alloc(void) {
 			}
 		}
 	}
+	return 0;
 }
 
 /* set frame to used */
@@ -71,6 +73,7 @@ extern void page_init(void) {
 	__asm__("mov %%cr3, %0": "=r"(cr3));
 
 	page_dir = (page_dir_entry_t *)(cr3 + 0xC0000000);
+	page_dir_wrap = NULL;
 	page_start = (uint32_t)_kernel_end / 4096 + 1;
 
 	/* map the page dir entry to the page dir */
@@ -80,8 +83,11 @@ extern void page_init(void) {
 	page_table = (page_tab_entry_t *)(page_table_id << 12);
 	page_start = page_table_id + 1024;
 
-	/* identity map first 1M */
-	//for (page_id_t p = 0; p < 256; p++) page_map(p, p);
+	page_dir_wrap = &page_table[page_table_id];
+
+	/* allocate remaining page tables (makes it much simpler to clone a directory but keep the kernel sections in tact) */
+	for (page_id_t i = pt+1; i < 1024; i++)
+		page_map_table(i, page_frame_alloc());
 }
 
 /* find free page directory entry */
@@ -98,7 +104,8 @@ extern page_id_t page_dir_find_entry(void) {
 /* map page table */
 extern void page_map_table(page_id_t p, page_frame_id_t f) {
 
-	page_dir[p] = PAGE_ENT(f) | PAGE_FLAG_P | PAGE_FLAG_RW;
+	if (page_dir_wrap) page_dir_wrap[p] = PAGE_ENT(f) | PAGE_FLAG_P | PAGE_FLAG_RW;
+	else page_dir[p] = PAGE_ENT(f) | PAGE_FLAG_P | PAGE_FLAG_RW;
 	
 	/* invalidate entry in tlb to allow for editing of the table */
 	page_invalidate(page_table_id + p);
@@ -110,7 +117,7 @@ extern void page_map(page_id_t p, page_frame_id_t f) {
 	page_id_t pt = p/1024;
 
 	/* map table if necessary */
-	if (!page_dir[pt]) {
+	if (!page_dir_wrap[pt]) {
 			
 		page_frame_id_t fr = page_frame_alloc();
 		page_map_table(pt, fr);
@@ -136,7 +143,7 @@ extern page_id_t page_alloc(uint32_t n, page_frame_id_t *flist) {
 		page_id_t pt = i/1024;
 
 		/* reset counter */
-		if (page_dir[pt] && page_table[i]) {
+		if (page_dir_wrap[pt] && page_table[i]) {
 
 			st = i+1;
 			cur = 0;
@@ -162,21 +169,21 @@ extern void page_invalidate(page_id_t p) {
 /* check if page is mapped */
 extern bool page_is_mapped(page_id_t p) {
 
-	if (page_dir[p/1024] && page_table[p]) return true;
+	if (page_dir_wrap[p/1024] && page_table[p]) return true;
 	return false;
 }
 
 /* get frame from page */
 extern page_frame_id_t page_get_frame(page_id_t p) {
 
-	if (!page_dir[p/1024]) return 0;
+	if (!page_dir_wrap[p/1024]) return 0;
 	return (page_table[p] & 0xfffff000) / 4096;
 }
 
 /* unmap page */
 extern void page_unmap(page_id_t p) {
 
-	if (!page_dir[p/1024]) return;
+	if (!page_dir_wrap[p/1024]) return;
 
 	page_table[p] = 0;
 	page_invalidate(p);
@@ -186,4 +193,17 @@ extern void page_unmap(page_id_t p) {
 extern void *page_get_directory(void) {
 
 	return (void *)page_dir - 0xC0000000;
+}
+
+/* clone kernel page directory */
+extern void *page_clone_directory(page_frame_id_t frame, page_id_t page) {
+
+	void *dir = (void *)(page * 4096);
+	memcpy(dir, page_dir, 4096);
+
+	/* map page directory as a page table */
+	page_id_t pt = page_table_id >> 10;
+	((uint32_t *)dir)[pt] = PAGE_ENT(frame) | PAGE_FLAG_P | PAGE_FLAG_RW;
+
+	return (void *)(frame * 4096);
 }
