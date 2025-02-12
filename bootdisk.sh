@@ -7,8 +7,8 @@ cd build
 cp ../bootdisk.img ./
 
 # setup loopback device #
-looppart=`sudo kpartx -l bootdisk.img | awk -e '{ print $1; exit }'`
-loopdev=`sudo kpartx -l bootdisk.img | awk -e '{ print $5; exit }'`
+looppart=`sudo kpartx -l bootdisk.img | awk '{ print $1; exit }'`
+loopdev=`sudo kpartx -l bootdisk.img | awk '{ print $5; exit }'`
 sudo kpartx -a bootdisk.img
 
 # mount disk image #

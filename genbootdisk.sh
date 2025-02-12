@@ -12,8 +12,8 @@ sudo parted --script bootdisk.img mklabel msdos mkpart p ext2 1 16 set 1 boot on
 # map disk image #
 echo mapping partitions...
 
-looppart=`sudo kpartx -l bootdisk.img | awk -e '{ print $1; exit }'`
-loopdev=`sudo kpartx -l bootdisk.img | awk -e '{ print $5; exit }'`
+looppart=`sudo kpartx -l bootdisk.img | awk '{ print $1; exit }'`
+loopdev=`sudo kpartx -l bootdisk.img | awk '{ print $5; exit }'`
 sudo kpartx -a bootdisk.img
 sleep 1
 
@@ -34,7 +34,7 @@ sudo cp -v boot/grub.cfg tmp/boot/grub
 # install grub #
 echo installing grub...
 echo "(hd0) $loopdev" > boot/device.map
-sudo grub-install --no-floppy --grub-mkdevicemap=boot/device.map --root-directory=tmp --boot-directory=tmp/boot --install-modules="$MODULES" --modules="$MODULES" $loopdev
+sudo grub-install --no-floppy --target=i386-pc --grub-mkdevicemap=boot/device.map --root-directory=tmp --boot-directory=tmp/boot --install-modules="$MODULES" --modules="$MODULES" $loopdev
 
 # unmount #
 echo unmounting...
