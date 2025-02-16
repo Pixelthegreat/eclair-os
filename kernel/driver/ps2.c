@@ -1,7 +1,7 @@
 #include <kernel/types.h>
 #include <kernel/string.h>
+#include <kernel/panic.h>
 #include <kernel/io/port.h>
-#include <kernel/tty.h>
 #include <kernel/driver/device.h>
 #include <kernel/driver/ps2.h>
 
@@ -183,7 +183,7 @@ extern void ps2_init(void) {
 	ps2_wait_read();
 	if (port_inb(PS2_PORT_DATA) != 0x55) {
 
-		tty_printf("[ps/2 8042] self test failed\n");
+		kprintf(LOG_WARNING, "[ps/2 8042] self test failed");
 		return;
 	}
 
@@ -193,7 +193,7 @@ extern void ps2_init(void) {
 	ps2_wait_read();
 	if (port_inb(PS2_PORT_DATA) != 0) {
 
-		tty_printf("[ps/2 8042] port 1 test failed\n");
+		kprintf(LOG_WARNING, "[ps/2 8042] port 1 test failed");
 		return;
 	}
 
@@ -205,7 +205,7 @@ extern void ps2_init(void) {
 		ps2_wait_read();
 		if (port_inb(PS2_PORT_DATA) != 0) {
 
-			tty_printf("[ps/2 8042] port 2 test failed\n");
+			kprintf(LOG_WARNING, "[ps/2 8042] port 2 test failed");
 			return;
 		}
 	}
@@ -222,13 +222,13 @@ extern void ps2_init(void) {
 	/* reset devices */
 	if (ps2_reset_device(0) < 0) {
 
-		tty_printf("[ps/2 8042] failed to reset device on port 1\n");
+		kprintf(LOG_WARNING, "[ps/2 8042] failed to reset device on port 1");
 		return;
 	}
 
 	if (p2_pres && ps2_reset_device(1) < 0) {
 
-		tty_printf("[ps/2 8042] failed to reset device on port 2\n");
+		kprintf(LOG_WARNING, "[ps/2 8042] failed to reset device on port 2");
 		return;
 	}
 
@@ -252,13 +252,18 @@ extern void ps2_init(void) {
 
 	/* create devices */
 	dev_p0 = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, "PS/2 Device", sizeof(device_char_t));
+	kprintf(LOG_INFO, "[ps/2 8042] Detected first PS/2 device");
 
 	device_char_t *inpdev_p0 = (device_char_t *)dev_p0;
 
 	inpdev_p0->s_ibuf = 0;
 	inpdev_p0->e_ibuf = 0;
 
-	if (p2_pres) dev_p1 = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, "PS/2 Device", sizeof(device_char_t));
+	if (p2_pres) {
+		
+		dev_p1 = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, "PS/2 Device", sizeof(device_char_t));
+		kprintf(LOG_INFO, "[ps/2 8042] Detected second PS/2 device");
+	}
 
 	/* disable ignoring of interrupts */
 	wait_int = false;
@@ -327,7 +332,7 @@ extern int ps2_get_device_type(int d) {
 	uint8_t res = ps2_send_command(PS2_DEV_CMD_IDENTIFY);
 	if (res != PS2_DEV_CMD_RES_ACK) {
 
-		tty_printf("0x%x\n", res);
+		//tty_printf("0x%x\n", res);
 		return -1;
 	}
 	return 0;

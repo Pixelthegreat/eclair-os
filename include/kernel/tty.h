@@ -1,6 +1,7 @@
 #ifndef ECLAIR_TTY_H
 #define ECLAIR_TTY_H
 
+#include <stdarg.h>
 #include <kernel/types.h>
 #include <kernel/vfs/fs.h>
 
@@ -12,6 +13,7 @@ extern void tty_write(void *buf, size_t n); /* write characters */
 extern void tty_print(const char *s); /* print string */
 extern void tty_printi(int i); /* print integer */
 extern void tty_printh(uint32_t h); /* print hexadecimal number */
+extern void tty_vprintf(const char *fmt, va_list args); /* variadic printf */
 extern void tty_printf(const char *fmt, ...); /* print formatted */
 extern void tty_printnl(void); /* print newline */
 

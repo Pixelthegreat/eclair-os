@@ -7,6 +7,11 @@ static const char *codedesc[PANIC_CODE_COUNT] = {
 	NULL,
 	"Page fault", /* page fault */
 };
+static const char *logdesc[LOG_COUNT] = {
+	"\e[32m Info  \e[39m",
+	"\e[33mWarning\e[39m",
+	"\e[31m Fatal \e[39m",
+};
 
 #define CODEDESC(c, msg) (((c) <= 0 || (c) >= PANIC_CODE_COUNT)? (msg): codedesc[(c)])
 
@@ -26,4 +31,17 @@ extern void kpanic(int code, const char *msg, idt_regs_t *regs) {
 	/* disable interrupts and loop */
 	asm("cli");
 	while (1) asm("hlt");
+}
+
+/* print log message */
+extern void kprintf(log_level_t level, const char *fmt, ...) {
+
+	tty_printf("[%s] ", logdesc[level]);
+	
+	va_list args;
+	va_start(args, fmt);
+	tty_vprintf(fmt, args);
+	va_end(args);
+
+	tty_printnl();
 }

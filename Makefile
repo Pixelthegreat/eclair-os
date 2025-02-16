@@ -27,5 +27,8 @@ clean:
 run:
 	qemu-system-i386 $(QEMUARGS)
 
+run_uart_stdout:
+	qemu-system-i386 $(QEMUARGS) -serial /dev/stdout
+
 run_debug:
 	qemu-system-i386 $(QEMUARGS) -d int

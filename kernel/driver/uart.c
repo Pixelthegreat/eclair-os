@@ -93,7 +93,7 @@ extern void uart_init_tty(void) {
 /* get initialized com ports */
 extern uart_com_t uart_is_init(void) {
 
-	return init;
+	return init % UART_COM_COUNT;
 }
 
 /* write character */

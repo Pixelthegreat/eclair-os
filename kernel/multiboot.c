@@ -1,7 +1,6 @@
 #include <kernel/types.h>
 #include <kernel/tty.h>
 #include <kernel/mm/paging.h>
-#include <kernel/driver/vgacon.h>
 #include <kernel/driver/fb.h>
 #include <kernel/multiboot.h>
 
@@ -52,7 +51,7 @@ extern void multiboot_init(void) {
 		else if (tagptr->type == MULTIBOOT_TAG_FRAMEBUFFER) {
 
 			multiboot_framebuffer_tag_t *tag = (multiboot_framebuffer_tag_t *)tagptr;
-			if (1) {
+			if (tag->type == MULTIBOOT_FB_TYPE_RGB) {
 
 				saved.f_framebuf = true;
 				saved.fb_addr = (void *)tag->loaddr;

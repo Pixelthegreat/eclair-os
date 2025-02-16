@@ -1,8 +1,9 @@
+#include <stdarg.h>
 #include <kernel/types.h>
 #include <kernel/string.h>
-#include <kernel/varg.h>
 #include <kernel/io/port.h>
 #include <kernel/vfs/fs.h>
+#include <kernel/driver/uart.h>
 #include <kernel/tty.h>
 
 #define MAX_DEVS 8
@@ -37,9 +38,18 @@ extern fs_node_t *tty_get_device(int i) {
 /* write characters */
 extern void tty_write(void *buf, size_t n) {
 
-	if (!ttydev) return;
-	for (int i = 0; i < nttydev; i++)
-		fs_write(ttydev[i], 0, n, buf);
+	if (nttydev) {
+
+		for (int i = 0; i < nttydev; i++)
+			fs_write(ttydev[i], 0, n, buf);
+	}
+
+	/* fallback */
+	else {
+
+		if (!uart_is_init()) uart_init(UART_COM1_BIT, UART_DEFAULT_BAUD_RATE);
+		uart_write(UART_COM1, buf, n);
+	}
 }
 
 /* print string */
@@ -88,11 +98,8 @@ extern void tty_printh(uint32_t h) {
 	while (n--) tty_write(buf+n, 1);
 }
 
-/* print formatted */
-extern void tty_printf(const char *fmt, ...) {
-
-	va_list vlist;
-	va_start(vlist, fmt);
+/* variadic printf */
+extern void tty_vprintf(const char *fmt, va_list args) {
 
 	/* read characters (only supports 'c', 'd', 'x' and 's' format specifiers) */
 	char c;
@@ -104,33 +111,42 @@ extern void tty_printf(const char *fmt, ...) {
 			/* character */
 			if (c == 'c') {
 
-				char pc = va_arg(vlist, char);
+				char pc = (char)va_arg(args, int);
 				tty_write(&pc, 1);
 			}
 
 			/* integer */
 			else if (c == 'd') {
 
-				int d = va_arg(vlist, int);
+				int d = va_arg(args, int);
 				tty_printi(d);
 			}
 
 			/* hex */
 			else if (c == 'x') {
 
-				uint32_t x = va_arg(vlist, uint32_t);
+				uint32_t x = va_arg(args, uint32_t);
 				tty_printh(x);
 			}
 
 			/* string */
 			else if (c == 's') {
 
-				const char *s = va_arg(vlist, const char *);
+				const char *s = va_arg(args, const char *);
 				tty_print(s);
 			}
 		}
 		else tty_write(&c, 1);
 	}
+}
+
+/* print formatted */
+extern void tty_printf(const char *fmt, ...) {
+
+	va_list args;
+	va_start(args, fmt);
+	tty_vprintf(fmt, args);
+	va_end(args);
 }
 
 /* print newline */

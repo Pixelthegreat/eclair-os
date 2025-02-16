@@ -1,5 +1,4 @@
 #include <kernel/types.h>
-#include <kernel/tty.h>
 #include <kernel/mm/heap.h>
 #include <kernel/io/port.h>
 #include <kernel/driver/device.h>
