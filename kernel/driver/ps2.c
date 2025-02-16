@@ -251,14 +251,14 @@ extern void ps2_init(void) {
 	port_outb(PS2_PORT_DATA, fl);
 
 	/* create devices */
-	dev_p0 = device_new(DEVICE_TYPE_INPUT, DEVICE_SUBTYPE_INPUT_PS2, "PS/2 Device", sizeof(device_input_t));
+	dev_p0 = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, "PS/2 Device", sizeof(device_char_t));
 
-	device_input_t *inpdev_p0 = (device_input_t *)dev_p0;
+	device_char_t *inpdev_p0 = (device_char_t *)dev_p0;
 
-	inpdev_p0->s_buf = 0;
-	inpdev_p0->e_buf = 0;
+	inpdev_p0->s_ibuf = 0;
+	inpdev_p0->e_ibuf = 0;
 
-	if (p2_pres) dev_p1 = device_new(DEVICE_TYPE_INPUT, DEVICE_SUBTYPE_INPUT_PS2, "PS/2 Device", sizeof(device_input_t));
+	if (p2_pres) dev_p1 = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, "PS/2 Device", sizeof(device_char_t));
 
 	/* disable ignoring of interrupts */
 	wait_int = false;
@@ -345,11 +345,11 @@ extern void ps2_irq1(idt_regs_t *regs) {
 	if (wait_int) return;
 
 	/* add to input buffer */
-	device_input_t *inpdev = (device_input_t *)dev_p0;
+	device_char_t *inpdev = (device_char_t *)dev_p0;
 	if (!inpdev) return;
 
-	inpdev->buf[inpdev->e_buf] = key;
-	inpdev->e_buf = (inpdev->e_buf + 1) % DEVICE_INPUT_BUFSZ;
+	inpdev->ibuf[inpdev->e_ibuf] = key;
+	inpdev->e_ibuf = (inpdev->e_ibuf + 1) % DEVICE_CHAR_BUFSZ;
 }
 
 /* irq12 for second ps/2 device */

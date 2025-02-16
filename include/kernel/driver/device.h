@@ -9,7 +9,7 @@ typedef int device_id_t;
 /* device types */
 typedef enum device_type {
 	DEVICE_TYPE_NONE = 0,
-	DEVICE_TYPE_INPUT,
+	DEVICE_TYPE_CHAR,
 	DEVICE_TYPE_STORAGE,
 	DEVICE_TYPE_TIMER,
 
@@ -19,7 +19,7 @@ typedef enum device_type {
 /* subtypes */
 typedef enum device_subtype {
 	DEVICE_SUBTYPE_NONE = 0,
-	DEVICE_SUBTYPE_INPUT_PS2,
+	DEVICE_SUBTYPE_CHAR_PS2,
 	DEVICE_SUBTYPE_STORAGE_ATA,
 	DEVICE_SUBTYPE_STORAGE_FLOPPY,
 
@@ -37,15 +37,16 @@ typedef struct device {
 	uint32_t impl; /* implementation specific value */
 } device_t;
 
-/* input device */
-#define DEVICE_INPUT_BUFSZ 32
+/* character device */
+#define DEVICE_CHAR_BUFSZ 32
 
-typedef struct device_input {
+typedef struct device_char {
 	device_t base; /* base device info */
-	uint32_t s_buf; /* start position */
-	uint32_t e_buf; /* end position */
-	uint32_t buf[DEVICE_INPUT_BUFSZ]; /* input ring buffer */
-} device_input_t;
+	uint32_t s_ibuf, e_ibuf; /* start and end of input buffer */
+	uint32_t s_obuf, e_obuf; /* start and end of output buffer */
+	uint32_t ibuf[DEVICE_CHAR_BUFSZ]; /* input ring buffer */
+	uint32_t obuf[DEVICE_CHAR_BUFSZ]; /* output ring buffer */
+} device_char_t;
 
 /* keycodes */
 typedef enum device_keycode {
@@ -187,7 +188,8 @@ extern device_t *device_find(device_type_t type, device_subtype_t subtype, int n
 extern void device_translate_biosdev(uint32_t dev, device_subtype_t *subtp, int *n); /* translate a bios device number */
 extern device_t *device_find_root(void); /* search for root device */
 
-extern uint32_t device_input_read(device_t *dev, bool block); /* read next int from device */
+extern uint32_t device_char_read(device_t *dev, bool block); /* read next int from device */
+extern void device_char_write(device_t *dev, uint32_t val); /* write next int to device */
 
 extern void device_storage_read(device_t *dev, uint32_t addr, size_t n, void *buf); /* read n blocks from storage device */
 extern void device_storage_write(device_t *dev, uint32_t addr, size_t n, void *buf); /* write n blocks to storage device */

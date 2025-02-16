@@ -81,23 +81,32 @@ extern device_t *device_find_root(void) {
 }
 
 /* read next int from device */
-extern uint32_t device_input_read(device_t *dev, bool block) {
+extern uint32_t device_char_read(device_t *dev, bool block) {
 
-	device_input_t *inpdev = (device_input_t *)dev;
+	device_char_t *inpdev = (device_char_t *)dev;
 
 	/* wait for values to become available */
-	if (inpdev->s_buf == inpdev->e_buf) {
+	if (inpdev->s_ibuf == inpdev->e_ibuf) {
 		if (block) {
-			while (inpdev->s_buf == inpdev->e_buf)
+			while (inpdev->s_ibuf == inpdev->e_ibuf)
 				__asm__("hlt");
 		}
 		else return 0;
 	}
 
 	/* get value */
-	uint32_t val = inpdev->buf[inpdev->s_buf];
-	inpdev->s_buf = (inpdev->s_buf + 1) % DEVICE_INPUT_BUFSZ;
+	uint32_t val = inpdev->ibuf[inpdev->s_ibuf];
+	inpdev->s_ibuf = (inpdev->s_ibuf + 1) % DEVICE_CHAR_BUFSZ;
 	return val;
+}
+
+/* write next int to device */
+extern void device_char_write(device_t *dev, uint32_t val) {
+
+	device_char_t *outpdev = (device_char_t *)dev;
+
+	outpdev->obuf[outpdev->e_obuf] = val;
+	outpdev->e_obuf = (outpdev->e_obuf + 1) % DEVICE_CHAR_BUFSZ;
 }
 
 /* read n blocks from storage device */
