@@ -5,7 +5,9 @@
 #include <kernel/vfs/fs.h>
 #include <kernel/tty.h>
 
-static fs_node_t *ttydev = NULL;
+#define MAX_DEVS 8
+static fs_node_t *ttydev[MAX_DEVS];
+static int nttydev = 0;
 
 static const char *hex = "0123456789abcdef";
 
@@ -13,19 +15,22 @@ static const char *hex = "0123456789abcdef";
 extern void tty_init(void) {
 }
 
-/* set character device */
-extern void tty_set_device(fs_node_t *devn) {
+/* add character device */
+extern void tty_add_device(fs_node_t *devn) {
 
-	if (ttydev) fs_close(ttydev);
+	if (nttydev >= MAX_DEVS) return;
 
-	ttydev = devn;
+	int i = nttydev++;
+	ttydev[i] = devn;
 	fs_open(devn, FS_READ | FS_WRITE);
 }
 
 /* get character device */
-extern fs_node_t *tty_get_device(void) {
+extern fs_node_t *tty_get_device(int i) {
 
-	return ttydev;
+	if (i < 0 || i >= nttydev) return NULL;
+
+	return ttydev[i];
 }
 
 
@@ -33,7 +38,8 @@ extern fs_node_t *tty_get_device(void) {
 extern void tty_write(void *buf, size_t n) {
 
 	if (!ttydev) return;
-	fs_write(ttydev, 0, n, buf);
+	for (int i = 0; i < nttydev; i++)
+		fs_write(ttydev[i], 0, n, buf);
 }
 
 /* print string */

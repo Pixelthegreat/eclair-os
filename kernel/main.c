@@ -40,7 +40,7 @@ extern void kernel_main() {
 	device_init();
 	task_init();
 
-	ttydev = tty_get_device();
+	ttydev = tty_get_device(0);
 
 	test_task = task_new(sbuf+SBUFSZ, test_func);
 	other_task = task_new(sbuf2+SBUFSZ, other_func);

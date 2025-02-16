@@ -20,6 +20,7 @@ extern void device_init(void) {
 
 	vgacon_init_tty();
 	uart_init(UART_COM1_BIT, UART_DEFAULT_BAUD_RATE);
+	uart_init_tty();
 	pit_init();
 	ps2_init();
 	ata_init();

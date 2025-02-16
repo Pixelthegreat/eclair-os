@@ -43,6 +43,7 @@ typedef enum uart_com {
 
 /* functions */
 extern void uart_init(uart_com_t bits, uint32_t rate); /* initialize uart */
+extern void uart_init_tty(void); /* initialize tty device */
 extern uart_com_t uart_is_init(void); /* get initialized com ports */
 extern void uart_writec(uart_com_t com, char c); /* write character */
 extern void uart_write(uart_com_t com, const void *data, size_t sz); /* write data */

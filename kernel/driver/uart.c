@@ -2,17 +2,34 @@
 #include <kernel/tty.h>
 #include <kernel/string.h>
 #include <kernel/io/port.h>
+#include <kernel/vfs/fs.h>
 #include <kernel/driver/device.h>
 #include <kernel/driver/uart.h>
 
-static const uint16_t PORTS[] = {
+static const uint16_t PORTS[UART_COM_COUNT] = {
 	UART_PORT_COM1,
 	UART_PORT_COM2,
 	UART_PORT_COM3,
 	UART_PORT_COM4,
 };
+static const char *NAMES[UART_COM_COUNT] = {
+	"UART COM1",
+	"UART COM2",
+	"UART COM3",
+	"UART COM4",
+};
+static device_t *devs[UART_COM_COUNT];
+static fs_node_t *nodes[UART_COM_COUNT];
 
 static uart_com_t init = 0;
+static uart_com_t first = UART_COM_COUNT;
+
+/* write fs */
+static kssize_t write_fs(fs_node_t *dev, uint32_t offset, size_t nbytes, uint8_t *buf) {
+
+	uart_write((uart_com_t)dev->impl, buf, nbytes);
+	return (kssize_t)nbytes;
+}
 
 /* initialize uart */
 extern void uart_init(uart_com_t bits, uint32_t rate) {
@@ -33,7 +50,7 @@ extern void uart_init(uart_com_t bits, uint32_t rate) {
 			port_outb(port+UART_PORT_LCR, 0x80); /* unlock divisor */
 			port_outb(port+UART_PORT_DLL, baud); /* baud rate (low byte) */
 			port_outb(port+UART_PORT_DLH, 0); /* buad rate (high byte) */
-			port_outb(port+UART_PORT_LCR, 0x03); /* unlock divisor */
+			port_outb(port+UART_PORT_LCR, 0x03); /* lock divisor */
 			port_outb(port+UART_PORT_MCR, 0);
 			port_outb(port+UART_PORT_IER, 0x01); /* enable receive interrupts */
 
@@ -44,11 +61,33 @@ extern void uart_init(uart_com_t bits, uint32_t rate) {
 				return;
 			}
 			init |= bit;
+			if (first >= UART_COM_COUNT) first = i;
+
+			/* create driver device */
+			devs[i] = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_UART, NAMES[i], sizeof(device_char_t));
+			devs[i]->impl = (uint32_t)i;
+
+			device_char_t *chardev = (device_char_t *)devs[i];
+
+			chardev->s_ibuf = 0; chardev->e_ibuf = 0;
+			chardev->s_obuf = 0; chardev->e_obuf = 0;
+			chardev->flush = NULL;
+
+			/* create vfs char device */
+			nodes[i] = fs_node_new(NULL, FS_CHARDEVICE);
+			nodes[i]->write = write_fs;
+			nodes[i]->impl = (uint32_t)i;
 
 			/* write initial message */
 			uart_writes(i, "Initialized UART\n");
 		}
 	}
+}
+
+/* initialize tty device */
+extern void uart_init_tty(void) {
+
+	if (first < UART_COM_COUNT) tty_add_device(nodes[first]);
 }
 
 /* get initialized com ports */

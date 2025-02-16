@@ -250,6 +250,7 @@ extern kssize_t vgacon_write(fs_node_t *_dev, uint32_t offset, size_t nbytes, ui
 
 	for (size_t i = 0; i < nbytes; i++)
 		vgacon_printc(((char *)buf)[i]);
+	return (kssize_t)nbytes;
 }
 
 /* base init */
@@ -267,7 +268,7 @@ extern void vgacon_init(void) {
 /* set kernel tty device */
 extern void vgacon_set_tty(void) {
 
-	tty_set_device(dev);
+	tty_add_device(dev);
 }
 
 /* init and set tty device */
