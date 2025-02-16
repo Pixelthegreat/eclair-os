@@ -8,6 +8,7 @@
 #include <kernel/driver/ps2.h>
 #include <kernel/driver/ata.h>
 #include <kernel/driver/vgacon.h>
+#include <kernel/driver/uart.h>
 #include <kernel/driver/device.h>
 
 #define MAX_DEVS 32
@@ -18,8 +19,8 @@ static int ndevs = 0; /* number of devices */
 extern void device_init(void) {
 
 	vgacon_init_tty();
+	uart_init(UART_COM1_BIT, UART_DEFAULT_BAUD_RATE);
 	pit_init();
-	//rtc_init();
 	ps2_init();
 	ata_init();
 }
@@ -101,12 +102,15 @@ extern uint32_t device_char_read(device_t *dev, bool block) {
 }
 
 /* write next int to device */
-extern void device_char_write(device_t *dev, uint32_t val) {
+extern void device_char_write(device_t *dev, uint32_t val, bool flush) {
 
 	device_char_t *outpdev = (device_char_t *)dev;
 
 	outpdev->obuf[outpdev->e_obuf] = val;
 	outpdev->e_obuf = (outpdev->e_obuf + 1) % DEVICE_CHAR_BUFSZ;
+
+	/* flush ringbuffer */
+	if (flush) outpdev->flush(dev);
 }
 
 /* read n blocks from storage device */

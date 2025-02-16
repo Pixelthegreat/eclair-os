@@ -20,6 +20,7 @@ typedef enum device_type {
 typedef enum device_subtype {
 	DEVICE_SUBTYPE_NONE = 0,
 	DEVICE_SUBTYPE_CHAR_PS2,
+	DEVICE_SUBTYPE_CHAR_UART,
 	DEVICE_SUBTYPE_STORAGE_ATA,
 	DEVICE_SUBTYPE_STORAGE_FLOPPY,
 
@@ -38,6 +39,8 @@ typedef struct device {
 } device_t;
 
 /* character device */
+typedef void (*device_char_flush_t)(device_t *);
+
 #define DEVICE_CHAR_BUFSZ 32
 
 typedef struct device_char {
@@ -46,6 +49,7 @@ typedef struct device_char {
 	uint32_t s_obuf, e_obuf; /* start and end of output buffer */
 	uint32_t ibuf[DEVICE_CHAR_BUFSZ]; /* input ring buffer */
 	uint32_t obuf[DEVICE_CHAR_BUFSZ]; /* output ring buffer */
+	device_char_flush_t flush; /* flush data of output buffer */
 } device_char_t;
 
 /* keycodes */
@@ -189,7 +193,7 @@ extern void device_translate_biosdev(uint32_t dev, device_subtype_t *subtp, int 
 extern device_t *device_find_root(void); /* search for root device */
 
 extern uint32_t device_char_read(device_t *dev, bool block); /* read next int from device */
-extern void device_char_write(device_t *dev, uint32_t val); /* write next int to device */
+extern void device_char_write(device_t *dev, uint32_t val, bool flush); /* write next int to device */
 
 extern void device_storage_read(device_t *dev, uint32_t addr, size_t n, void *buf); /* read n blocks from storage device */
 extern void device_storage_write(device_t *dev, uint32_t addr, size_t n, void *buf); /* write n blocks to storage device */

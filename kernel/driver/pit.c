@@ -22,6 +22,17 @@ extern void pit_init(void) {
 	while (!called);
 }
 
+/* delay */
+extern void pit_delay(uint32_t div) {
+
+	called = false;
+
+	pit_set_mode(PIT_COMMAND(PIT_CHANNEL0, PIT_ACCESS_HILO, PIT_MODE_INT));
+	pit_set_channel(PIT_CHANNEL0, (uint8_t)(div & 0xff));
+	pit_set_channel(PIT_CHANNEL0, (uint8_t)((div >> 8) & 0xff));
+	while (!called);
+}
+
 /* set operating mode */
 extern void pit_set_mode(uint8_t mode) {
 

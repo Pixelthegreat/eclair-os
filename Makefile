@@ -25,7 +25,7 @@ clean:
 	@rm -v build/kernel/* build/e.clair
 
 run:
-	qemu-system-x86_64 $(QEMUARGS)
+	qemu-system-i386 $(QEMUARGS)
 
 run_debug:
-	qemu-system-x86_64 $(QEMUARGS) -d int
+	qemu-system-i386 $(QEMUARGS) -d int
