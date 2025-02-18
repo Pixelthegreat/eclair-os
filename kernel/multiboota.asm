@@ -25,20 +25,20 @@ header_length dd header_end - header_start
 header_checksum dd -(MAGIC + (header_end - header_start))
 	; framebuffer tag ;
 header_framebuffer_tag:
-	;dw 5
-	;dw 0
-	;dd 20
-	;dd WIDTH
-	;dd HEIGHT
-	;dd DEPTH
-	;dd 0 ; padding ;
+	dw 5
+	dw 0
+	dd 20
+	dd WIDTH
+	dd HEIGHT
+	dd DEPTH
+	dd 0 ; padding ;
 	; information request tag ;
 header_inforeq_tag:
-	;dw 1
-	;dw 0
-	;dd 16
-	;dd 8 ; framebuffer ;
-	;dd 0 ; reserved ;
+	dw 1
+	dw 0
+	dd 16
+	dd 8 ; framebuffer ;
+	dd 0 ; reserved ;
 	; end tag ;
 header_end_tag:
 	dw 0

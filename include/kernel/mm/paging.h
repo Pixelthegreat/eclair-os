@@ -22,6 +22,8 @@ typedef uint32_t page_id_t; /* page id */
 #define PAGE_FLAG_PS 0x80
 #define PAGE_FLAG_G 0x100
 
+extern page_id_t page_breakp;
+
 /* functions */
 extern void page_frame_init(void); /* initialize frame allocator */
 extern page_frame_id_t page_frame_alloc(void); /* allocate a frame */

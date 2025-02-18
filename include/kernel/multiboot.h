@@ -40,6 +40,13 @@ typedef struct multiboot_cmdline_tag {
 
 #define MULTIBOOT_FB_TYPE_RGB 1
 
+typedef struct multiboot_framebuffer_color_info {
+	struct {
+		uint8_t fpos; /* field position */
+		uint8_t masksz; /* mask size */
+	} red, green, blue;
+} __attribute__((packed)) multiboot_framebuffer_color_info_t;
+
 typedef struct multiboot_framebuffer_tag {
 	multiboot_tag_t tag;
 	uint32_t loaddr; /* low 32 bits of address */
@@ -49,6 +56,8 @@ typedef struct multiboot_framebuffer_tag {
 	uint32_t height; /* height of framebuffer */
 	uint8_t bpp; /* bits per pixel */
 	uint8_t type; /* type of framebuffer */
+	uint8_t reserved[2]; /* reserved data */
+	multiboot_framebuffer_color_info_t color; /* color info */
 } __attribute__((packed)) multiboot_framebuffer_tag_t;
 
 /* main info */
@@ -75,6 +84,7 @@ typedef struct multiboot_saved_info {
 	uint32_t fb_width; /* framebuffer width */
 	uint32_t fb_height; /* framebuffer height */
 	uint32_t fb_bpp; /* bits per pixel */
+	multiboot_framebuffer_color_info_t *fb_color; /* color info */
 } multiboot_saved_info_t;
 
 /* preloaded values */

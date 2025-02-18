@@ -10,7 +10,8 @@ static heap_block_t *last = NULL;
 extern void heap_init(void) {
 
 	page_frame_id_t fr = page_frame_alloc();
-	page_id_t pg = page_alloc(1, &fr);
+	page_id_t pg = page_breakp;
+	page_map(page_breakp, fr);
 
 	/* setup head block */
 	head = PAGE_ADDR(pg);

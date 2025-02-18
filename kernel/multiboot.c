@@ -59,8 +59,19 @@ extern void multiboot_init(void) {
 				saved.fb_width = tag->width;
 				saved.fb_height = tag->height;
 				saved.fb_bpp = tag->bpp;
+				saved.fb_color = &tag->color;
 
-				fb_map(&saved);
+				/* create format and map framebuffer */
+				fb_format_t format;
+				format.r.index = (uint32_t)(tag->color.red.fpos/8);
+				format.g.index = (uint32_t)(tag->color.green.fpos/8);
+				format.b.index = (uint32_t)(tag->color.blue.fpos/8);
+
+				format.r.mask = 0xffffffff % (1 << (uint32_t)tag->color.red.masksz);
+				format.g.mask = 0xffffffff % (1 << (uint32_t)tag->color.green.masksz);
+				format.b.mask = 0xffffffff % (1 << (uint32_t)tag->color.blue.masksz);
+
+				fb_map(&saved, format);
 			}
 		}
 
@@ -83,13 +94,16 @@ extern void multiboot_map_structure(void) {
 	page_frame_id_t frs[2] = {fr, fr+1};
 	page_frame_use(fr);
 
+	page = page_breakp++;
+	page_map(page, fr);
+
 	/* structure spans multiple pages */
 	if (poff + sizeof(multiboot_info_t) > 4096) {
 
 		page_frame_use(fr+1);
+		page_map(page_breakp++, fr+1);
 		nfrs++;
 	}
-	page = page_alloc(nfrs, frs);
 	info = PAGE_ADDR(page) + poff;
 
 	/* allocate remaining frames */
@@ -100,7 +114,7 @@ extern void multiboot_map_structure(void) {
 
 		frames[i] = fr + nfrs + i;
 		page_frame_use(frames[i]);
-		page_map(page + nfrs + i, frames[i]);
+		page_map(page_breakp++, frames[i]);
 	}
 }
 

@@ -17,6 +17,8 @@ static page_id_t page_start = 0;
 static page_id_t page_table_id = 0;
 static page_tab_entry_t *page_table = NULL;
 
+page_id_t page_breakp = 0;
+
 /* get an address to a page table from the page directory */
 #define PAGE_TAB(p) ((page_tab_entry_t *)(page_dir_wrap[(p)] & 0xfffff000))
 
@@ -83,6 +85,7 @@ extern void page_init(void) {
 	page_table = (page_tab_entry_t *)(page_table_id << 12);
 	page_start = page_table_id + 1024;
 
+	page_breakp = page_start;
 	page_dir_wrap = &page_table[page_table_id];
 
 	/* allocate remaining page tables (makes it much simpler to clone a directory but keep the kernel sections in tact) */
