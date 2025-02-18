@@ -20,6 +20,7 @@ module = {
                             ('driver/ata.c', 'driver/ata.h'),
                             ('driver/device.c', 'driver/device.h'),
                             ('driver/fb.c', 'driver/fb.h'),
+                            ('driver/fbfont.c', 'driver/fbfont.h'),
                             ('driver/pit.c', 'driver/pit.h'),
                             ('driver/ps2.c', 'driver/ps2.h'),
                             ('driver/rtc.c', 'driver/rtc.h'),

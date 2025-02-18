@@ -66,6 +66,7 @@ extern void multiboot_init(void) {
 				format.r.index = (uint32_t)(tag->color.red.fpos/8);
 				format.g.index = (uint32_t)(tag->color.green.fpos/8);
 				format.b.index = (uint32_t)(tag->color.blue.fpos/8);
+				format.bytes = (uint32_t)tag->bpp/3;
 
 				format.r.mask = 0xffffffff % (1 << (uint32_t)tag->color.red.masksz);
 				format.g.mask = 0xffffffff % (1 << (uint32_t)tag->color.green.masksz);

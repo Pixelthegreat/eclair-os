@@ -27,23 +27,6 @@ static void test_func();
 static void other_func();
 static void alt_func();
 
-extern void _kernel_end();
-
-/* a simple image */
-#define PIXMAP_WIDTH 8
-#define PIXMAP_HEIGHT 8
-
-static uint8_t pixmap[PIXMAP_HEIGHT][PIXMAP_WIDTH] = {
-	{0, 0, 0, 0, 0, 0, 0, 0},
-	{0, 0, 1, 1, 1, 1, 0, 0},
-	{0, 1, 0, 1, 1, 0, 1, 0},
-	{0, 1, 1, 1, 1, 1, 1, 0},
-	{0, 1, 0, 0, 0, 0, 1, 0},
-	{0, 1, 1, 0, 0, 1, 1, 0},
-	{0, 0, 1, 1, 1, 1, 0, 0},
-	{0, 0, 0, 0, 0, 0, 0, 0},
-};
-
 extern void kernel_main() {
 
 	gdt_init();
@@ -57,14 +40,9 @@ extern void kernel_main() {
 	tty_init();
 	device_init();
 
-	/* fill screen */
+	/* draw text */
 	fb_color_t color = {0xff, 0xff, 0xff};
-	for (uint32_t y = 0; y < PIXMAP_HEIGHT*2; y++) {
-		for (uint32_t x = 0; x < PIXMAP_WIDTH*2; x++) {
-
-			if (pixmap[y/2][x/2]) fb_set_pixel(x, y, color);
-		}
-	}
+	fb_text(20, 20, "Hello, world!", color);
 
 	task_init();
 

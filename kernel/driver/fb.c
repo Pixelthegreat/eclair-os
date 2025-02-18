@@ -1,6 +1,7 @@
 #include <kernel/types.h>
 #include <kernel/multiboot.h>
 #include <kernel/mm/paging.h>
+#include <kernel/driver/fbfont.h>
 #include <kernel/driver/fb.h>
 
 static uint32_t bytes; /* bytes per pixel */
@@ -11,11 +12,20 @@ uint32_t fb_height = 0;
 uint32_t fb_pitch = 0;
 uint8_t fb_bpp = 0;
 fb_format_t fb_format = {};
+fb_font_t fb_font = {8, 16, fb_vga_font, true};
 
-const fb_format_t FB_RGB = {
+/* format constants */
+fb_format_t FB_RGB = {
 	.r = {0, 0xff},
 	.g = {1, 0xff},
 	.b = {2, 0xff},
+	.bytes = 3,
+};
+fb_format_t FB_GRAY = {
+	.r = {0, 0xff},
+	.g = {0, 0xff},
+	.b = {0, 0xff},
+	.bytes = 1,
 };
 
 /* map framebuffer into memory */
@@ -58,4 +68,45 @@ extern void fb_set_pixel(uint32_t x, uint32_t y, fb_color_t color) {
 	addr[fb_format.r.index] = color.r;
 	addr[fb_format.g.index] = color.g;
 	addr[fb_format.b.index] = color.b;
+}
+
+/* copy area to framebuffer memory */
+extern void fb_copy_area(uint32_t dstx, uint32_t dsty, uint32_t w, uint32_t h, void *data, fb_format_t *format) {
+
+	for (uint32_t y = 0; y < h; y++) {
+		for (uint32_t x = 0; x < w; x++) {
+
+			uint8_t *addr = (uint8_t *)(data + (y * w + x) * format->bytes);
+
+			fb_color_t color;
+			color.r = addr[format->r.index];
+			color.g = addr[format->g.index];
+			color.b = addr[format->b.index];
+
+			fb_set_pixel(dstx+x, dsty+y, color);
+		}
+	}
+}
+
+/* draw text */
+extern void fb_text(uint32_t x, uint32_t y, const char *text, fb_color_t color) {
+
+	uint32_t pos = 0;
+	char cc;
+	while ((cc = *text++) != 0) {
+
+		uint8_t *bitmap = &fb_font.data[(int)cc * fb_font.h];
+
+		/* draw character */
+		for (uint32_t py = 0; py < fb_font.h; py++) {
+			for (uint32_t px = 0; px < fb_font.w; px++) {
+
+				uint32_t bit = fb_font.flip? fb_font.w-1-px: px;
+
+				if (bitmap[py+bit/fb_font.w] & (uint8_t)(1 << (bit%8)))
+					fb_set_pixel(x+pos*fb_font.w+px, y+py, color);
+			}
+		}
+		pos++;
+	}
 }
