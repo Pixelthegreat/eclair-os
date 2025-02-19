@@ -5,6 +5,8 @@
 #include <kernel/mm/paging.h>
 #include <kernel/task.h>
 
+#define KSTACKSZ 16384 /* process kernel stack size */
+
 #define NTICKS 10
 
 #define FREQ 1193
@@ -22,6 +24,7 @@ struct task_list {
 static struct task_list *ready = NULL;
 static struct task_list *paused = NULL;
 static struct task_list *sleeping = NULL;
+static struct task_list *terminated = NULL;
 
 static uint64_t timens = 0; /* time in nanoseconds */
 
@@ -102,7 +105,8 @@ extern void task_init_memory(void) {
 	for (int i = 0; i < NTASKS; i++) {
 
 		pagedirs[i].frame = page_frame_alloc();
-		pagedirs[i].page = page_alloc(1, &pagedirs[i].frame);
+		pagedirs[i].page = page_breakp++;
+		page_map(pagedirs[i].page, pagedirs[i].frame);
 	}
 }
 
@@ -112,6 +116,7 @@ extern void task_init(void) {
 	ready = &lists[TASK_READY];
 	paused = &lists[TASK_PAUSED];
 	sleeping = &lists[TASK_SLEEPING];
+	terminated = &lists[TASK_TERMINATED];
 
 	ktask = task_new(&kernel_stack_top, NULL);
 	ktask->cr3 = page_get_directory();
@@ -135,6 +140,7 @@ extern task_t *task_new(void *esp, void *seteip) {
 
 	task_lockcli();
 
+	/* get task id */
 	uint32_t id = 0;
 	for (; id < NTASKS && taskmap[id]; id++);
 	if (id >= NTASKS) {
@@ -145,6 +151,15 @@ extern task_t *task_new(void *esp, void *seteip) {
 
 	/* create task */
 	task_t *task = (task_t *)kmalloc(sizeof(task_t));
+
+	task->ownstack = false;
+	if (!esp) {
+		
+		esp = kmalloc(KSTACKSZ);
+		esp += KSTACKSZ;
+		task->ownstack = true;
+	}
+
 	task->esp0 = esp;
 	task->esp = esp;
 	task->cr3 = NULL;
@@ -291,4 +306,31 @@ extern void task_nano_sleep(uint64_t ns) {
 extern void task_sleep(uint32_t s) {
 
 	task_nano_sleep((uint64_t)s * 1000000000);
+}
+
+/* terminate current task */
+extern void task_terminate(void) {
+
+	task_block(TASK_TERMINATED);
+}
+
+/* clean up terminated tasks */
+extern void task_cleanup(void) {
+
+	if (terminated->first) {
+
+		task_lockcli();
+		while (terminated->first) {
+
+			task_t *task = terminated->first;
+			task_remove_from_list(terminated, task);
+
+			/* free stack and other resources */
+			taskmap[task->id] = NULL;
+
+			if (task->ownstack) kfree(task->esp0-KSTACKSZ);
+			kfree(task);
+		}
+		task_unlockcli();
+	}
 }

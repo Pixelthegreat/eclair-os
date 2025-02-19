@@ -1,6 +1,7 @@
 #include <kernel/types.h>
 #include <kernel/tty.h>
 #include <kernel/idt.h>
+#include <kernel/multiboot.h>
 #include <kernel/panic.h>
 
 static const char *codedesc[PANIC_CODE_COUNT] = {
@@ -35,6 +36,9 @@ extern void kpanic(int code, const char *msg, idt_regs_t *regs) {
 
 /* print log message */
 extern void kprintf(log_level_t level, const char *fmt, ...) {
+
+	multiboot_cmdline_t *cmdline = multiboot_get_cmdline();
+	if (cmdline->quiet && level < LOG_FATAL) return;
 
 	tty_printf("[%s] ", logdesc[level]);
 	

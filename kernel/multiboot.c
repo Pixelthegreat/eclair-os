@@ -1,5 +1,6 @@
 #include <kernel/types.h>
 #include <kernel/tty.h>
+#include <kernel/string.h>
 #include <kernel/mm/paging.h>
 #include <kernel/driver/fb.h>
 #include <kernel/multiboot.h>
@@ -9,6 +10,7 @@ static page_frame_id_t frames[NBUFSZ]; /* buffer to store page frame numbers */
 
 static multiboot_info_t *info = NULL;
 static multiboot_saved_info_t saved;
+static multiboot_cmdline_t cmdline;
 
 /* initialize */
 extern void multiboot_init(void) {
@@ -80,6 +82,27 @@ extern void multiboot_init(void) {
 		tagsz += ALIGN(tagptr->size, 8);
 		tagptr = (void *)info->tags + tagsz;
 	}
+
+	/* parse command line */
+	if (saved.f_cmdline) {
+
+		const char *arg = saved.cmdline;
+		while (arg) {
+
+			const char *next = strchr(arg, ' ');
+			size_t len = next? (size_t)(next-arg): strlen(arg);
+
+			/* uart as tty */
+			if (!strncmp("uart-tty", arg, len))
+				cmdline.uart_tty = true;
+
+			/* no info or warning messages */
+			else if (!strncmp("quiet", arg, len))
+				cmdline.quiet = true;
+
+			arg = next? next+1: NULL;
+		}
+	}
 }
 
 /* get multiboot structure */
@@ -129,4 +152,10 @@ extern multiboot_info_t *multiboot_get_structure(void) {
 extern multiboot_saved_info_t *multiboot_get_saved_info(void) {
 
 	return &saved;
+}
+
+/* get command line info */
+extern multiboot_cmdline_t *multiboot_get_cmdline(void) {
+
+	return &cmdline;
 }

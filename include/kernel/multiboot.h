@@ -87,6 +87,12 @@ typedef struct multiboot_saved_info {
 	multiboot_framebuffer_color_info_t *fb_color; /* color info */
 } multiboot_saved_info_t;
 
+/* command line info */
+typedef struct multiboot_cmdline {
+	bool uart_tty; /* initialize uart as tty device */
+	bool quiet; /* do not display log messages under info or warning */
+} multiboot_cmdline_t;
+
 /* preloaded values */
 extern multiboot_info_t *multiboot_data_info;
 extern uint32_t multiboot_data_magic;
@@ -96,5 +102,6 @@ extern void multiboot_init(void); /* initialize */
 extern void multiboot_map_structure(void); /* map the structure */
 extern multiboot_info_t *multiboot_get_structure(void); /* get pointer to structure */
 extern multiboot_saved_info_t *multiboot_get_saved_info(void); /* get info that was saved from structure */
+extern multiboot_cmdline_t *multiboot_get_cmdline(void); /* get command line info */
 
 #endif /* ECLAIR_MULTIBOOT_H */

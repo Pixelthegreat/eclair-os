@@ -16,6 +16,7 @@
 #define MAX_DEVS 32
 static device_t *devs[MAX_DEVS]; /* device pointers */
 static int ndevs = 0; /* number of devices */
+static multiboot_cmdline_t *cmdline; /* command line info */
 
 /* initialize tty devices */
 static void init_tty(void) {
@@ -24,11 +25,13 @@ static void init_tty(void) {
 	else vgacon_init_tty();
 
 	uart_init(UART_COM1_BIT, UART_DEFAULT_BAUD_RATE);
-	uart_init_tty();
+	if (cmdline->uart_tty) uart_init_tty();
 }
 
 /* initialize all devices */
 extern void device_init(void) {
+
+	cmdline = multiboot_get_cmdline();
 
 	init_tty();
 	pit_init();

@@ -7,8 +7,9 @@
 #define TASK_RUNNING 1
 #define TASK_PAUSED 2
 #define TASK_SLEEPING 3
+#define TASK_TERMINATED 4
 
-#define TASK_NSTATES 4
+#define TASK_NSTATES 5
 
 /* task control block */
 typedef struct task {
@@ -21,6 +22,7 @@ typedef struct task {
 	uint64_t waketime; /* wake up time for sleeping task */
 	uint32_t nticks; /* number of ticks left */
 	uint32_t id; /* task id */
+	bool ownstack; /* owns kernel stack */
 } task_t;
 
 extern task_t *ktask; /* base kernel task */
@@ -44,5 +46,7 @@ extern void task_unblock(task_t *task); /* unblock task */
 extern void task_nano_sleep_until(uint64_t waketime); /* sleep in nanoseconds until */
 extern void task_nano_sleep(uint64_t ns); /* sleep in nanoseconds */
 extern void task_sleep(uint32_t s); /* sleep in seconds */
+extern void task_terminate(void); /* terminate current task */
+extern void task_cleanup(void); /* clean up terminated tasks */
 
 #endif /* ECLAIR_TASK_H */

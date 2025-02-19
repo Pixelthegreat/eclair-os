@@ -13,19 +13,17 @@
 #include <kernel/fs/ext2.h>
 #include <kernel/task.h>
 
-#define SBUFSZ 512
-static char sbuf[SBUFSZ];
-static char sbuf2[SBUFSZ];
-static char sbuf3[SBUFSZ];
+static task_t *task1;
+static task_t *task2;
+static task_t *task3;
 
-static task_t *test_task;
-static task_t *other_task;
-static task_t *alt_task;
-static fs_node_t *ttydev;
+#define TASK1_NLOOP 10
+#define TASK2_NLOOP 5
+#define TASK3_NLOOP 3
 
-static void test_func();
-static void other_func();
-static void alt_func();
+static void func1();
+static void func2();
+static void func3();
 
 extern void kernel_main() {
 
@@ -41,52 +39,58 @@ extern void kernel_main() {
 	device_init();
 	task_init();
 
-	ttydev = tty_get_device(0);
+	task1 = task_new(NULL, func1);
+	task2 = task_new(NULL, func2);
+	task3 = task_new(NULL, func3);
 
-	test_task = task_new(sbuf+SBUFSZ, test_func);
-	other_task = task_new(sbuf2+SBUFSZ, other_func);
-	alt_task = task_new(sbuf3+SBUFSZ, alt_func);
-
-	char buf[32];
 	while (true) {
 
-		//asm volatile("hlt");
-		fs_read(ttydev, 0, 32, buf);
+		task_cleanup();
+		asm volatile("hlt");
 	}
 }
 
-static void test_func() {
+static void func1() {
 
 	task_unlockcli();
 
+	int count = 0;
 	while (true) {
 		
 		tty_printf("\e[31mHello, world?\e[39m\n");
 
 		task_nano_sleep(500000000);
+		if (++count >= TASK1_NLOOP)
+			task_terminate();
 	}
 }
 
-static void other_func() {
+static void func2() {
 
 	task_unlockcli();
 
+	int count = 0;
 	while (true) {
 
 		tty_printf("\e[32mHello, world!\e[39m\n");
 
 		task_sleep(2);
+		if (++count >= TASK2_NLOOP)
+			task_terminate();
 	}
 }
 
-static void alt_func() {
+static void func3() {
 
 	task_unlockcli();
 
+	int count = 0;
 	while (true) {
 
 		tty_printf("\e[33mHello, world.\e[39m\n");
 
 		task_sleep(4);
+		if (++count >= TASK3_NLOOP)
+			task_terminate();
 	}
 }
