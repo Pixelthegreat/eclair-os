@@ -39,11 +39,6 @@ extern void kernel_main() {
 	fs_init();
 	tty_init();
 	device_init();
-
-	/* draw text */
-	fb_color_t color = {0xff, 0xff, 0xff};
-	fb_text(20, 20, "Hello, world!", color);
-
 	task_init();
 
 	ttydev = tty_get_device(0);

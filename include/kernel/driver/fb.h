@@ -20,6 +20,7 @@ typedef struct fb_color {
 /* font info */
 typedef struct fb_font {
 	uint32_t w, h; /* width and height of characters */
+	uint32_t hspace; /* horizontal spacing */
 	uint8_t *data; /* font data */
 	bool flip; /* horizontally flip characters */
 } fb_font_t;
@@ -51,6 +52,7 @@ extern fb_format_t FB_GRAY; /* grayscale format */
 extern void fb_map(multiboot_saved_info_t *info, fb_format_t format); /* map framebuffer into memory */
 extern void fb_set_pixel(uint32_t x, uint32_t y, fb_color_t color); /* set pixel to color */
 extern void fb_copy_area(uint32_t dstx, uint32_t dsty, uint32_t w, uint32_t h, void *data, fb_format_t *format); /* copy area to framebuffer memory */
-extern void fb_text(uint32_t x, uint32_t y, const char *text, fb_color_t color); /* draw text */
+extern void fb_text(uint32_t x, uint32_t y, const char *text, fb_color_t color, fb_color_t bgcolor); /* draw text */
+extern void fb_scroll(uint32_t y); /* scroll framebuffer up */
 
 #endif /* ECLAIR_DRIVER_FB_H */

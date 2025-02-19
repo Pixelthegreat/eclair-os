@@ -1,4 +1,5 @@
 #include <kernel/types.h>
+#include <kernel/string.h>
 #include <kernel/multiboot.h>
 #include <kernel/mm/paging.h>
 #include <kernel/driver/fbfont.h>
@@ -12,7 +13,7 @@ uint32_t fb_height = 0;
 uint32_t fb_pitch = 0;
 uint8_t fb_bpp = 0;
 fb_format_t fb_format = {};
-fb_font_t fb_font = {8, 16, fb_vga_font, true};
+fb_font_t fb_font = {8, 16, 1, fb_vga_font, true};
 
 /* format constants */
 fb_format_t FB_RGB = {
@@ -89,7 +90,7 @@ extern void fb_copy_area(uint32_t dstx, uint32_t dsty, uint32_t w, uint32_t h, v
 }
 
 /* draw text */
-extern void fb_text(uint32_t x, uint32_t y, const char *text, fb_color_t color) {
+extern void fb_text(uint32_t x, uint32_t y, const char *text, fb_color_t color, fb_color_t bgcolor) {
 
 	uint32_t pos = 0;
 	char cc;
@@ -103,10 +104,25 @@ extern void fb_text(uint32_t x, uint32_t y, const char *text, fb_color_t color) 
 
 				uint32_t bit = fb_font.flip? fb_font.w-1-px: px;
 
+				uint32_t dx = x + pos * (fb_font.w + fb_font.hspace) + px;
+				uint32_t dy = y + py;
+
 				if (bitmap[py+bit/fb_font.w] & (uint8_t)(1 << (bit%8)))
-					fb_set_pixel(x+pos*fb_font.w+px, y+py, color);
+					fb_set_pixel(dx, dy, color);
+				else fb_set_pixel(dx, dy, bgcolor);
 			}
 		}
 		pos++;
 	}
+}
+
+/* scroll framebuffer up */
+extern void fb_scroll(uint32_t y) {
+
+	uint32_t start = y * fb_pitch;
+	uint32_t size = fb_height * fb_pitch;
+	for (uint32_t i = start; i < size; i++)
+		((uint8_t *)fb_addr)[i-start] = ((uint8_t *)fb_addr)[i];
+
+	memset(fb_addr+size-start, 0, (uint32_t)start);
 }

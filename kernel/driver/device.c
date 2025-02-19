@@ -8,6 +8,8 @@
 #include <kernel/driver/ps2.h>
 #include <kernel/driver/ata.h>
 #include <kernel/driver/vgacon.h>
+#include <kernel/driver/fb.h>
+#include <kernel/driver/fbcon.h>
 #include <kernel/driver/uart.h>
 #include <kernel/driver/device.h>
 
@@ -15,12 +17,20 @@
 static device_t *devs[MAX_DEVS]; /* device pointers */
 static int ndevs = 0; /* number of devices */
 
+/* initialize tty devices */
+static void init_tty(void) {
+
+	if (fb_addr) fbcon_init_tty();
+	else vgacon_init_tty();
+
+	uart_init(UART_COM1_BIT, UART_DEFAULT_BAUD_RATE);
+	uart_init_tty();
+}
+
 /* initialize all devices */
 extern void device_init(void) {
 
-	vgacon_init_tty();
-	uart_init(UART_COM1_BIT, UART_DEFAULT_BAUD_RATE);
-	uart_init_tty();
+	init_tty();
 	pit_init();
 	ps2_init();
 	ata_init();
