@@ -8,6 +8,8 @@ typedef uint32_t page_tab_entry_t; /* page table entry */
 typedef uint32_t page_frame_id_t; /* frame id */
 typedef uint32_t page_id_t; /* page id */
 
+#define PAGE_SIZE 4096
+
 #define PAGE_ENT(a) ((page_dir_entry_t)(a) << 12)
 #define PAGE_ADDR(id) ((void *)((id) << 12))
 
@@ -29,6 +31,7 @@ extern void page_frame_init(void); /* initialize frame allocator */
 extern page_frame_id_t page_frame_alloc(void); /* allocate a frame */
 extern void page_frame_use(page_frame_id_t id); /* set frame to used */
 extern void page_frame_free(page_frame_id_t id); /* set frame to free */
+extern uint32_t page_frame_get_used_count(void); /* get number of used frames */
 
 extern void page_init(void); /* initialize page mapper */
 extern page_id_t page_dir_find_entry(void); /* find free page directory entry */

@@ -23,6 +23,7 @@ typedef struct task {
 	uint32_t nticks; /* number of ticks left */
 	uint32_t id; /* task id */
 	bool ownstack; /* owns kernel stack */
+	fs_node_t *res; /* held resource */
 } task_t;
 
 extern task_t *ktask; /* base kernel task */
@@ -48,5 +49,7 @@ extern void task_nano_sleep(uint64_t ns); /* sleep in nanoseconds */
 extern void task_sleep(uint32_t s); /* sleep in seconds */
 extern void task_terminate(void); /* terminate current task */
 extern void task_cleanup(void); /* clean up terminated tasks */
+extern void task_acquire(fs_node_t *node); /* acquire resource */
+extern void task_release(void); /* release held resource */
 
 #endif /* ECLAIR_TASK_H */

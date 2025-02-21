@@ -77,6 +77,7 @@ static void task_move_to_list(struct task_list *dest, struct task_list *src, tas
 static void task_irq(idt_regs_t *regs) {
 
 	task_lockpost();
+	idt_send_eoi();
 
 	timens += 1000000000 / FREQ_HZ;
 
@@ -90,6 +91,21 @@ static void task_irq(idt_regs_t *regs) {
 			task_unblock(cur);
 
 		cur = next;
+	}
+
+	/* wake up paused tasks */
+	cur = paused->first;
+	while (cur) {
+
+		task_t *next = cur->next;
+
+		if (cur->res && !cur->res->held) {
+
+			cur->res->held = true;
+			task_unblock(cur);
+		}
+
+		cur = cur->next;
 	}
 
 	/* end of time slice */
@@ -165,8 +181,9 @@ extern task_t *task_new(void *esp, void *seteip) {
 	task->cr3 = NULL;
 	task->state = TASK_READY;
 	task->waketime = 0;
-	task->nticks = 0;
+	task->nticks = NTICKS;
 	task->id = id;
+	task->res = NULL;
 
 	task_add_to_list(ready, task);
 	taskmap[id] = task;
@@ -333,4 +350,40 @@ extern void task_cleanup(void) {
 		}
 		task_unlockcli();
 	}
+}
+
+/* acquire resource */
+extern void task_acquire(fs_node_t *node) {
+
+	task_lockcli();
+	task_active->res = node;
+
+	/* other task held */
+	if (node->held) {
+
+		task_unlockcli();
+		task_block(TASK_PAUSED);
+	}
+
+	/* available */
+	else {
+
+		node->held = true;
+		task_unlockcli();
+	}
+}
+
+/* release held resource */
+extern void task_release(void) {
+
+	task_lockcli();
+	if (!task_active->res) {
+
+		task_unlockcli();
+		return;
+	}
+
+	task_active->res->held = false;
+	task_active->res = NULL;
+	task_unlockcli();
 }

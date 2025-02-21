@@ -60,6 +60,26 @@ typedef struct multiboot_framebuffer_tag {
 	multiboot_framebuffer_color_info_t color; /* color info */
 } __attribute__((packed)) multiboot_framebuffer_tag_t;
 
+/* memory map */
+#define MULTIBOOT_TAG_MEMMAP 6
+#define MULTIBOOT_MEMMAP_AVAIL 1
+
+#define MULTIBOOT_ADDR32(a) ((uint32_t)((a) & 0xffffffff))
+
+typedef struct multiboot_memmap_entry {
+	uint64_t addr; /* base address */
+	uint64_t length; /* length in bytes */
+	uint32_t type; /* type of memory region */
+	uint32_t reserved; /* reserved data */
+} __attribute__((packed)) multiboot_memmap_entry_t;
+
+typedef struct multiboot_memmap_tag {
+	multiboot_tag_t tag;
+	uint32_t entsize; /* entry size */
+	uint32_t entversion; /* entry version */
+	multiboot_memmap_entry_t entries[]; /* entries */
+} __attribute__((packed)) multiboot_memmap_tag_t;
+
 /* main info */
 typedef struct multiboot_info {
 	uint32_t size;
@@ -73,6 +93,7 @@ typedef struct multiboot_saved_info {
 	bool f_memlayout; /* found memory layout tag */
 	bool f_bootdev; /* found boot device */
 	bool f_framebuf; /* found framebuffer */
+	bool f_memmap; /* found memory map */
 	const char *cmdline; /* boot command line */
 	uint32_t memlow; /* lower memory limit */
 	uint32_t memup; /* upper memory limit */
@@ -85,6 +106,8 @@ typedef struct multiboot_saved_info {
 	uint32_t fb_height; /* framebuffer height */
 	uint32_t fb_bpp; /* bits per pixel */
 	multiboot_framebuffer_color_info_t *fb_color; /* color info */
+	uint32_t mm_nentries; /* number of memory map entries */
+	uint32_t mm_entsize; /* entry size */
 } multiboot_saved_info_t;
 
 /* command line info */

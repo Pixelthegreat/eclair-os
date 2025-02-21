@@ -3,6 +3,10 @@
 %define HEIGHT 480
 %define DEPTH 24
 
+%define MEMMAP_TAG 0x6
+%define FRAMEBUFFER_TAG 0x8
+%define MEMLAYOUT_TAG 0x10
+
 %define MAGIC 0xe85250d6
 	
 	global multiboot_data_magic
@@ -27,7 +31,7 @@ header_checksum dd -(MAGIC + (header_end - header_start))
 header_framebuffer_tag:
 	dw 5
 	dw 0
-	dd 20
+	dd 24
 	dd WIDTH
 	dd HEIGHT
 	dd DEPTH
@@ -36,8 +40,10 @@ header_framebuffer_tag:
 header_inforeq_tag:
 	dw 1
 	dw 0
-	dd 16
-	dd 8 ; framebuffer ;
+	dd 24
+	dd MEMMAP_TAG ; memory map ;
+	dd FRAMEBUFFER_TAG ; framebuffer ;
+	dd MEMLAYOUT_TAG ; basic memory info ;
 	dd 0 ; reserved ;
 	; end tag ;
 header_end_tag:

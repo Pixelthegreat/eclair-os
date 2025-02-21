@@ -58,6 +58,7 @@ typedef struct fs_node {
 	fs_open_t open; /* open file */
 	fs_close_t close; /* close file */
 	fs_filldir_t filldir; /* fill directory node with entries */
+	bool held; /* task is holding resource */
 } fs_node_t;
 
 extern fs_node_t *fs_root; /* root node */

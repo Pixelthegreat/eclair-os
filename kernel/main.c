@@ -17,9 +17,7 @@ static task_t *task1;
 static task_t *task2;
 static task_t *task3;
 
-#define TASK1_NLOOP 10
-#define TASK2_NLOOP 5
-#define TASK3_NLOOP 3
+static fs_node_t *ttydev = NULL;
 
 static void func1();
 static void func2();
@@ -37,6 +35,8 @@ extern void kernel_main() {
 	fs_init();
 	tty_init();
 	device_init();
+
+	ttydev = tty_get_device(0);
 	task_init();
 
 	task1 = task_new(NULL, func1);
@@ -53,44 +53,38 @@ extern void kernel_main() {
 static void func1() {
 
 	task_unlockcli();
-
-	int count = 0;
 	while (true) {
-		
-		tty_printf("\e[31mHello, world?\e[39m\n");
 
-		task_nano_sleep(500000000);
-		if (++count >= TASK1_NLOOP)
-			task_terminate();
+		task_acquire(ttydev);
+		tty_printf("A");
+		task_release();
+
+		port_outb(0x80, 0);
 	}
 }
 
 static void func2() {
 
 	task_unlockcli();
-
-	int count = 0;
 	while (true) {
 
-		tty_printf("\e[32mHello, world!\e[39m\n");
+		task_acquire(ttydev);
+		tty_printf("B");
+		task_release();
 
-		task_sleep(2);
-		if (++count >= TASK2_NLOOP)
-			task_terminate();
+		port_outb(0x80, 0);
 	}
 }
 
 static void func3() {
 
 	task_unlockcli();
-
-	int count = 0;
 	while (true) {
 
-		tty_printf("\e[33mHello, world.\e[39m\n");
+		task_acquire(ttydev);
+		tty_printf("C");
+		task_release();
 
-		task_sleep(4);
-		if (++count >= TASK3_NLOOP)
-			task_terminate();
+		port_outb(0x80, 0);
 	}
 }

@@ -5,9 +5,6 @@
 #include <kernel/driver/fb.h>
 #include <kernel/multiboot.h>
 
-#define NBUFSZ 12
-static page_frame_id_t frames[NBUFSZ]; /* buffer to store page frame numbers */
-
 static multiboot_info_t *info = NULL;
 static multiboot_saved_info_t saved;
 static multiboot_cmdline_t cmdline;
@@ -78,6 +75,33 @@ extern void multiboot_init(void) {
 			}
 		}
 
+		/* memory map */
+		else if (tagptr->type == MULTIBOOT_TAG_MEMMAP) {
+
+			saved.f_memmap = true;
+
+			multiboot_memmap_tag_t *tag = (multiboot_memmap_tag_t *)tagptr;
+			multiboot_memmap_entry_t *entry = tag->entries;
+
+			uint32_t nentries = (tagptr->size - sizeof(multiboot_memmap_tag_t)) / tag->entsize;
+			saved.mm_nentries = nentries;
+			saved.mm_entsize = tag->entsize;
+
+			/* mark frames that aren't available as used */
+			for (uint32_t i = 0; i < nentries; i++) {
+
+				if (entry->type != MULTIBOOT_MEMMAP_AVAIL) {
+
+					page_frame_id_t start = MULTIBOOT_ADDR32(entry->addr)/PAGE_SIZE;
+					page_frame_id_t end = ALIGN(MULTIBOOT_ADDR32(entry->addr + entry->length), PAGE_SIZE)/PAGE_SIZE;
+
+					for (page_frame_id_t j = start; j < end; j++)
+						page_frame_use(j);
+				}
+				entry = (void *)tag->entries + tag->entsize*i;
+			}
+		}
+
 		/* increment */
 		tagsz += ALIGN(tagptr->size, 8);
 		tagptr = (void *)info->tags + tagsz;
@@ -87,10 +111,13 @@ extern void multiboot_init(void) {
 	if (saved.f_cmdline) {
 
 		const char *arg = saved.cmdline;
-		while (arg) {
+		const char *next;
+		for (; arg; arg = next? next+1: NULL) {
 
-			const char *next = strchr(arg, ' ');
+			next = strchr(arg, ' ');
 			size_t len = next? (size_t)(next-arg): strlen(arg);
+
+			if (!len) continue;
 
 			/* uart as tty */
 			if (!strncmp("uart-tty", arg, len))
@@ -99,8 +126,6 @@ extern void multiboot_init(void) {
 			/* no info or warning messages */
 			else if (!strncmp("quiet", arg, len))
 				cmdline.quiet = true;
-
-			arg = next? next+1: NULL;
 		}
 	}
 }
@@ -132,13 +157,12 @@ extern void multiboot_map_structure(void) {
 
 	/* allocate remaining frames */
 	uint32_t frcnt = (poff + info->size) / 4096 + 1;
-	frcnt = frcnt > NBUFSZ? NBUFSZ: frcnt;
 
 	for (int i = 0; i < frcnt - nfrs; i++) {
 
-		frames[i] = fr + nfrs + i;
-		page_frame_use(frames[i]);
-		page_map(page_breakp++, frames[i]);
+		page_frame_id_t frame = fr + nfrs + i;
+		page_frame_use(frame);
+		page_map(page_breakp++, frame);
 	}
 }
 

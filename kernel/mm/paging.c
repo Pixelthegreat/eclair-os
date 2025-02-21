@@ -9,6 +9,7 @@
 extern void _kernel_end(void);
 
 static uint8_t bitmap[BITMAP_SIZE];
+static uint32_t nused; /* number of used frames */
 
 /* page mapper */
 static page_dir_entry_t *page_dir = NULL;
@@ -56,13 +57,27 @@ extern page_frame_id_t page_frame_alloc(void) {
 /* set frame to used */
 extern void page_frame_use(page_frame_id_t id) {
 
-	bitmap[id / 8] |= 1 << (id % 8);
+	uint32_t byte = id / 8;
+	uint8_t bit = (uint8_t)(1 << (id % 8));
+
+	if (!(bitmap[byte] & bit)) nused++;
+	bitmap[byte] |= bit;
 }
 
 /* set frame to free */
 extern void page_frame_free(page_frame_id_t id) {
 
-	bitmap[id / 8] &= ~(1 << (id % 8));
+	uint32_t byte = id / 8;
+	uint8_t bit = (uint8_t)(1 << (id % 8));
+
+	if (bitmap[byte] & bit) nused--;
+	bitmap[byte] &= ~(bit);
+}
+
+/* get number of used frames */
+extern uint32_t page_frame_get_used_count(void) {
+
+	return nused;
 }
 
 /* initialize page mapper */
