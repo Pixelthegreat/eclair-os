@@ -14,6 +14,8 @@ extern void multiboot_init(void) {
 
 	multiboot_map_structure();
 
+	if (!info) return;
+
 	/* read info */
 	multiboot_tag_t *tagptr = info->tags;
 	size_t tagsz = 0;
@@ -133,7 +135,7 @@ extern void multiboot_init(void) {
 /* get multiboot structure */
 extern void multiboot_map_structure(void) {
 
-	if (info) return;
+	if (info || !multiboot_data_info) return;
 
 	page_frame_id_t fr = (uint32_t)multiboot_data_info / 4096;
 	uint32_t poff = (uint32_t)multiboot_data_info % 4096;

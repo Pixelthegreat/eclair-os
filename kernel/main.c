@@ -53,38 +53,47 @@ extern void kernel_main() {
 static void func1() {
 
 	task_unlockcli();
+
+	char buf[32];
 	while (true) {
 
 		task_acquire(ttydev);
-		tty_printf("A");
+		tty_printf("First task\n");
+		fs_read(ttydev, 0, 32, buf);
 		task_release();
 
-		port_outb(0x80, 0);
+		asm volatile("hlt");
 	}
 }
 
 static void func2() {
 
 	task_unlockcli();
+
+	char buf[32];
 	while (true) {
 
 		task_acquire(ttydev);
-		tty_printf("B");
+		tty_printf("Second task\n");
+		fs_read(ttydev, 0, 32, buf);
 		task_release();
 
-		port_outb(0x80, 0);
+		asm volatile("hlt");
 	}
 }
 
 static void func3() {
 
 	task_unlockcli();
+
+	char buf[32];
 	while (true) {
 
 		task_acquire(ttydev);
-		tty_printf("C");
+		tty_printf("Third task\n");
+		fs_read(ttydev, 0, 32, buf);
 		task_release();
 
-		port_outb(0x80, 0);
+		asm volatile("hlt");
 	}
 }

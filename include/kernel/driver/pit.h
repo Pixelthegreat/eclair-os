@@ -5,6 +5,7 @@
 #include <kernel/idt.h>
 
 #define PIT_FREQ(x) (1193182 / (x))
+#define PIT_IRQ 0
 
 /* io ports */
 #define PIT_PORT_CHANNEL0 0x40

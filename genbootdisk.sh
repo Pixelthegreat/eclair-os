@@ -1,13 +1,25 @@
 #!/bin/sh
 # bootdisk generation script for eclair-os (script adapted from strange-os) #
 
+# exit in case of an error #
+exit_on_error() {
+
+	error=$?
+	if [ $error != 0 ]; then
+		echo "Error $error; Exiting..."
+		exit $error
+	fi
+}
+
 MODULES='boot biosdisk part_msdos ext2 configfile normal multiboot2'
 
 echo generating file...
 dd if=/dev/zero of=bootdisk.img count=1 bs=16M
+exit_on_error
 
 echo generating partition table...
 sudo parted --script bootdisk.img mklabel msdos mkpart p ext2 1 16 set 1 boot on
+exit_on_error
 
 # map disk image #
 echo mapping partitions...
@@ -15,11 +27,13 @@ echo mapping partitions...
 looppart=`sudo kpartx -l bootdisk.img | awk '{ print $1; exit }'`
 loopdev=`sudo kpartx -l bootdisk.img | awk '{ print $5; exit }'`
 sudo kpartx -a bootdisk.img
+exit_on_error
 sleep 1
 
 # setup fat32 fs #
 echo generating fs...
 sudo mkfs.ext2 "/dev/mapper/$looppart"
+exit_on_error
 
 # mount partition #
 echo mounting partition...

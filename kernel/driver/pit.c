@@ -15,7 +15,7 @@ static void pit_irq(idt_regs_t *regs) {
 /* initialize pit */
 extern void pit_init(void) {
 
-	idt_set_irq_callback(0, pit_irq);
+	idt_set_irq_callback(PIT_IRQ, pit_irq);
 
 	pit_set_mode(PIT_COMMAND(PIT_CHANNEL0, PIT_ACCESS_LO, PIT_MODE_INT));
 	pit_set_channel(PIT_CHANNEL0, 0);

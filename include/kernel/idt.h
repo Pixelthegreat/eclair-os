@@ -56,6 +56,7 @@ extern void idt_isr_handler(idt_regs_t *regs); /* main isr handler */
 extern void idt_irq_handler(idt_regs_t *regs); /* main irq handler */
 extern void idt_set_irq_callback(uint32_t n, idt_isr_t isr); /* set irq callback */
 extern void idt_send_eoi(void); /* send eoi command to first pic */
+extern void idt_disable_irq_eoi(uint32_t n); /* disable automatic eoi command for irqs */
 
 /* PIC ports and commands */
 #define IDT_PIC0_CMD 0x20

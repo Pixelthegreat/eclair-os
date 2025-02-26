@@ -8,6 +8,7 @@
 static idt_descriptor_t idt_desc;
 static idt_gate_descriptor_t idt[256];
 static idt_isr_t isrs[256];
+static bool noeoi[8];
 
 static inline void _wait(void) {
 
@@ -134,6 +135,9 @@ extern void idt_irq_handler(idt_regs_t *regs) {
 	if (isrs[regs->n_int] != NULL) isrs[regs->n_int](regs);
 
 	/* end of interrupt command */
+	if (regs->n_int >= 40 && regs->n_int < 48 && noeoi[regs->n_int-40])
+		return;
+
 	port_outb(IDT_PIC0_CMD, IDT_PIC_CMD_EOI);
 	if (regs->n_int >= 40) port_outb(IDT_PIC1_CMD, IDT_PIC_CMD_EOI);
 }
@@ -150,4 +154,10 @@ extern void idt_send_eoi(void) {
 
 	port_outb(IDT_PIC0_CMD, IDT_PIC_CMD_EOI);
 	port_outb(IDT_PIC1_CMD, IDT_PIC_CMD_EOI);
+}
+
+/* disable automatic eoi command for irqs */
+extern void idt_disable_irq_eoi(uint32_t n) {
+
+	if (n < 8) noeoi[n] = true;
 }

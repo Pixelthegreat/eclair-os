@@ -143,6 +143,7 @@ extern void task_init(void) {
 	task_active = ktask;
 
 	/* setup pit */
+	idt_disable_irq_eoi(PIT_IRQ);
 	pit_set_callback(task_irq);
 
 	pit_set_mode(PIT_COMMAND(PIT_CHANNEL0, PIT_ACCESS_HILO, PIT_MODE_SQUARE));
