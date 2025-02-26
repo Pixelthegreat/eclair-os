@@ -1,1 +1,4 @@
-modules = ('mod-kernel',)
+modules = (
+        'mod-kernel',
+        'mod-boot',
+    )

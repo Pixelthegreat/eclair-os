@@ -11,7 +11,8 @@ mkdir -pv tmp
 sudo mount "/dev/mapper/$looppart" tmp
 
 sudo mkdir -pv tmp/boot/grub
-sudo cp -v boot/grub.cfg tmp/boot/grub
+#sudo cp -v boot/grub/grub.cfg tmp/boot/grub
+sudo cp -v boot/s3b/menu.cfg tmp/boot
 sudo cp -v build/e.clair tmp/boot
 sudo cp -v base/hello.txt tmp
 

@@ -1,10 +1,10 @@
 # build files #
 build
 tmp
-boot/device.map
 bootdisk.img
 __pycache__
 kernel.mk
+boot.mk
 
 # vim #
 **.swp

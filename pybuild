@@ -84,8 +84,11 @@ class MakefileGenerator:
 
     # add constants #
     def add_constants(self, target):
+        flags = target['flags'] if 'flags' in target else ()
+        nolink = 'NO_LINK' in flags
+
         name = target['name'].upper()
-        objdir = target['objdir']
+        objdir = target['objdir'] if 'objdir' in target else ''
 
         if not self.dep: self.string += '\n'
 
@@ -99,16 +102,17 @@ class MakefileGenerator:
         if 'asmflags' in target:
             self.string += target['asmflags']
 
-        # ldflags #
-        self.string += f'\n{name}_LDFLAGS='
-        if 'ldflags' in target:
-            self.string += target['ldflags']
+        if not nolink:
+            # ldflags #
+            self.string += f'\n{name}_LDFLAGS='
+            if 'ldflags' in target:
+                self.string += target['ldflags']
 
-        # objfiles #
-        self.string += f'\n{name}_OBJFILES='
-        if 'c-files' in target: self.add_objfiles(objdir, target['c-files'])
-        if 'asm-files' in target: self.add_objfiles(objdir, target['asm-files'])
-        self.string += '\n'
+            # objfiles #
+            self.string += f'\n{name}_OBJFILES='
+            if 'c-files' in target: self.add_objfiles(objdir, target['c-files'])
+            if 'asm-files' in target: self.add_objfiles(objdir, target['asm-files'])
+            self.string += '\n'
 
     # add object files #
     def add_objfiles(self, objdir, files):
@@ -118,10 +122,16 @@ class MakefileGenerator:
 
     # add target #
     def add_target(self, target):
+        flags = target['flags'] if 'flags' in target else ()
+        nolink = 'NO_LINK' in flags
+        hostcc = 'HOST_CC' in flags
+
         name = target['name'].upper()
         out = target['out']
 
-        self.string += f'\n\n{out}: $({name}_OBJFILES)\n\t$(DST_FILENAME)\n\t@$(LD) -o {out} $({name}_OBJFILES) $({name}_LDFLAGS)'
+        linker = 'HOST_CC' if hostcc else 'LD'
+        if not nolink:
+            self.string += f'\n\n{out}: $({name}_OBJFILES)\n\t$(DST_FILENAME)\n\t@$({linker}) -o {out} $({name}_OBJFILES) $({name}_LDFLAGS)'
 
         # add source rules #
         if 'c-files' in target: self.add_source_rules(target, target['c-files'])
@@ -129,11 +139,15 @@ class MakefileGenerator:
 
     # add source rules #
     def add_source_rules(self, target, files, ext='c'):
-        comp='ASM' if ext == 'asm' else 'CC'
+        flags = target['flags'] if 'flags' in target else ()
+        nolink = 'NO_LINK' in flags
+        hostcc = 'HOST_CC' in flags
+
+        comp='ASM' if ext == 'asm' else 'HOST_CC' if hostcc else 'CC'
         flags='ASMFLAGS' if ext == 'asm' else 'CFLAGS'
         name = target['name'].upper()
         srcdir = target['srcdir']
-        objdir = target['objdir']
+        objdir = target['objdir'] if 'objdir' in target else ''
         depsdir = target['depsdir']
 
         for src in files:
@@ -143,6 +157,8 @@ class MakefileGenerator:
 
             fname = os.path.join(srcdir, fname)
             objfile = os.path.join(objdir, objfile)
+
+            if nolink: objfile = target['out']
 
             self.string += f'\n\n{objfile}: {fname}'
             if deps:
