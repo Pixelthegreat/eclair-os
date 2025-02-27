@@ -8,8 +8,8 @@
 
 ; start ;
 start:
+	cli
 	mov ax, 0
-	mov cs, ax
 	mov ds, ax
 	mov es, ax
 	mov fs, ax

@@ -1,8 +1,8 @@
 include common.mk
 
-.PHONY: kernel boot bootdisk setup clean run
+.PHONY: kernel boot bootdisk setup clean install_boot run run_uart_stdout run_debug
 
-QEMUARGS=-drive if=ide,id=ata0.0,index=0,file=bootdisk.img,format=raw
+QEMUARGS=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw
 
 # primary targets #
 all: kernel boot bootdisk
@@ -28,8 +28,15 @@ setup:
 	@./pybuild
 
 clean:
-	@rm -v build/kernel/* build/e.clair
+	@rm -v build/kernel/* build/boot/* build/e.clair
 
+# re-install bootloader #
+install_boot:
+	@cp -v build/boot/stage0.bin build/boot.bin
+	@dd if=build/boot/stage1.bin of=build/boot.bin bs=512 seek=1 conv=notrunc
+	@build/bootimage
+
+# run program #
 run:
 	qemu-system-i386 $(QEMUARGS)
 
