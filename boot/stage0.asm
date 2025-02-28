@@ -23,6 +23,8 @@ start:
 	mov eax, 0
 	jmp 0x0000:.next
 .next:
+	sti
+	
 	mov si, boot_msg
 	call print
 

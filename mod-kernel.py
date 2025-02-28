@@ -47,6 +47,7 @@ module = {
                             ('vfs/fs.c', 'vfs/fs.h'),
 
                             # general #
+                            ('boot.c', 'boot.h'),
                             ('idt.c', 'idt.h'),
                             ('main.c'),
                             ('multiboot.c', 'multiboot.h'),

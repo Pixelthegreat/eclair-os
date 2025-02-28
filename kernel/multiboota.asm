@@ -7,10 +7,14 @@
 %define FRAMEBUFFER_TAG 0x8
 %define MEMLAYOUT_TAG 0x10
 
+%define S3B_MAGIC 0xc73a3912
+%define S3B_PTR 0x500
+
 %define MAGIC 0xe85250d6
 	
 	global multiboot_data_magic
 	global multiboot_data_info
+	global boot_data_info
 	global kernel_stack_top
 	
 	extern kernel_main
@@ -72,6 +76,8 @@ multiboot_data_magic:
 	resb 4
 multiboot_data_info:
 	resb 4
+boot_data_info:
+	resb 4
 
 ; kernel entry ;
 section .multiboot.text
@@ -81,6 +87,17 @@ _start:
 	mov [multiboot_data_magic-ADDR_START], eax
 	mov [multiboot_data_info-ADDR_START], ebx
 	
+	cmp ebx, 0
+	jne .prep
+	
+	; s3boot structure info ;
+	mov eax, dword[S3B_PTR]
+	cmp eax, S3B_MAGIC
+	jne .prep
+	
+	mov eax, dword[S3B_PTR+4]
+	mov dword[boot_data_info-ADDR_START], eax
+.prep:
 	mov edi, boot_page_table1 - ADDR_START
 	mov esi, 0
 	mov ecx, 2047

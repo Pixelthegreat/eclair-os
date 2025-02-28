@@ -1,5 +1,5 @@
 #!/bin/sh
-# bootdisk generation script for eclair-os (script adapted from strange-os) #
+# bootdisk generation script for eclair-os #
 
 # exit in case of an error #
 exit_on_error() {
@@ -10,8 +10,6 @@ exit_on_error() {
 		exit $error
 	fi
 }
-
-MODULES='boot biosdisk part_msdos ext2 configfile normal multiboot2'
 
 echo Generating file...
 dd if=/dev/zero of=bootdisk.img count=1 bs=16M

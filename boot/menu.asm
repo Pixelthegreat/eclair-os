@@ -377,6 +377,11 @@ menu_load:
 	call print
 	pop si
 	
+	push si
+	add si, config_entry.cmdline
+	mov word[menu_cmdline], si
+	pop si
+	
 	mov ax, word[menu_option]
 	call config_load_kernel
 	
@@ -386,6 +391,7 @@ menu_load:
 ; data ;
 menu_option dw 0
 menu_cursor_shape dw 0
+menu_cmdline dw 0
 
 menu_boot_msg1 db "Booting ", 0
 menu_boot_msg2 db "...", 0

@@ -87,44 +87,13 @@ typedef struct multiboot_info {
 	multiboot_tag_t tags[0];
 } __attribute__((packed)) multiboot_info_t;
 
-/* useful structure for saved info */
-typedef struct multiboot_saved_info {
-	bool f_cmdline; /* found command line tag */
-	bool f_memlayout; /* found memory layout tag */
-	bool f_bootdev; /* found boot device */
-	bool f_framebuf; /* found framebuffer */
-	bool f_memmap; /* found memory map */
-	const char *cmdline; /* boot command line */
-	uint32_t memlow; /* lower memory limit */
-	uint32_t memup; /* upper memory limit */
-	uint32_t biosdev; /* bios boot device */
-	uint32_t part; /* partition */
-	uint32_t subpart; /* sub-partition */
-	void *fb_addr; /* framebuffer address */
-	uint32_t fb_pitch; /* space in bytes between lines */
-	uint32_t fb_width; /* framebuffer width */
-	uint32_t fb_height; /* framebuffer height */
-	uint32_t fb_bpp; /* bits per pixel */
-	multiboot_framebuffer_color_info_t *fb_color; /* color info */
-	uint32_t mm_nentries; /* number of memory map entries */
-	uint32_t mm_entsize; /* entry size */
-} multiboot_saved_info_t;
-
-/* command line info */
-typedef struct multiboot_cmdline {
-	bool uart_tty; /* initialize uart as tty device */
-	bool quiet; /* do not display log messages under info or warning */
-} multiboot_cmdline_t;
-
 /* preloaded values */
 extern multiboot_info_t *multiboot_data_info;
 extern uint32_t multiboot_data_magic;
 
 /* functions */
-extern void multiboot_init(void); /* initialize */
+extern bool multiboot_init(void); /* initialize */
 extern void multiboot_map_structure(void); /* map the structure */
 extern multiboot_info_t *multiboot_get_structure(void); /* get pointer to structure */
-extern multiboot_saved_info_t *multiboot_get_saved_info(void); /* get info that was saved from structure */
-extern multiboot_cmdline_t *multiboot_get_cmdline(void); /* get command line info */
 
 #endif /* ECLAIR_MULTIBOOT_H */

@@ -2,7 +2,7 @@
 #define ECLAIR_DRIVER_FB_H
 
 #include <kernel/types.h>
-#include <kernel/multiboot.h>
+#include <kernel/boot.h>
 
 /* color format */
 typedef struct fb_format {
@@ -49,7 +49,7 @@ extern fb_format_t FB_RGB; /* rgba format */
 extern fb_format_t FB_GRAY; /* grayscale format */
 
 /* functions */
-extern void fb_map(multiboot_saved_info_t *info, fb_format_t format); /* map framebuffer into memory */
+extern void fb_map(boot_saved_info_t *info, fb_format_t format); /* map framebuffer into memory */
 extern void fb_set_pixel(uint32_t x, uint32_t y, fb_color_t color); /* set pixel to color */
 extern void fb_copy_area(uint32_t dstx, uint32_t dsty, uint32_t w, uint32_t h, void *data, fb_format_t *format); /* copy area to framebuffer memory */
 extern void fb_text(uint32_t x, uint32_t y, const char *text, fb_color_t color, fb_color_t bgcolor); /* draw text */

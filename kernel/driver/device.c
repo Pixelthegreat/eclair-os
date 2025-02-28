@@ -1,7 +1,7 @@
 #include <kernel/types.h>
 #include <kernel/string.h>
 #include <kernel/tty.h>
-#include <kernel/multiboot.h>
+#include <kernel/boot.h>
 #include <kernel/mm/heap.h>
 #include <kernel/driver/pit.h>
 #include <kernel/driver/rtc.h>
@@ -16,7 +16,7 @@
 #define MAX_DEVS 32
 static device_t *devs[MAX_DEVS]; /* device pointers */
 static int ndevs = 0; /* number of devices */
-static multiboot_cmdline_t *cmdline; /* command line info */
+static boot_cmdline_t *cmdline; /* command line info */
 
 /* initialize tty devices */
 static void init_tty(void) {
@@ -31,7 +31,7 @@ static void init_tty(void) {
 /* initialize all devices */
 extern void device_init(void) {
 
-	cmdline = multiboot_get_cmdline();
+	cmdline = boot_get_cmdline();
 
 	init_tty();
 	pit_init();

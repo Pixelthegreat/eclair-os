@@ -21,7 +21,18 @@ module = {
                     'depsdir': 'boot',
                     'asmflags': '-fbin -Iboot',
                     'asm-files': (
-                            ('main.asm',),
+                            ('main.asm',
+                             'config.asm',
+                             'disk.asm',
+                             'elf16.asm',
+                             'elf32.asm',
+                             'ext2.asm',
+                             'mbr.asm',
+                             'memory.asm',
+                             'menu.asm',
+                             'pm16.asm',
+                             'pm32.asm',
+                             'print.asm'),
                         )
                 },
                 {

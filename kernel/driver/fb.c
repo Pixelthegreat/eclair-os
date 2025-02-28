@@ -1,6 +1,6 @@
 #include <kernel/types.h>
 #include <kernel/string.h>
-#include <kernel/multiboot.h>
+#include <kernel/boot.h>
 #include <kernel/mm/paging.h>
 #include <kernel/driver/fbfont.h>
 #include <kernel/driver/fb.h>
@@ -30,7 +30,7 @@ fb_format_t FB_GRAY = {
 };
 
 /* map framebuffer into memory */
-extern void fb_map(multiboot_saved_info_t *info, fb_format_t format) {
+extern void fb_map(boot_saved_info_t *info, fb_format_t format) {
 
 	if (!info->f_framebuf) return;
 

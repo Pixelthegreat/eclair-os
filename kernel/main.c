@@ -4,7 +4,7 @@
 #include <kernel/idt.h>
 #include <kernel/mm/paging.h>
 #include <kernel/tty.h>
-#include <kernel/multiboot.h>
+#include <kernel/boot.h>
 #include <kernel/mm/heap.h>
 #include <kernel/driver/fb.h>
 #include <kernel/driver/device.h>
@@ -29,7 +29,7 @@ extern void kernel_main() {
 	idt_init();
 	idt_enable();
 	page_init();
-	multiboot_init();
+	boot_init();
 	task_init_memory();
 	heap_init();
 	fs_init();

@@ -14,6 +14,7 @@ endstruc
 struc config_entry
 	.name: resb CONFIG_STRING_SZ
 	.kernel: resb CONFIG_STRING_SZ
+	.cmdline: resb CONFIG_STRING_SZ
 endstruc
 
 ; copy ;
@@ -149,8 +150,10 @@ config_parse:
 	pop ax
 	jne .param_next1
 	
+	push ax
 	call memcmp
 	cmp ax, 0
+	pop ax
 	je .param_timeout
 .param_next1:
 	mov si, config_kernel_param
@@ -159,11 +162,27 @@ config_parse:
 	call strlen
 	cmp ax, bx
 	pop ax
-	jne .param_error
+	jne .param_next2
 	
+	push ax
 	call memcmp
 	cmp ax, 0
+	pop ax
 	je .param_kernel
+.param_next2:
+	mov si, config_cmdline_param
+	mov bx, ax
+	push ax
+	call strlen
+	cmp ax, bx
+	pop ax
+	jne .param_error
+	
+	push ax
+	call memcmp
+	cmp ax, 0
+	pop ax
+	je .param_cmdline
 	
 	jmp .param_error
 .param_timeout:
@@ -197,6 +216,28 @@ config_parse:
 	
 	push di
 	add di, config_entry.kernel
+	mov ax, CONFIG_STRING_SZ
+	call strcpynl
+	pop di
+	
+	mov ah, 10
+	call strchrnl
+	cmp si, 0
+	je .end
+	
+	jmp .loop
+.param_cmdline:
+	push di
+	mov di, word[config_entry_area]
+	cmp di, 0
+	pop di
+	je .unexp_param_error
+	
+	pop si
+	pop di
+	
+	push di
+	add di, config_entry.cmdline
 	mov ax, CONFIG_STRING_SZ
 	call strcpynl
 	pop di
@@ -327,5 +368,6 @@ config_unexp_param_error_msg1 db "Config: Unexpected parameter '", 0
 ; config parameters ;
 config_timeout_param db "timeout", 0
 config_kernel_param db "kernel", 0
+config_cmdline_param db "cmdline", 0
 
 %endif ; CONFIG_ASM ;

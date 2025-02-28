@@ -97,6 +97,14 @@ elf32_load_program:
 	
 	pop ebx
 	pop eax
+	
+	mov ecx, ELF_ADDR[edi+elf_program_header.paddr]
+	add ecx, ELF_WORD[edi+elf_program_header.memsz]
+	
+	cmp ecx, dword[elf32_kernel_end]
+	jle .next
+	
+	mov dword[elf32_kernel_end], ecx
 .next:
 	add edi, elf_program_header_size
 	inc eax
@@ -140,5 +148,6 @@ elf32_jump:
 ; data ;
 elf32_kernel_addr dd 0
 elf32_kernel_entry dd 0
+elf32_kernel_end dd 0
 
 %endif ; ELF32_ASM ;
