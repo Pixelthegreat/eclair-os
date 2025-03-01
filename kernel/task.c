@@ -1,11 +1,12 @@
 #include <kernel/types.h>
 #include <kernel/tty.h>
+#include <kernel/string.h>
 #include <kernel/driver/pit.h>
 #include <kernel/mm/heap.h>
 #include <kernel/mm/paging.h>
 #include <kernel/task.h>
 
-#define KSTACKSZ 16384 /* process kernel stack size */
+#define KSTACKSZ 512 /* process kernel stack size */
 
 #define NTICKS 10
 
@@ -173,6 +174,7 @@ extern task_t *task_new(void *esp, void *seteip) {
 	if (!esp) {
 		
 		esp = kmalloc(KSTACKSZ);
+		memset(esp, 0, KSTACKSZ);
 		esp += KSTACKSZ;
 		task->ownstack = true;
 	}

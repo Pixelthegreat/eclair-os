@@ -35,9 +35,11 @@ extern void kernel_main() {
 	fs_init();
 	tty_init();
 	device_init();
+	tty_printf("0x%x\n", boot_data_info);
 
 	ttydev = tty_get_device(0);
 	task_init();
+	tty_printf("C\n");
 
 	task1 = task_new(NULL, func1);
 	task2 = task_new(NULL, func2);

@@ -10,6 +10,7 @@
 %include "mbr.asm"
 %include "ext2.asm"
 %include "config.asm"
+%include "vbe.asm"
 %include "menu.asm"
 %include "elf16.asm"
 %include "pm16.asm"
@@ -23,10 +24,14 @@ main:
 	
 	call disk_init
 	call mbr_load_fs
-	call config_load
 	
+	call config_load
 	call config_parse
 	
+	call vbe_load
+	
+	call menu_init
+	call menu_mode_display
 	call menu_display
 	call menu_load
 	

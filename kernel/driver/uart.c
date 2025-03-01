@@ -1,5 +1,6 @@
 #include <kernel/types.h>
 #include <kernel/tty.h>
+#include <kernel/panic.h>
 #include <kernel/string.h>
 #include <kernel/io/port.h>
 #include <kernel/vfs/fs.h>
@@ -57,7 +58,7 @@ extern void uart_init(uart_com_t bits, uint32_t rate) {
 			/* fail */
 			if (port_inb(port+UART_PORT_LSR) == UART_STATUS_FAIL) {
 
-				tty_printf("Failed to initialize UART (port 0x%x)\n", (uint32_t)port);
+				kprintf(LOG_WARNING, "Failed to initialize UART (port 0x%x)", (uint32_t)port);
 				return;
 			}
 			init |= bit;

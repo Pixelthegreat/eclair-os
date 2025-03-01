@@ -34,22 +34,11 @@ extern fs_node_t *tty_get_device(int i) {
 	return ttydev[i];
 }
 
-
 /* write characters */
 extern void tty_write(void *buf, size_t n) {
 
-	if (nttydev) {
-
-		for (int i = 0; i < nttydev; i++)
-			fs_write(ttydev[i], 0, n, buf);
-	}
-
-	/* fallback */
-	else {
-
-		if (!uart_is_init()) uart_init(UART_COM1_BIT, UART_DEFAULT_BAUD_RATE);
-		uart_write(UART_COM1, buf, n);
-	}
+	for (int i = 0; i < nttydev; i++)
+		fs_write(ttydev[i], 0, n, buf);
 }
 
 /* print string */

@@ -115,24 +115,6 @@ menu_print_int:
 	popa
 	ret
 
-; main menu item ;
-; ax = index ;
-menu_main_item:
-	pusha
-	
-	mov si, word[config_entry_area]
-	mov bx, config_entry_size
-	mul bx
-	add si, ax
-	
-	push si
-	add si, config_entry.name
-	call print
-	pop si
-	
-	popa
-	ret
-
 ; display list ;
 ; ax = number of items ;
 ; bx = first item to draw ;
@@ -142,7 +124,6 @@ menu_print_list:
 	push bx
 	push cx
 	call menu_clear
-	call menu_disable_cursor
 	
 	push ax
 	mov al, 10
@@ -295,17 +276,16 @@ menu_list:
 .up:
 	pop ax
 	mov cx, bx
+	
+	cmp bx, 0
+	je .up_wrap
+	
 	dec bx
-	
-	push ax
-	mov dx, ax
-	mov ax, bx
-	mov bx, dx
-	mov dx, 0
-	div bx
-	mov bx, dx
-	pop ax
-	
+	jmp .up_next
+.up_wrap:
+	mov bx, ax
+	dec bx
+.up_next:
 	cmp bx, MENU_HEIGHT-1
 	jge .redraw
 	
@@ -337,6 +317,33 @@ menu_list:
 	mov ax, word[menu_option]
 	ret
 
+; initialize menu ;
+menu_init:
+	pusha
+	
+	call menu_disable_cursor
+	
+	popa
+	ret
+
+; main menu item ;
+; ax = index ;
+menu_main_item:
+	pusha
+	
+	mov si, word[config_entry_area]
+	mov bx, config_entry_size
+	mul bx
+	add si, ax
+	
+	push si
+	add si, config_entry.name
+	call print
+	pop si
+	
+	popa
+	ret
+
 ; show menu ;
 menu_display:
 	pusha
@@ -344,6 +351,95 @@ menu_display:
 	mov si, word[config_data_area]
 	mov ax, word[si+config_data.count]
 	mov si, menu_main_item
+	call menu_list
+	
+	popa
+	ret
+
+; print resolution info ;
+; si = resolution info ;
+menu_print_resolution:
+	pusha
+	
+	mov ax, word[si+vbe_res.width]
+	call menu_print_int
+	mov al, 'x'
+	call printc
+	mov ax, word[si+vbe_res.height]
+	call menu_print_int
+	
+	call vbe_get_res_highest_bpp
+	cmp bx, 0xffff
+	je .end
+	
+	cmp ax, 8
+	je .color8
+	
+	cmp ax, 16
+	je .color16
+	
+	jmp .color24
+.color8:
+	mov si, menu_color8_msg
+	call print
+	
+	jmp .end
+.color16:
+	mov si, menu_color16_msg
+	call print
+	
+	jmp .end
+.color24:
+	mov si, menu_color24_msg
+	call print
+	
+	jmp .end
+.end:
+	popa
+	ret
+
+; mode menu item ;
+; ax = index ;
+menu_mode_item:
+	pusha
+	
+	cmp ax, 1
+	jge .item
+	
+	mov di, word[vbe_res_area]
+	mov ax, word[vbe_pref_res]
+	mov bx, vbe_res_size
+	mul bx
+	add di, ax
+	
+	mov si, menu_default_msg1
+	call print
+	mov si, di
+	call menu_print_resolution
+	mov si, menu_default_msg2
+	call print
+	
+	jmp .end
+.item:
+	sub ax, 1
+	
+	mov si, word[vbe_res_area]
+	mov bx, vbe_res_size
+	mul bx
+	add si, ax
+	
+	call menu_print_resolution
+.end:
+	popa
+	ret
+
+; show video mode menu ;
+menu_mode_display:
+	pusha
+	
+	mov ax, word[vbe_res_count]
+	add ax, 1
+	mov si, menu_mode_item
 	call menu_list
 	
 	popa
@@ -393,6 +489,11 @@ menu_option dw 0
 menu_cursor_shape dw 0
 menu_cmdline dw 0
 
+menu_default_msg1 db "Default (", 0
+menu_default_msg2 db ")", 0
+menu_color8_msg db ", 256 colors", 0
+menu_color16_msg db ", 64k colors", 0
+menu_color24_msg db ", 16m colors", 0
 menu_boot_msg1 db "Booting ", 0
 menu_boot_msg2 db "...", 0
 

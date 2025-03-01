@@ -2,7 +2,7 @@ include common.mk
 
 .PHONY: kernel boot bootdisk setup clean install_boot run run_uart_stdout run_debug
 
-QEMUARGS=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw
+QEMUARGS_ALL=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw $(QEMUARGS)
 
 # primary targets #
 all: kernel boot bootdisk
@@ -38,10 +38,10 @@ install_boot:
 
 # run program #
 run:
-	qemu-system-i386 $(QEMUARGS)
+	qemu-system-i386 $(QEMUARGS_ALL)
 
 run_uart_stdout:
-	qemu-system-i386 $(QEMUARGS) -serial /dev/stdout
+	qemu-system-i386 $(QEMUARGS_ALL) -serial /dev/stdout
 
 run_debug:
-	qemu-system-i386 $(QEMUARGS) -d int
+	qemu-system-i386 $(QEMUARGS_ALL) -d int

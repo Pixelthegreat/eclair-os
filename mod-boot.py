@@ -32,7 +32,8 @@ module = {
                              'menu.asm',
                              'pm16.asm',
                              'pm32.asm',
-                             'print.asm'),
+                             'print.asm',
+                             'vbe.asm'),
                         )
                 },
                 {
