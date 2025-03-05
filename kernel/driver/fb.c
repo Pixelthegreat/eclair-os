@@ -5,8 +5,6 @@
 #include <kernel/driver/fbfont.h>
 #include <kernel/driver/fb.h>
 
-static uint32_t bytes; /* bytes per pixel */
-
 void *fb_addr = NULL;
 uint32_t fb_width = 0;
 uint32_t fb_height = 0;
@@ -17,15 +15,15 @@ fb_font_t fb_font = {8, 16, 1, fb_vga_font, true};
 
 /* format constants */
 fb_format_t FB_RGB = {
-	.r = {0, 0xff},
-	.g = {1, 0xff},
-	.b = {2, 0xff},
+	.r = {8, 0},
+	.g = {8, 8},
+	.b = {8, 16},
 	.bytes = 3,
 };
 fb_format_t FB_GRAY = {
-	.r = {0, 0xff},
-	.g = {0, 0xff},
-	.b = {0, 0xff},
+	.r = {8, 0},
+	.g = {8, 0},
+	.b = {8, 0},
 	.bytes = 1,
 };
 
@@ -35,16 +33,12 @@ extern void fb_map(boot_saved_info_t *info, fb_format_t format) {
 	if (!info->f_framebuf) return;
 
 	/* allocate pages */
-	page_frame_id_t fr = ((uint32_t)info->fb_addr) / 4096;
-	uint32_t poff = ((uint32_t)info->fb_addr) % 4096;
+	page_frame_id_t fr = (uint32_t)info->fb_addr / 4096;
+	uint32_t poff = (uint32_t)info->fb_addr % 4096;
 
-	page_frame_use(fr);
-	page_id_t page = page_breakp++;
-	page_map(page, fr);
-
-	bytes = (uint32_t)info->fb_bpp / 8;
-	uint32_t frcnt = (poff + (info->fb_height * info->fb_pitch * bytes)) / 4096 + 1;
-	for (uint32_t i = fr+1; i < fr+frcnt; i++) {
+	page_id_t page = page_breakp;
+	uint32_t frcnt = ALIGN(poff + (info->fb_height * info->fb_pitch), 4096) / 4096;
+	for (uint32_t i = fr; i < fr+frcnt; i++) {
 
 		page_frame_use(i);
 		page_map(page_breakp++, i);
@@ -64,11 +58,17 @@ extern void fb_set_pixel(uint32_t x, uint32_t y, fb_color_t color) {
 
 	if (x >= fb_width || y >= fb_height) return;
 
-	uint8_t *addr = (uint8_t *)(fb_addr + y * fb_pitch + x * bytes);
+	uint8_t *addr = (uint8_t *)(fb_addr + y * fb_pitch + x * fb_format.bytes);
 
-	addr[fb_format.r.index] = color.r;
-	addr[fb_format.g.index] = color.g;
-	addr[fb_format.b.index] = color.b;
+	uint32_t pixel = 0;
+
+	/* converts an r8g8b8 format color to a pixel value */
+	pixel |= ((uint32_t)color.r * fb_format.r.masksz / 8) << fb_format.r.pos;
+	pixel |= ((uint32_t)color.g * fb_format.g.masksz / 8) << fb_format.g.pos;
+	pixel |= ((uint32_t)color.b * fb_format.b.masksz / 8) << fb_format.b.pos;
+	
+	for (uint32_t i = 0; i < fb_format.bytes; i++)
+		addr[i] = (uint8_t)((pixel >> (i * 8)) & 0xff);
 }
 
 /* copy area to framebuffer memory */
@@ -80,9 +80,15 @@ extern void fb_copy_area(uint32_t dstx, uint32_t dsty, uint32_t w, uint32_t h, v
 			uint8_t *addr = (uint8_t *)(data + (y * w + x) * format->bytes);
 
 			fb_color_t color;
-			color.r = addr[format->r.index];
-			color.g = addr[format->g.index];
-			color.b = addr[format->b.index];
+			
+			uint32_t pixel = 0;
+			for (uint32_t i = 0; i < format->bytes; i++)
+				pixel |= (uint32_t)addr[i] << (i * 8);
+
+			/* converts a pixel value to r8g8b8 format */
+			color.r = (uint8_t)(((pixel >> format->r.pos) & (0xffffffff >> (32-format->r.pos))) * 8 / format->r.masksz);
+			color.g = (uint8_t)(((pixel >> format->g.pos) & (0xffffffff >> (32-format->g.pos))) * 8 / format->g.masksz);
+			color.b = (uint8_t)(((pixel >> format->b.pos) & (0xffffffff >> (32-format->b.pos))) * 8 / format->b.masksz);
 
 			fb_set_pixel(dstx+x, dsty+y, color);
 		}
@@ -116,13 +122,61 @@ extern void fb_text(uint32_t x, uint32_t y, const char *text, fb_color_t color, 
 	}
 }
 
+/* theoretically faster memcpy and memset */
+static void *memcpy32(void *dst, void *src, size_t cnt) {
+
+	while (cnt) {
+
+		if (cnt > 4) {
+
+			*(uint32_t *)dst = *(uint32_t *)src;
+			dst += 4;
+			src += 4;
+			cnt -= 4;
+		}
+		else {
+
+			*(uint8_t *)dst++ = *(uint8_t *)src++;
+			cnt--;
+		}
+	}
+	return src;
+}
+
+static void *memset32(void *dst, int ch, size_t cnt) {
+
+	uint32_t val = ch * 0x1010101;
+	while (cnt) {
+
+		if (cnt > 4) {
+
+			*(uint32_t *)dst = val;
+			dst += 4;
+			cnt -= 4;
+		}
+		else {
+
+			*(uint32_t *)dst++ = val;
+			cnt--;
+		}
+	}
+	return dst;
+}
+
 /* scroll framebuffer up */
 extern void fb_scroll(uint32_t y) {
 
-	uint32_t start = y * fb_pitch;
-	uint32_t size = fb_height * fb_pitch;
-	for (uint32_t i = start; i < size; i++)
-		((uint8_t *)fb_addr)[i-start] = ((uint8_t *)fb_addr)[i];
+	uint32_t sz = fb_height*fb_pitch;
+	uint32_t dist = y*fb_pitch;
+	uint32_t top = sz-dist;
 
-	memset(fb_addr+size-start, 0, (uint32_t)start);
+	for (uint32_t py = y; py < fb_height; py++) {
+
+		void *src = fb_addr+py*fb_pitch;
+		void *dst = fb_addr+(py-y)*fb_pitch;
+
+		memcpy32(dst, src, fb_width*fb_format.bytes);
+	}
+	for (uint32_t py = 0; py < y; py++)
+		memset32(fb_addr+(fb_height-y+py)*fb_pitch, 0, fb_width*fb_format.bytes);
 }

@@ -2,6 +2,7 @@
 #include <kernel/string.h>
 #include <kernel/multiboot.h>
 #include <kernel/mm/paging.h>
+#include <kernel/driver/fb.h>
 #include <kernel/boot.h>
 
 static boot_info_t *info = NULL;
@@ -82,6 +83,33 @@ extern void boot_init(void) {
 
 			saved.f_cmdline = true;
 			saved.cmdline = (const char *)((void *)info + info->offsets[BOOT_STRUCT_CMDLINE]);
+		}
+
+		/* framebuffer */
+		if (info->offsets[BOOT_STRUCT_FRAMEBUF]) {
+
+			boot_framebuf_t *fb = (boot_framebuf_t *)((void *)info + info->offsets[BOOT_STRUCT_FRAMEBUF]);
+			if (fb->type == BOOT_FRAMEBUF_TYPE_RGB) {
+
+				saved.f_framebuf = true;
+				saved.fb_addr = (void *)fb->addr;
+				saved.fb_pitch = fb->pitch;
+				saved.fb_width = fb->width;
+				saved.fb_height = fb->height;
+				saved.fb_bpp = fb->depth;
+
+				/* map framebuffer */
+				fb_format_t format;
+				format.r.masksz = (uint32_t)fb->rmask_sz;
+				format.r.pos = (uint32_t)fb->rmask_pos;
+				format.g.masksz = (uint32_t)fb->gmask_sz;
+				format.g.pos = (uint32_t)fb->gmask_pos;
+				format.b.masksz = (uint32_t)fb->bmask_sz;
+				format.b.pos = (uint32_t)fb->bmask_pos;
+				format.bytes = ALIGN(fb->depth, 8)/8;
+
+				fb_map(&saved, format);
+			}
 		}
 	}
 	parse_cmdline();

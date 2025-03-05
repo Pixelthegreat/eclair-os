@@ -16,6 +16,7 @@ typedef struct task {
 	void *esp0; /* kernel stack top */
 	void *esp; /* current stack position */
 	void *cr3; /* address space */
+	page_dir_entry_t *dir; /* page directory */
 	struct task *prev; /* previous task */
 	struct task *next; /* next task */
 	uint32_t state; /* task state */

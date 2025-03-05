@@ -6,6 +6,8 @@
 
 %define MENU_HEIGHT 21
 
+%define MENU_VIDEO_DEFAULT 0
+
 ; clear ;
 menu_clear:
 	pusha
@@ -347,12 +349,95 @@ menu_main_item:
 ; show menu ;
 menu_display:
 	pusha
-	
+.loop:
 	mov si, word[config_data_area]
 	mov ax, word[si+config_data.count]
 	mov si, menu_main_item
 	call menu_list
 	
+	mov si, word[config_entry_area]
+	mov ax, word[menu_option]
+	mov bx, config_entry_size
+	mul bx
+	add si, ax
+	
+	cmp byte[si+config_entry.type], 1
+	jne .done
+	
+	call menu_mode_display
+	mov ax, word[menu_option]
+	mov word[menu_video_mode], ax
+	jmp .loop
+.done:
+	popa
+	ret
+
+; main ;
+menu_main:
+	pusha
+	
+	mov si, word[config_data_area]
+	mov ax, word[si+config_data.timeout]
+	cmp ax, 0
+	je .menu
+	
+	call menu_clear
+	push ax
+	mov al, 10
+	call printc
+	mov al, ' '
+	call printc
+	call printc
+	pop ax
+	
+	mov si, menu_wait_msg
+	call print
+	
+	mov bx, 10
+	mul bx
+	
+	; tenth of a second ;
+	mov cx, 0x1
+	mov dx, 0x86a0
+.loop:
+	cmp ax, 0
+	je .end
+	dec ax
+	
+	push ax
+	mov ah, 0x86
+	int 0x15
+	
+	mov ah, 0x01
+	int 0x16
+	pop ax
+	
+	jnz .menu
+.next:
+	push ax
+	push dx
+	mov dx, 0
+	mov bx, 10
+	div bx
+	mov bx, dx
+	pop dx
+	pop ax
+	
+	cmp bx, 0
+	jne .loop
+	
+	push ax
+	mov al, '.'
+	call printc
+	pop ax
+	
+	jmp .loop
+.menu:
+	mov ah, 0x00
+	int 0x16
+	
+	call menu_display
+.end:
 	popa
 	ret
 
@@ -448,13 +533,14 @@ menu_mode_display:
 ; load menu option ;
 menu_load:
 	pusha
+	call menu_clear
 	call menu_enable_cursor
 	
-	mov ah, 0x02
-	mov bh, 0
-	mov dh, MENU_HEIGHT+2
-	mov dl, 2
-	int 0x10
+	mov al, 10
+	call printc
+	mov al, ' '
+	call printc
+	call printc
 	
 	mov si, menu_boot_msg1
 	call print
@@ -481,6 +567,17 @@ menu_load:
 	mov ax, word[menu_option]
 	call config_load_kernel
 	
+	mov ax, word[menu_video_mode]
+	cmp ax, 0
+	je .next1
+	
+	dec ax
+	jmp .next2
+.next1:
+	mov ax, word[vbe_pref_res]
+.next2:
+	call vbe_set_mode
+	
 	popa
 	ret
 
@@ -488,7 +585,9 @@ menu_load:
 menu_option dw 0
 menu_cursor_shape dw 0
 menu_cmdline dw 0
+menu_video_mode dw MENU_VIDEO_DEFAULT
 
+menu_wait_msg db "Press any key to open menu.", 0
 menu_default_msg1 db "Default (", 0
 menu_default_msg2 db ")", 0
 menu_color8_msg db ", 256 colors", 0

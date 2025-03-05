@@ -76,6 +76,8 @@ endstruc
 %define VBE_MODE_ATTRIB_SUPPORT 0x1
 %define VBE_MODE_ATTRIB_LFB 0x80
 
+%define VBE_MODE_LFB 0x4000
+
 ; memory models ;
 %define VBE_MEM_MODEL_PACKED 0x04
 %define VBE_MEM_MODEL_DC 0x06
@@ -173,7 +175,7 @@ vbe_get_res_highest_bpp:
 .end:
 	ret
 
-; load vbe mode ;
+; load vbe mode information ;
 ; ax = mode number ;
 vbe_load_mode:
 	pusha
@@ -184,23 +186,30 @@ vbe_load_mode:
 	mov cx, ax
 	mov ax, 0x4f01
 	mov di, si
+	
+	push cx
 	int 0x10
+	pop cx ; video mode number now stored here ;
+	
 	cmp ax, VBE_OK
 	pop si
 	jne .end
 	
+	push ax
 	mov ax, word[si+vbe_mode_info.mem_model]
 	cmp ax, VBE_MEM_MODEL_DC
+	pop ax
 	je .next1
+	push ax
 	mov ax, word[si+vbe_mode_info.mem_model]
 	cmp ax, VBE_MEM_MODEL_PACKED
+	pop ax
 	je .next1
 	
 	jmp .end
 .next1:
 	mov ax, word[si+vbe_mode_info.attributes]
 	
-	mov dx, 0
 	push ax
 	and ax, VBE_MODE_ATTRIB_LFB
 	cmp ax, 0
@@ -235,13 +244,13 @@ vbe_load_mode:
 	
 	jmp .end
 .dc16:
-	mov word[di+vbe_res.dc16], ax
+	mov word[di+vbe_res.dc16], cx
 	jmp .end
 .dc24:
-	mov word[di+vbe_res.dc24], ax
+	mov word[di+vbe_res.dc24], cx
 	jmp .end
 .dc32:
-	mov word[di+vbe_res.dc32], ax
+	mov word[di+vbe_res.dc32], cx
 	jmp .end
 .packed:
 	mov bl, byte[si+vbe_mode_info.bits_per_pixel]
@@ -256,16 +265,16 @@ vbe_load_mode:
 	
 	jmp .end
 .pk8:
-	mov word[di+vbe_res.pk8], ax
+	mov word[di+vbe_res.pk8], cx
 	jmp .end
 .pk16:
-	mov word[di+vbe_res.pk16], ax
+	mov word[di+vbe_res.pk16], cx
 	jmp .end
 .pk24:
-	mov word[di+vbe_res.pk24], ax
+	mov word[di+vbe_res.pk24], cx
 	jmp .end
 .pk32:
-	mov word[di+vbe_res.pk32], ax
+	mov word[di+vbe_res.pk32], cx
 	jmp .end
 .end:
 	popa
@@ -413,6 +422,81 @@ vbe_load:
 	mov si, vbe_monitor_error_msg
 	call print_error
 
+; set vbe mode ;
+; ax = resolution index ;
+vbe_set_mode:
+	pusha
+	
+	cmp ax, word[vbe_res_count]
+	jge .end
+	
+	mov si, word[vbe_res_area]
+	mov bx, vbe_res_size
+	mul bx
+	add si, ax
+	call vbe_get_res_highest_bpp
+	
+	cmp bx, 0xffff
+	je .end
+	
+	mov word[vbe_selected_mode.depth], ax
+	
+	mov ax, word[si+vbe_res.width]
+	mov word[vbe_selected_mode.width], ax
+	
+	mov ax, word[si+vbe_res.height]
+	mov word[vbe_selected_mode.height], ax
+	
+	mov si, word[vbe_mode_info_area]
+	
+	push si
+	push bx
+	mov ax, 0x4f01
+	mov cx, bx
+	mov di, si
+	int 0x10
+	cmp ax, VBE_OK
+	pop bx
+	pop si
+	jne .error
+	
+	mov ah, byte[si+vbe_mode_info.red_mask_sz]
+	mov byte[vbe_selected_mode.red_mask_sz], ah
+	
+	mov ah, byte[si+vbe_mode_info.red_field_pos]
+	mov byte[vbe_selected_mode.red_field_pos], ah
+	
+	mov ah, byte[si+vbe_mode_info.green_mask_sz]
+	mov byte[vbe_selected_mode.green_mask_sz], ah
+	
+	mov ah, byte[si+vbe_mode_info.green_field_pos]
+	mov byte[vbe_selected_mode.green_field_pos], ah
+	
+	mov ah, byte[si+vbe_mode_info.blue_mask_sz]
+	mov byte[vbe_selected_mode.blue_mask_sz], ah
+	
+	mov ah, byte[si+vbe_mode_info.blue_field_pos]
+	mov byte[vbe_selected_mode.blue_field_pos], ah
+	
+	mov ax, word[si+vbe_mode_info.bytes_per_scanline]
+	mov word[vbe_selected_mode.pitch], ax
+	
+	mov eax, dword[si+vbe_mode_info.lfb_addr]
+	mov dword[vbe_selected_mode.addr], eax
+	
+	; set mode ;
+	mov ax, 0x4f02
+	or bx, VBE_MODE_LFB
+	int 0x10
+	cmp ax, VBE_OK
+	jne .error
+.end:
+	popa
+	ret
+.error:
+	mov si, vbe_mode_error_msg
+	call print_error
+
 ; data ;
 vbe_edid_area dw 0
 vbe_info_area dw 0
@@ -423,8 +507,22 @@ vbe_res_count dw 0
 vbe_no_edid db 0 ; EDID was not supported ;
 vbe_pref_res dw 0 ; preferred resolution mode ;
 
+; selected mode info ;
+vbe_selected_mode:
+	.width dw 0
+	.height dw 0
+	.depth dw 0
+	.pitch dw 0
+	.addr dd 0
+	.red_mask_sz db 1
+	.red_field_pos db 1
+	.green_mask_sz db 1
+	.green_field_pos db 1
+	.blue_mask_sz db 1
+	.blue_field_pos db 1
+
 vbe_error_msg db "Failed to retrieve video information!", 10, 0
 vbe_monitor_error_msg db "Failed to retrieve monitor information!", 10, 0
-vbe_linear_msg db "(linear)", 0
+vbe_mode_error_msg db "Failed to set video mode!", 10, 0
 
 %endif ; VBE_ASM ;

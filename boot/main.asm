@@ -31,8 +31,7 @@ main:
 	call vbe_load
 	
 	call menu_init
-	call menu_mode_display
-	call menu_display
+	call menu_main
 	call menu_load
 	
 	; if all is well, enter protected mode ;

@@ -25,6 +25,8 @@ typedef uint32_t page_id_t; /* page id */
 #define PAGE_FLAG_G 0x100
 
 extern page_id_t page_breakp;
+extern page_dir_entry_t *page_dir_wrap;
+extern page_tab_entry_t *page_table;
 
 /* functions */
 extern void page_frame_init(void); /* initialize frame allocator */
@@ -34,10 +36,10 @@ extern void page_frame_free(page_frame_id_t id); /* set frame to free */
 extern uint32_t page_frame_get_used_count(void); /* get number of used frames */
 
 extern void page_init(void); /* initialize page mapper */
+extern void page_init_top(void); /* map all page tables in kernel area */
 extern page_id_t page_dir_find_entry(void); /* find free page directory entry */
 extern void page_map_table(page_id_t p, page_frame_id_t f); /* map a page table */
 extern void page_map(page_id_t p, page_frame_id_t f); /* map a page to a frame */
-extern page_id_t page_alloc(uint32_t n, page_frame_id_t *flist); /* allocate a contiguous number of pages */
 extern void page_invalidate(page_id_t p); /* invalidate an entry in the tlb */
 extern bool page_is_mapped(page_id_t p); /* check if page is mapped */
 extern page_frame_id_t page_get_frame(page_id_t p); /* get frame from page */

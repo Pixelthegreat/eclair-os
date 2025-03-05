@@ -6,7 +6,7 @@
 #include <kernel/mm/paging.h>
 #include <kernel/task.h>
 
-#define KSTACKSZ 512 /* process kernel stack size */
+#define KSTACKSZ 16384 /* process kernel stack size */
 
 #define NTICKS 10
 
@@ -137,6 +137,7 @@ extern void task_init(void) {
 
 	ktask = task_new(&kernel_stack_top, NULL);
 	ktask->cr3 = page_get_directory();
+	ktask->dir = page_dir_wrap;
 	ktask->state = TASK_RUNNING;
 	ktask->nticks = NTICKS;
 	task_remove_from_list(ready, ktask); /* remove from ready list */
@@ -182,6 +183,7 @@ extern task_t *task_new(void *esp, void *seteip) {
 	task->esp0 = esp;
 	task->esp = esp;
 	task->cr3 = NULL;
+	task->dir = NULL;
 	task->state = TASK_READY;
 	task->waketime = 0;
 	task->nticks = NTICKS;
@@ -192,7 +194,11 @@ extern task_t *task_new(void *esp, void *seteip) {
 	taskmap[id] = task;
 
 	/* clone page directory */
-	if (id) task->cr3 = page_clone_directory(pagedirs[id].frame, pagedirs[id].page);
+	if (id) {
+		
+		task->cr3 = page_clone_directory(pagedirs[id].frame, pagedirs[id].page);
+		task->dir = (page_dir_entry_t *)PAGE_ADDR(pagedirs[id].page);
+	}
 
 	/* add eip to stack */
 	if (seteip != NULL) {

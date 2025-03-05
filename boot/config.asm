@@ -4,6 +4,10 @@
 %define CONFIG_STRING_SZ 32
 %define CONFIG_KERNEL_BASE 0x1000
 
+; entry types ;
+%define CONFIG_TYPE_NORMAL 0
+%define CONFIG_TYPE_VIDEO 1
+
 ; config data ;
 struc config_data
 	.count: resw 1
@@ -12,6 +16,7 @@ endstruc
 
 ; config entry data ;
 struc config_entry
+	.type: resb 1
 	.name: resb CONFIG_STRING_SZ
 	.kernel: resb CONFIG_STRING_SZ
 	.cmdline: resb CONFIG_STRING_SZ
@@ -176,13 +181,29 @@ config_parse:
 	call strlen
 	cmp ax, bx
 	pop ax
-	jne .param_error
+	jne .param_next3
 	
 	push ax
 	call memcmp
 	cmp ax, 0
 	pop ax
 	je .param_cmdline
+	
+	jmp .param_next3
+.param_next3:
+	mov si, config_type_param
+	mov bx, ax
+	push ax
+	call strlen
+	cmp ax, bx
+	pop ax
+	jne .param_error
+	
+	push ax
+	call memcmp
+	cmp ax, 0
+	pop ax
+	je .param_type
 	
 	jmp .param_error
 .param_timeout:
@@ -244,6 +265,25 @@ config_parse:
 	
 	mov ah, 10
 	call strchrnl
+	cmp si, 0
+	je .end
+	
+	jmp .loop
+.param_type:
+	push di
+	mov di, word[config_entry_area]
+	cmp di, 0
+	pop di
+	je .unexp_param_error
+	
+	pop si
+	pop di
+	
+	mov ah, 10
+	call atoich
+	
+	mov byte[di+config_entry.type], al
+	
 	cmp si, 0
 	je .end
 	
@@ -369,5 +409,6 @@ config_unexp_param_error_msg1 db "Config: Unexpected parameter '", 0
 config_timeout_param db "timeout", 0
 config_kernel_param db "kernel", 0
 config_cmdline_param db "cmdline", 0
+config_type_param db "type", 0
 
 %endif ; CONFIG_ASM ;

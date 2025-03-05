@@ -22,9 +22,27 @@ endstruc
 %define PM32_BOOT_STRUCT_COUNT 3
 
 struc pm32_boot
-	.checksum: resd 1
-	.size: resd 1
-	.offsets: resd PM32_BOOT_STRUCT_COUNT
+	.checksum resd 1
+	.size resd 1
+	.offsets resd PM32_BOOT_STRUCT_COUNT
+endstruc
+
+; framebuffer info ;
+%define PM32_FRAMEBUF_RGB 1
+
+struc pm32_boot_framebuf
+	.type resd 1
+	.addr resd 1
+	.pitch resd 1
+	.width resd 1
+	.height resd 1
+	.depth resd 1
+	.rmask_sz resb 1
+	.rmask_pos resb 1
+	.gmask_sz resb 1
+	.gmask_pos resb 1
+	.bmask_sz resb 1
+	.bmask_pos resb 1
 endstruc
 
 ; align value ;
@@ -93,6 +111,61 @@ pm32_load_boot_cmdline:
 	popa
 	ret
 
+; load framebuffer data ;
+; esi = main structure ;
+pm32_load_boot_framebuf:
+	pusha
+	
+	cmp dword[vbe_selected_mode.addr], 0
+	je .end
+	
+	mov eax, dword[esi+pm32_boot.size]
+	mov dword[esi+pm32_boot.offsets+PM32_BOOT_STRUCT_FRAMEBUF*4], eax
+	
+	mov edi, esi
+	add edi, eax
+	
+	mov dword[edi+pm32_boot_framebuf.type], PM32_FRAMEBUF_RGB
+	
+	mov eax, dword[vbe_selected_mode.addr]
+	mov dword[edi+pm32_boot_framebuf.addr], eax
+	
+	mov eax, 0
+	mov ax, word[vbe_selected_mode.width]
+	mov dword[edi+pm32_boot_framebuf.width], eax
+	
+	mov ax, word[vbe_selected_mode.height]
+	mov dword[edi+pm32_boot_framebuf.height], eax
+	
+	mov ax, word[vbe_selected_mode.pitch]
+	mov dword[edi+pm32_boot_framebuf.pitch], eax
+	
+	mov ax, word[vbe_selected_mode.depth]
+	mov dword[edi+pm32_boot_framebuf.depth], eax
+	
+	mov al, byte[vbe_selected_mode.red_mask_sz]
+	mov byte[edi+pm32_boot_framebuf.rmask_sz], al
+	
+	mov al, byte[vbe_selected_mode.green_mask_sz]
+	mov byte[edi+pm32_boot_framebuf.gmask_sz], al
+	
+	mov al, byte[vbe_selected_mode.blue_mask_sz]
+	mov byte[edi+pm32_boot_framebuf.bmask_sz], al
+	
+	mov al, byte[vbe_selected_mode.red_field_pos]
+	mov byte[edi+pm32_boot_framebuf.rmask_pos], al
+	
+	mov al, byte[vbe_selected_mode.green_field_pos]
+	mov byte[edi+pm32_boot_framebuf.gmask_pos], al
+	
+	mov al, byte[vbe_selected_mode.blue_field_pos]
+	mov byte[edi+pm32_boot_framebuf.bmask_pos], al
+	
+	add dword[esi+pm32_boot.size], pm32_boot_framebuf_size
+.end:
+	popa
+	ret
+
 ; calculate checksum value ;
 ; esi = location of boot structure ;
 pm32_load_boot_checksum:
@@ -140,7 +213,7 @@ pm32_load_boot:
 	mov dword[esi+pm32_boot.size], pm32_boot_size
 	
 	call pm32_load_boot_cmdline
-	
+	call pm32_load_boot_framebuf
 	call pm32_load_boot_checksum
 	
 	popa

@@ -64,14 +64,13 @@ extern bool multiboot_init(void) {
 
 				/* create format and map framebuffer */
 				fb_format_t format;
-				format.r.index = (uint32_t)(tag->color.red.fpos/8);
-				format.g.index = (uint32_t)(tag->color.green.fpos/8);
-				format.b.index = (uint32_t)(tag->color.blue.fpos/8);
-				format.bytes = (uint32_t)tag->bpp/3;
-
-				format.r.mask = 0xffffffff % (1 << (uint32_t)tag->color.red.masksz);
-				format.g.mask = 0xffffffff % (1 << (uint32_t)tag->color.green.masksz);
-				format.b.mask = 0xffffffff % (1 << (uint32_t)tag->color.blue.masksz);
+				format.r.masksz = (uint32_t)tag->color.red.masksz;
+				format.r.pos = (uint32_t)tag->color.red.fpos;
+				format.g.masksz = (uint32_t)tag->color.green.masksz;
+				format.g.pos = (uint32_t)tag->color.green.fpos;
+				format.b.masksz = (uint32_t)tag->color.blue.masksz;
+				format.b.pos = (uint32_t)tag->color.blue.fpos;
+				format.bytes = (uint32_t)ALIGN(tag->bpp, 8)/8;
 
 				fb_map(saved, format);
 			}

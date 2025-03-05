@@ -4,10 +4,13 @@
 	[extern task_nlockpost]
 	[extern task_postponed]
 	
+	[extern page_dir_wrap]
+	
 	struc task
 		.esp0: resd 1
 		.esp: resd 1
 		.cr3: resd 1
+		.dir: resd 1
 		.prev: resd 1
 		.next: resd 1
 		.state: resd 1
@@ -19,7 +22,6 @@ task_switch:
 	je .cont
 	mov dword[task_postponed], 1
 	ret
-
 .cont:
 	push ebx
 	push esi
@@ -40,7 +42,8 @@ task_switch:
 	je .done
 	
 	mov cr3, eax
-
+	mov eax, [esi+task.dir]
+	mov dword[page_dir_wrap], eax
 .done:
 	pop ebp
 	pop edi

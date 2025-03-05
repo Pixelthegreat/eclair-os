@@ -3,6 +3,10 @@
 #include <kernel/tty.h>
 #include <kernel/mm/paging.h>
 
+/* the 0x8000-0x80000 address range (page numbers) */
+#define LOWMEM_START 8
+#define LOWMEM_SIZE 120
+
 /* 4G / 4K (page size) / 8 (bits in a byte) */
 #define BITMAP_SIZE 131072
 
@@ -13,12 +17,12 @@ static uint32_t nused; /* number of used frames */
 
 /* page mapper */
 static page_dir_entry_t *page_dir = NULL;
-static page_dir_entry_t *page_dir_wrap = NULL;
 static page_id_t page_start = 0;
 static page_id_t page_table_id = 0;
-static page_tab_entry_t *page_table = NULL;
 
 page_id_t page_breakp = 0;
+page_dir_entry_t *page_dir_wrap = NULL;
+page_tab_entry_t *page_table = NULL;
 
 /* get an address to a page table from the page directory */
 #define PAGE_TAB(p) ((page_tab_entry_t *)(page_dir_wrap[(p)] & 0xfffff000))
@@ -32,8 +36,12 @@ extern void page_frame_init(void) {
 	/* last frame of kernel */
 	page_frame_id_t fr = p / 4096;
 
-	for (uint32_t i = 0; i <= fr+128; i++)
-		bitmap[i / 8] |= 1 << (i % 8);
+	for (uint32_t i = 0; i <= fr+128; i++) {
+
+		if (i < LOWMEM_START || i >= LOWMEM_START+LOWMEM_SIZE)
+			page_frame_use(i);
+		//	bitmap[i / 8] |= 1 << (i % 8);
+	}
 }
 
 /* allocate a frame */
@@ -101,10 +109,15 @@ extern void page_init(void) {
 	page_start = page_table_id + 1024;
 
 	page_breakp = page_start;
-	page_dir_wrap = &page_table[page_table_id];
+	page_dir_wrap = page_dir;
+}
+
+/* map all page tables in kernel area */
+extern void page_init_top(void) {
 
 	/* allocate remaining page tables (makes it much simpler to clone a directory but keep the kernel sections in tact) */
-	for (page_id_t i = pt+1; i < 1024; i++)
+	page_id_t pt = ALIGN(page_breakp, 1024) / 1024;
+	for (page_id_t i = pt; i < 1024; i++)
 		page_map_table(i, page_frame_alloc());
 }
 
@@ -127,6 +140,14 @@ extern void page_map_table(page_id_t p, page_frame_id_t f) {
 	
 	/* invalidate entry in tlb to allow for editing of the table */
 	page_invalidate(page_table_id + p);
+
+	for (page_id_t i = 0; i < 1024; i++) {
+		if (page_table) {
+			
+			page_table[p*1024+i] = 0;
+			page_invalidate(p*1024+i);
+		}
+	}
 }
 
 /* map page to frame */
@@ -136,13 +157,9 @@ extern void page_map(page_id_t p, page_frame_id_t f) {
 
 	/* map table if necessary */
 	if (!page_dir_wrap[pt]) {
-			
+		
 		page_frame_id_t fr = page_frame_alloc();
 		page_map_table(pt, fr);
-
-		for (int i = 0; i < 1024; i++) {
-			page_table[pt * 1024 + i] = 0;
-		}
 	}
 
 	/* map page */
@@ -150,44 +167,18 @@ extern void page_map(page_id_t p, page_frame_id_t f) {
 	page_invalidate(p);
 }
 
-/* allocate a contiguous number of pages */
-extern page_id_t page_alloc(uint32_t n, page_frame_id_t *flist) {
-
-	page_id_t st = page_start; /* start of area */
-	uint32_t cur = 0; /* number of pages */
-
-	for (uint32_t i = page_start; i < 1024 * 1024; i++) {
-
-		page_id_t pt = i/1024;
-
-		/* reset counter */
-		if (page_dir_wrap[pt] && page_table[i]) {
-
-			st = i+1;
-			cur = 0;
-		}
-		else cur++;
-		if (cur >= n) break;
-	}
-
-	/* map pages */
-	for (uint32_t i = st; i < st + cur; i++)
-		page_map(i, flist[i-st]);
-
-	/* return start id */
-	return st;
-}
-
 /* invalidate an entry in the tlb */
 extern void page_invalidate(page_id_t p) {
 
-	__asm__("invlpg (%0)": : "r"(p << 12): "memory");
+	uint32_t addr = p << 12;
+	asm volatile("invlpg (%0)": : "r"(addr));
 }
 
 /* check if page is mapped */
 extern bool page_is_mapped(page_id_t p) {
 
-	if (page_dir_wrap[p/1024] && page_table[p]) return true;
+	if (page_dir_wrap[p/1024] && page_table[p])
+		return true;
 	return false;
 }
 

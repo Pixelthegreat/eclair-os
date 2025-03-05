@@ -7,8 +7,8 @@
 /* color format */
 typedef struct fb_format {
 	struct {
-		uint32_t index; /* field index */
-		uint32_t mask; /* field mask */
+		uint32_t masksz; /* field mask size */
+		uint32_t pos; /* field position */
 	} r, g, b;
 	uint32_t bytes; /* bytes per pixel */
 } fb_format_t;
@@ -30,9 +30,9 @@ static inline bool fb_format_is(fb_format_t *a, fb_format_t *b) {
 
 	if (a == b) return true;
 
-	return (a->r.index == b->r.index && a->r.mask == b->r.mask) &&
-	       (a->g.index == b->g.index && a->g.mask == b->g.mask) &&
-	       (a->b.index == b->b.index && a->b.mask == b->b.mask) &&
+	return (a->r.masksz == b->r.masksz && a->r.pos == b->r.pos) &&
+	       (a->g.masksz == b->g.masksz && a->g.pos == b->g.pos) &&
+	       (a->b.masksz == b->b.masksz && a->b.pos == b->b.pos) &&
 	       a->bytes == b->bytes;
 }
 
