@@ -118,7 +118,7 @@ static device_t *ata_detect_device(int c, int d) {
 	
 	kfree(buf);
 
-	device_t *dev = device_new(DEVICE_TYPE_STORAGE, DEVICE_SUBTYPE_STORAGE_ATA, dev_names[c * 2 + d], sizeof(device_storage_t));
+	device_t *dev = device_new(DEVICE_TYPE_STORAGE, DEVICE_SUBTYPE_STORAGE_ATA, "disk", dev_names[c * 2 + d], sizeof(device_storage_t));
 	device_storage_t *stdev = (device_storage_t *)dev;
 	
 	dev->impl = c * 2 + d; /* device index number */

@@ -5,10 +5,31 @@
 #include <kernel/driver/device.h>
 #include <kernel/driver/ps2.h>
 
+enum  {
+	DEV_UNKNOWN = 0,
+	DEV_KEYBOARD,
+	DEV_MOUSE,
+
+	DEV_COUNT,
+};
+
+static const char *names[DEV_COUNT] = {
+	"none",
+	"kybd",
+	"mous",
+};
+static const char *descs[DEV_COUNT] = {
+	"PS/2 Device",
+	"PS/2 Keyboard",
+	"PS/2 Mouse",
+};
+
 static bool wait_int = true; /* ignore interrupts */
-static device_t *dev_p0 = NULL, *dev_p1 = NULL;
+static device_t *dev_p0 = NULL, *dev_p1 = NULL; /* devices */
 static bool rel = false; /* key was released */
 static bool other = false; /* key was pressed */
+
+static int dev_p0_type, dev_p1_type; /* device types */
 
 static uint8_t ps2_send_command(uint8_t cmd);
 
@@ -232,6 +253,10 @@ extern void ps2_init(void) {
 		return;
 	}
 
+	/* detect device types */
+	dev_p0_type = ps2_get_device_type(0);
+	if (p2_pres) dev_p1_type = ps2_get_device_type(1);
+
 	/* set handlers */
 	idt_set_irq_callback(1, ps2_irq1);
 	if (p2_pres) idt_set_irq_callback(12, ps2_irq12);
@@ -251,7 +276,7 @@ extern void ps2_init(void) {
 	port_outb(PS2_PORT_DATA, fl);
 
 	/* create devices */
-	dev_p0 = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, "PS/2 Device", sizeof(device_char_t));
+	dev_p0 = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, names[dev_p0_type], descs[dev_p0_type], sizeof(device_char_t));
 	kprintf(LOG_INFO, "[ps/2 8042] Detected first PS/2 device");
 
 	device_char_t *inpdev_p0 = (device_char_t *)dev_p0;
@@ -261,7 +286,7 @@ extern void ps2_init(void) {
 
 	if (p2_pres) {
 		
-		dev_p1 = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, "PS/2 Device", sizeof(device_char_t));
+		dev_p1 = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, names[dev_p1_type], descs[dev_p1_type], sizeof(device_char_t));
 		kprintf(LOG_INFO, "[ps/2 8042] Detected second PS/2 device");
 	}
 
@@ -270,17 +295,18 @@ extern void ps2_init(void) {
 }
 
 /* wait for read */
+#define PS2_TIMEOUT 131072
 extern void ps2_wait_read(void) {
 
 	uint8_t stat;
-	while (!((stat = port_inb(PS2_PORT_CMD_STAT)) & PS2_STATUS_OUT_BUF));
+	for (int i = 0; !((stat = port_inb(PS2_PORT_CMD_STAT)) & PS2_STATUS_OUT_BUF) && i < PS2_TIMEOUT; i++);
 }
 
 /* wait for write */
 extern void ps2_wait_write(void) {
 
 	uint8_t stat;
-	while ((stat = port_inb(PS2_PORT_CMD_STAT)) & PS2_STATUS_IN_BUF);
+	for (int i = 0; ((stat = port_inb(PS2_PORT_CMD_STAT)) & PS2_STATUS_IN_BUF) && i < PS2_TIMEOUT; i++);
 }
 
 /* send ps2 command */
@@ -317,6 +343,11 @@ extern int ps2_reset_device(int d) {
 	res = port_inb(PS2_PORT_DATA);
 	if (res != PS2_DEV_CMD_RES_PASS) return -1;
 
+	ps2_wait_read();
+	(void)port_inb(PS2_PORT_DATA);
+	ps2_wait_read();
+	(void)port_inb(PS2_PORT_DATA);
+
 	/* success */
 	return 0;
 }
@@ -329,18 +360,47 @@ extern int ps2_get_device_type(int d) {
 		port_outb(PS2_PORT_CMD_STAT, PS2_CMD_WRITE_NEXT_P2_INB);
 	}
 
-	uint8_t res = ps2_send_command(PS2_DEV_CMD_IDENTIFY);
-	if (res != PS2_DEV_CMD_RES_ACK) {
-
-		//tty_printf("0x%x\n", res);
+	uint8_t res = ps2_send_command(PS2_DEV_CMD_DISABLE_SCAN);
+	if (res != PS2_DEV_CMD_RES_ACK)
 		return -1;
+
+	if (d) {
+		ps2_wait_write();
+		port_outb(PS2_PORT_CMD_STAT, PS2_CMD_WRITE_NEXT_P2_INB);
 	}
-	return 0;
+
+	res = ps2_send_command(PS2_DEV_CMD_IDENTIFY);
+	if (res != PS2_DEV_CMD_RES_ACK)
+		return -1;
+
+	/* get device type bytes */
+	ps2_wait_read();
+	uint8_t hi = port_inb(PS2_PORT_DATA);
+	ps2_wait_read();
+	uint8_t lo = port_inb(PS2_PORT_DATA);
+
+	/* reenable scanning */
+	if (d) {
+		ps2_wait_write();
+		port_outb(PS2_PORT_CMD_STAT, PS2_CMD_WRITE_NEXT_P2_INB);
+	}
+
+	res = ps2_send_command(PS2_DEV_CMD_ENABLE_SCAN);
+	if (res != PS2_DEV_CMD_RES_ACK)
+		return -1;
+
+	if (hi == PS2_DEV_TYPE_KBD) return DEV_KEYBOARD;
+	else if (hi == PS2_DEV_TYPE_MOUSE) return DEV_MOUSE;
+
+	return DEV_UNKNOWN;
 }
 
-/* irq1 for first ps/2 device */
-extern void ps2_irq1(idt_regs_t *regs) {
+/* keyboard irq function */
+static void ps2_irqkbd(idt_regs_t *regs, int d) {
 
+	device_t *dev = d? dev_p1: dev_p0;
+
+	/* get scancode */
 	uint8_t b = port_inb(PS2_PORT_DATA);
 
 	uint32_t key = translate_code(b);
@@ -350,15 +410,47 @@ extern void ps2_irq1(idt_regs_t *regs) {
 	if (wait_int) return;
 
 	/* add to input buffer */
-	device_char_t *inpdev = (device_char_t *)dev_p0;
+	device_char_t *inpdev = (device_char_t *)dev;
 	if (!inpdev) return;
 
 	inpdev->ibuf[inpdev->e_ibuf] = key;
 	inpdev->e_ibuf = (inpdev->e_ibuf + 1) % DEVICE_CHAR_BUFSZ;
 }
 
+/* mouse irq function */
+static void ps2_irqmouse(idt_regs_t *regs, int d) {
+
+	device_t *dev = d? dev_p1: dev_p0;
+
+	/* get mouse data packet */
+	uint8_t b = port_inb(PS2_PORT_DATA);
+
+	uint8_t rx = port_inb(PS2_PORT_DATA);
+	uint8_t ry = port_inb(PS2_PORT_DATA);
+
+	int x = (uint8_t)rx;
+	int y = (uint8_t)ry;
+
+	if (b & PS2_MOUSE_FLAG_XS) x = -x;
+	if (b & PS2_MOUSE_FLAG_YS) y = -y;
+}
+
+/* other irq function */
+static void ps2_irqnone(idt_regs_t *regs, int d) {
+
+	(void)port_inb(PS2_PORT_DATA);
+}
+
+/* irq1 for first ps/2 device */
+extern void ps2_irq1(idt_regs_t *regs) {
+
+	if (dev_p0_type == DEV_KEYBOARD) ps2_irqkbd(regs, 0);
+	else ps2_irqnone(regs, 0);
+}
+
 /* irq12 for second ps/2 device */
 extern void ps2_irq12(idt_regs_t *regs) {
 
-	(void)port_inb(PS2_PORT_DATA);
+	if (dev_p1_type == DEV_KEYBOARD) ps2_irqkbd(regs, 1);
+	else ps2_irqnone(regs, 1);
 }

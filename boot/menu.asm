@@ -4,7 +4,7 @@
 %define VGA_WIDTH 80
 %define VGA_HEIGHT 25
 
-%define MENU_HEIGHT 21
+%define MENU_HEIGHT 23
 
 %define MENU_VIDEO_DEFAULT 0
 

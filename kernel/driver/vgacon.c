@@ -191,7 +191,7 @@ static void vgacon_printc(char c) {
 /* read */
 extern kssize_t vgacon_read(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint8_t *buf) {
 
-	device_t *kbd = device_find(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, 0);
+	device_t *kbd = device_find_name("kybd", 0);
 	if (!kbd) return -1;
 
 	/* read */

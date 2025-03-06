@@ -2,6 +2,8 @@
 #include <kernel/string.h>
 #include <kernel/tty.h>
 #include <kernel/boot.h>
+#include <kernel/string.h>
+#include <kernel/panic.h>
 #include <kernel/mm/heap.h>
 #include <kernel/driver/pit.h>
 #include <kernel/driver/rtc.h>
@@ -40,13 +42,14 @@ extern void device_init(void) {
 }
 
 /* create new device */
-extern device_t *device_new(device_type_t type, device_subtype_t subtype, const char *desc, size_t sz) {
+extern device_t *device_new(device_type_t type, device_subtype_t subtype, const char name[DEVICE_NAME_CHARS], const char *desc, size_t sz) {
 
 	device_t *dev = (device_t *)kmalloc(sz);
 
 	dev->id = ndevs;
 	dev->type = type;
 	dev->subtype = subtype;
+	if (name) memcpy(dev->name, name, DEVICE_NAME_CHARS);
 	if (desc) strncpy(dev->desc, desc, DEVICE_DESC_MAX_CHARS);
 	else dev->desc[0] = 0;
 	devs[ndevs++] = dev;
@@ -58,7 +61,7 @@ extern device_t *device_new(device_type_t type, device_subtype_t subtype, const 
 extern void device_print_all(void) {
 
 	for (int i = 0; i < ndevs; i++)
-		tty_printf("device: %d, type: %d, subtype: %d, desc: %s\n", devs[i]->id, devs[i]->type, devs[i]->subtype, devs[i]->desc);
+		kprintf(LOG_INFO, "Device: %d, Type: %d, Subtype: %d, Desc: %s", devs[i]->id, devs[i]->type, devs[i]->subtype, devs[i]->desc);
 }
 
 /* find nth device of type and subtype */
@@ -93,6 +96,21 @@ extern void device_translate_biosdev(uint32_t dev, device_subtype_t *subtp, int 
 extern device_t *device_find_root(void) {
 
 	return device_find(DEVICE_TYPE_STORAGE, DEVICE_SUBTYPE_STORAGE_ATA, 0);
+}
+
+/* find device by type name */
+extern device_t *device_find_name(const char name[DEVICE_NAME_CHARS], int n) {
+
+	int f = 0;
+	for (int i = 0; i < ndevs; i++) {
+
+		if (!memcmp(devs[i]->name, name, DEVICE_NAME_CHARS)) {
+
+			if (f < n) f++;
+			else return devs[i];
+		}
+	}
+	return NULL;
 }
 
 /* read next int from device */

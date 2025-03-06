@@ -9,9 +9,9 @@ static const char *codedesc[PANIC_CODE_COUNT] = {
 	"Page fault", /* page fault */
 };
 static const char *logdesc[LOG_COUNT] = {
-	"\e[32m Info  \e[39m",
+	"\e[32mInfo\e[39m",
 	"\e[33mWarning\e[39m",
-	"\e[31m Fatal \e[39m",
+	"\e[31mFatal\e[39m",
 };
 
 #define CODEDESC(c, msg) (((c) <= 0 || (c) >= PANIC_CODE_COUNT)? (msg): codedesc[(c)])
@@ -40,7 +40,7 @@ extern void kprintf(log_level_t level, const char *fmt, ...) {
 	boot_cmdline_t *cmdline = boot_get_cmdline();
 	if (cmdline->quiet && level < LOG_FATAL) return;
 
-	tty_printf("[%s] ", logdesc[level]);
+	tty_printf("%s ", logdesc[level]);
 	
 	va_list args;
 	va_start(args, fmt);

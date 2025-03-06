@@ -28,12 +28,14 @@ typedef enum device_subtype {
 } device_subtype_t;
 
 /* information for device */
+#define DEVICE_NAME_CHARS 4
 #define DEVICE_DESC_MAX_CHARS 32
 
 typedef struct device {
 	device_id_t id; /* id */
 	device_type_t type; /* type */
 	device_subtype_t subtype; /* subtype */
+	char name[DEVICE_NAME_CHARS]; /* device type name */
 	char desc[DEVICE_DESC_MAX_CHARS]; /* device description */
 	uint32_t impl; /* implementation specific value */
 } device_t;
@@ -186,11 +188,12 @@ typedef struct device_storage {
 
 /* functions */
 extern void device_init(void); /* initialize all devices */
-extern device_t *device_new(device_type_t type, device_subtype_t subtype, const char *name, size_t sz); /* create new device */
+extern device_t *device_new(device_type_t type, device_subtype_t subtype, const char name[DEVICE_NAME_CHARS], const char *desc, size_t sz); /* create new device */
 extern void device_print_all(void); /* debug */
 extern device_t *device_find(device_type_t type, device_subtype_t subtype, int n); /* find nth device of type and subtype */
 extern void device_translate_biosdev(uint32_t dev, device_subtype_t *subtp, int *n); /* translate a bios device number */
 extern device_t *device_find_root(void); /* search for root device */
+extern device_t *device_find_name(const char name[DEVICE_NAME_CHARS], int n); /* find device by type name */
 
 extern uint32_t device_char_read(device_t *dev, bool block); /* read next int from device */
 extern void device_char_write(device_t *dev, uint32_t val, bool flush); /* write next int to device */

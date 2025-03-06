@@ -73,6 +73,19 @@
 #define PS2_DEV_CMD_RES_RESEND 0xfe
 #define PS2_DEV_CMD_RES_ERR1 0xff
 
+/* device types */
+#define PS2_DEV_TYPE_KBD 0xab
+#define PS2_DEV_TYPE_MOUSE 0x00
+
+/* mouse packet flags */
+#define PS2_MOUSE_FLAG_BL 0x1
+#define PS2_MOUSE_FLAG_BR 0x2
+#define PS2_MOUSE_FLAG_BM 0x4
+#define PS2_MOUSE_FLAG_XS 0x10
+#define PS2_MOUSE_FLAG_YS 0x20
+#define PS2_MOUSE_FLAG_XO 0x40
+#define PS2_MOUSE_FLAG_YO 0x80
+
 /* functions */
 extern void ps2_init(void); /* initialize */
 extern void ps2_wait_read(void); /* wait for read */

@@ -7,13 +7,13 @@
 #include <kernel/driver/device.h>
 #include <kernel/driver/uart.h>
 
-static const uint16_t PORTS[UART_COM_COUNT] = {
+static const uint16_t ports[UART_COM_COUNT] = {
 	UART_PORT_COM1,
 	UART_PORT_COM2,
 	UART_PORT_COM3,
 	UART_PORT_COM4,
 };
-static const char *NAMES[UART_COM_COUNT] = {
+static const char *names[UART_COM_COUNT] = {
 	"UART COM1",
 	"UART COM2",
 	"UART COM3",
@@ -42,7 +42,7 @@ extern void uart_init(uart_com_t bits, uint32_t rate) {
 		uart_com_t bit = (1 << i);
 		if (bits & bit) {
 
-			uint16_t port = PORTS[i];
+			uint16_t port = ports[i];
 			uint8_t baud = (uint8_t)UART_BAUD_RATE(rate);
 
 			/* configure uart */
@@ -65,7 +65,7 @@ extern void uart_init(uart_com_t bits, uint32_t rate) {
 			if (first >= UART_COM_COUNT) first = i;
 
 			/* create driver device */
-			devs[i] = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_UART, NAMES[i], sizeof(device_char_t));
+			devs[i] = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_UART, "uart", names[i], sizeof(device_char_t));
 			devs[i]->impl = (uint32_t)i;
 
 			device_char_t *chardev = (device_char_t *)devs[i];
@@ -103,7 +103,7 @@ extern void uart_writec(uart_com_t com, char c) {
 	uart_com_t bit = (1 << com);
 	if (init & bit) {
 
-		uint16_t port = PORTS[com];
+		uint16_t port = ports[com];
 		int i;
 		for (i = 0; i < 1048576 && !UART_STATUS_READY(port_inb(port+UART_PORT_LSR)); i++)
 			port_outb(0x80, 0);

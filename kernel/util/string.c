@@ -78,3 +78,16 @@ extern void *memcpy(void *dst, const void *src, size_t cnt) {
 	for (size_t i = 0; i < cnt; i++) ((uint8_t *)dst)[i] = ((uint8_t *)src)[i];
 	return dst;
 }
+
+/* compare areas of memory to nth byte */
+extern int memcmp(const void *a, const void *b, size_t n) {
+
+	for (size_t i = 0; i < n; i++) {
+
+		uint8_t ia = *(uint8_t *)a++;
+		uint8_t ib = *(uint8_t *)b++;
+
+		if (ia != ib) return (int)ia - (int)ib;
+	}
+	return 0;
+}
