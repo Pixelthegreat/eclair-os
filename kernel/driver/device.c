@@ -64,6 +64,13 @@ extern void device_print_all(void) {
 		kprintf(LOG_INFO, "Device: %d, Type: %d, Subtype: %d, Desc: %s", devs[i]->id, devs[i]->type, devs[i]->subtype, devs[i]->desc);
 }
 
+/* get device by index */
+extern device_t *device_get(int i) {
+
+	if (i < 0 || i >= ndevs) return NULL;
+	return devs[i];
+}
+
 /* find nth device of type and subtype */
 extern device_t *device_find(device_type_t type, device_subtype_t subtype, int n) {
 

@@ -190,6 +190,7 @@ typedef struct device_storage {
 extern void device_init(void); /* initialize all devices */
 extern device_t *device_new(device_type_t type, device_subtype_t subtype, const char name[DEVICE_NAME_CHARS], const char *desc, size_t sz); /* create new device */
 extern void device_print_all(void); /* debug */
+extern device_t *device_get(int i); /* get device by index */
 extern device_t *device_find(device_type_t type, device_subtype_t subtype, int n); /* find nth device of type and subtype */
 extern void device_translate_biosdev(uint32_t dev, device_subtype_t *subtp, int *n); /* translate a bios device number */
 extern device_t *device_find_root(void); /* search for root device */

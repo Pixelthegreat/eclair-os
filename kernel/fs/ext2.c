@@ -1,6 +1,6 @@
 #include <kernel/types.h>
 #include <kernel/string.h>
-#include <kernel/tty.h>
+#include <kernel/panic.h>
 #include <kernel/mm/heap.h>
 #include <kernel/vfs/fs.h>
 #include <kernel/fs/ext2.h>
@@ -21,6 +21,8 @@ struct ext2_fs_info {
 	size_t inodesize; /* size of inodes */
 	uint32_t nbgs; /* number of block group */
 	ext2_bg_descriptor_t *bgdt; /* block group descriptor table */
+	uint32_t nbub; /* number of blocks per block usage bitmap */
+	void *bub; /* block usage bitmap */
 	uint32_t curblock; /* current read block */
 	void *block; /* block data */
 };
@@ -57,8 +59,8 @@ static bool ext2_verify_sb(ext2_superblock_t *sb) {
 /* read block */
 static void ext2_read_block(struct ext2_fs_info *info, uint32_t block, void *buf) {
 
-	uint32_t lba = info->part->start_lba + block * (info->blocksize / 512);
-	device_storage_read(info->dev, lba, info->blocksize / 512, buf);
+	uint32_t lba = info->part->start_lba + block * (info->blocksize >> 9);
+	device_storage_read(info->dev, lba, info->blocksize >> 9, buf);
 }
 
 /* read cached block */
@@ -68,7 +70,14 @@ static void ext2_read_cached_block(struct ext2_fs_info *info, uint32_t block) {
 
 	/* allocate buffer */
 	if (!info->block) info->block = kmalloc(info->blocksize);
-	ext2_read_block(info, block, info->block);
+ext2_read_block(info, block, info->block);
+}
+
+/* write block */
+static void ext2_write_block(struct ext2_fs_info *info, uint32_t block, void *buf) {
+
+	uint32_t lba = info->part->start_lba + block * (info->blocksize >> 9);
+	device_storage_write(info->dev, lba, info->blocksize >> 9, buf);
 }
 
 /* load block group descriptor */
@@ -85,6 +94,100 @@ static void ext2_load_bgdt(struct ext2_fs_info *info) {
 
 	info->nbgs = nbgs;
 	info->bgdt = (ext2_bg_descriptor_t *)buf;
+
+	/* read block usage bitmaps */
+	uint32_t nbub = info->sb.nbgblocks / (info->blocksize * 8) + 1;
+
+	buf = kmalloc(info->blocksize * nblocks * nbub);
+	for (uint32_t i = 0; i < nblocks; i++) {
+
+		for (uint32_t j = 0; j < nbub; j++)
+			ext2_read_block(info, info->bgdt[i].busgbitmap+j, buf + (i * nbub + j) * info->blocksize);
+	}
+
+	info->nbub = nbub;
+	info->bub = buf;
+}
+
+/* flush block group descriptor */
+static void ext2_flush_bgdt_entry(struct ext2_fs_info *info, uint32_t bg) {
+
+	uint32_t idx = bg / info->sb.nbgblocks;
+	uint32_t block = ((info->blocksize == 1024)? 2: 1) + idx;
+
+	ext2_write_block(info, block, (void *)info->bgdt + idx * info->blocksize);
+}
+
+/* flush block usage bitmap for block group */
+static void ext2_flush_bgdt_bub(struct ext2_fs_info *info, uint32_t bg, uint32_t bub) {
+
+	uint32_t idx = bg / info->sb.nbgblocks;
+	uint32_t block = info->bgdt[idx].busgbitmap + (idx * info->nbub + bub);
+
+	ext2_write_block(info, block, info->bub + (idx * info->nbub + bub) * info->blocksize);
+}
+
+/* allocate block */
+static uint32_t ext2_allocate_block(struct ext2_fs_info *info) {
+
+	uint32_t bg = 0;
+	for (; bg < info->nbgs; bg++) {
+		if (info->bgdt[bg].nfreeblocks > 0)
+			break;
+	}
+	if (bg >= info->nbgs) return 0;
+
+	/* search bitmap */
+	uint8_t *bub = (uint8_t *)info->bub + (bg * info->nbub);
+	uint32_t j = 0, k = 0;
+	uint8_t b = 0;
+
+	for (; j < info->blocksize * info->nbub; j++) {
+
+		b = bub[j];
+		bool found = false;
+		for (k = 0; k < 8; k++) {
+			if (!(b & (1 << k))) {
+				found = true;
+				break;
+			}
+		}
+		if (found) break;
+	}
+	if (j >= info->blocksize * info->nbub) return 0;
+
+	/* update bitmap */
+	b |= (1 << k);
+	bub[j] = b;
+	info->bgdt[bg].nfreeblocks--;
+
+	ext2_flush_bgdt_bub(info, bg, j / info->blocksize);
+	ext2_flush_bgdt_entry(info, bg);
+
+	return (bg * info->sb.nbgblocks) + (j * 8) + k;
+}
+
+/* free block */
+static void ext2_free_block(struct ext2_fs_info *info, uint32_t block) {
+
+	uint32_t bg = block / info->sb.nbgblocks;
+	uint32_t idx = block % info->sb.nbgblocks;
+	uint32_t byte = idx / 8;
+	uint32_t bit = idx % 8;
+
+	uint8_t *bub = (uint8_t *)info->bub + (bg * info->nbub);
+	uint8_t b = bub[byte];
+
+	if (!(b & (1 << bit)))
+		return;
+
+	/* update bitmap */
+	b &= ~(1 << bit);
+	bub[byte] = b;
+	info->bgdt[bg].nfreeblocks++;
+
+	ext2_flush_bgdt_bub(info, bg, byte / info->blocksize);
+	ext2_flush_bgdt_entry(info, bg);
 }
 
 /* read inode */
@@ -102,6 +205,24 @@ static void ext2_read_inode(struct ext2_fs_info *info, uint32_t inode, ext2_inod
 	memcpy(inodebuf, info->block + bidx * info->inodesize, sizeof(ext2_inode_t));
 }
 
+/* write inode */
+static void ext2_write_inode(struct ext2_fs_info *info, uint32_t inode, ext2_inode_t *inodebuf) {
+
+	uint32_t bg = EXT2_BLOCK_GROUP(info, inode);
+	uint32_t idx = EXT2_INDEX(info, inode);
+	uint32_t cont = info->bgdt[bg].binodetab + EXT2_CONT_BLOCK(info, idx);
+
+	/* read block */
+	ext2_read_cached_block(info, cont);
+
+	/* copy contents */
+	uint32_t bidx = idx % (info->blocksize / info->inodesize);
+	memcpy(info->block + bidx * info->inodesize, inodebuf, sizeof(ext2_inode_t));
+
+	/* write block */
+	ext2_write_block(info, cont, info->block);
+}
+
 /* read block from inode data */
 /* todo: support doubly and triply indirect block pointers */
 static uint32_t ext2_read_inode_block(struct ext2_fs_info *info, ext2_inode_t *inode, uint32_t idx, void *buf) {
@@ -116,7 +237,7 @@ static uint32_t ext2_read_inode_block(struct ext2_fs_info *info, ext2_inode_t *i
 	}
 
 	/* singly indirect block pointer */
-	else if (idx < 12 + (info->blocksize / 4)) {
+	else if (idx < 12 + (info->blocksize >> 2)) {
 
 		if (!inode->sibptr) return 0;
 		ext2_read_block(info, inode->sibptr, buf);
@@ -129,6 +250,61 @@ static uint32_t ext2_read_inode_block(struct ext2_fs_info *info, ext2_inode_t *i
 	}
 
 	return 0;
+}
+
+/* set block from inode data and read */
+static uint32_t ext2_set_inode_block(struct ext2_fs_info *info, uint32_t ninode, ext2_inode_t *inode, uint32_t idx, void *buf) {
+
+	uint32_t block = 0;
+	bool update = false; /* update to inode */
+	if (idx < 12) {
+
+		block = inode->dbptr[idx];
+		if (!block) {
+
+			block = ext2_allocate_block(info);
+			if (!block) return 0;
+
+			inode->dbptr[idx] = block;
+			inode->nsectors += (info->blocksize >> 9);
+			update = true;
+		}
+
+		ext2_read_block(info, block, buf);
+	}
+
+	/* singly indirect block pointer */
+	else if (idx < 12 + (info->blocksize >> 2)) {
+
+		if (!inode->sibptr) {
+
+			inode->sibptr = ext2_allocate_block(info);
+			if (!inode->sibptr) return 0;
+
+			update = true;
+			memset(buf, 0, info->blocksize);
+		}
+		else ext2_read_block(info, inode->sibptr, buf);
+
+		/* get block from table */
+		block = ((uint32_t *)buf)[idx-12];
+		if (!block) {
+
+			block = ext2_allocate_block(info);
+			if (!block) return 0;
+
+			((uint32_t *)buf)[idx-12] = block;
+			ext2_write_block(info, inode->sibptr, buf);
+
+			inode->nsectors += (info->blocksize >> 9);
+			update = true;
+		}
+
+		ext2_read_block(info, block, buf);
+	}
+
+	if (update) ext2_write_inode(info, ninode, inode);
+	return block;
 }
 
 /* read from file */
@@ -156,6 +332,46 @@ static kssize_t ext2_read(fs_node_t *node, uint32_t offset, size_t nbytes, uint8
 		}
 
 		buf[count] = ((uint8_t *)file->bdata)[pos % info->blocksize];
+	}
+	return count;
+}
+
+/* write to file */
+static kssize_t ext2_write(fs_node_t *node, uint32_t offset, size_t nbytes, uint8_t *buf) {
+
+	struct ext2_fs_info *info = (struct ext2_fs_info *)node->data;
+	struct ext2_file_info *file = (struct ext2_file_info *)node->odata;
+
+	/* copy bytes */
+	size_t count = 0, pos = 0;
+	for (; count < nbytes; count++) {
+
+		pos = offset + count;
+
+		/* write previous block and read next block */
+		if (!file->bblk || (pos / info->blocksize) != file->bidx) {
+
+			if (file->bblk)
+				ext2_write_block(info, file->bblk, file->bdata);
+
+			file->bidx = pos / info->blocksize;
+
+			if (!file->bdata) file->bdata = kmalloc(info->blocksize);
+			file->bblk = ext2_set_inode_block(info, node->inode, &file->inode, file->bidx, file->bdata);
+
+			if (!file->bblk) break;
+		}
+
+		((uint8_t *)file->bdata)[pos % info->blocksize] = buf[count];
+	}
+	if (count && file->bblk) ext2_write_block(info, file->bblk, file->bdata);
+
+	/* update file length/size */
+	if (pos+1 > node->len) {
+
+		node->len = pos+1;
+		file->inode.losize = (uint32_t)node->len;
+		ext2_write_inode(info, node->inode, &file->inode);
 	}
 	return count;
 }
@@ -247,6 +463,7 @@ extern fs_node_t *ext2_mbr_mount(fs_node_t *mountp, device_t *dev, mbr_ent_t *pa
 	if (!ext2_verify_sb(&info->sb)) {
 
 		kfree(info);
+		kprintf(LOG_WARNING, "Invalid Ext2 superblock");
 		return NULL;
 	}
 
@@ -268,6 +485,7 @@ extern fs_node_t *ext2_mbr_mount(fs_node_t *mountp, device_t *dev, mbr_ent_t *pa
 
 	/* operations */
 	node->read = ext2_read;
+	//node->write = ext2_write;
 	node->open = ext2_open;
 	node->close = ext2_close;
 	node->filldir = ext2_filldir;

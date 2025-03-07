@@ -18,6 +18,7 @@ struct fs_node;
 /* file open flags */
 #define FS_READ 0x1
 #define FS_WRITE 0x2
+#define FS_TRUNCATE 0x4
 
 /* file operations */
 typedef kssize_t (*fs_read_t)(struct fs_node *, uint32_t, size_t, uint8_t *);

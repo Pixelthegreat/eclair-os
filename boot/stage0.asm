@@ -2,9 +2,14 @@
 	[bits 16]
 
 	jmp short start
-	nop
+	
+	times 16-($-$$) db 0
 
-; mbr ;
+; s3boot block for identifying os boot device ;
+boot:
+	.magic dd 0xc73a3912
+	.osid db "eclair-os"
+	times 12-($-.osid) db ' '
 
 ; start ;
 start:

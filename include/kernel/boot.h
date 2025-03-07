@@ -34,6 +34,8 @@ typedef struct boot_saved_info {
 } boot_saved_info_t;
 
 /* boot structure */
+#define BOOT_MAGIC 0xc73a3912
+
 typedef enum boot_struct_type {
 	BOOT_STRUCT_CMDLINE = 0,
 	BOOT_STRUCT_MEMMAP,
