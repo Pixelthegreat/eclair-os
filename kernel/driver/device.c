@@ -41,6 +41,12 @@ extern void device_init(void) {
 	ata_init();
 }
 
+/* update devices */
+extern void device_update(void) {
+
+	if (fb_addr) fbcon_update();
+}
+
 /* create new device */
 extern device_t *device_new(device_type_t type, device_subtype_t subtype, const char name[DEVICE_NAME_CHARS], const char *desc, size_t sz) {
 

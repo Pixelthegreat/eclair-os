@@ -188,6 +188,7 @@ typedef struct device_storage {
 
 /* functions */
 extern void device_init(void); /* initialize all devices */
+extern void device_update(void); /* update devices */
 extern device_t *device_new(device_type_t type, device_subtype_t subtype, const char name[DEVICE_NAME_CHARS], const char *desc, size_t sz); /* create new device */
 extern void device_print_all(void); /* debug */
 extern device_t *device_get(int i); /* get device by index */

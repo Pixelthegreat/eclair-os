@@ -71,6 +71,26 @@ extern void fb_set_pixel(uint32_t x, uint32_t y, fb_color_t color) {
 		addr[i] = (uint8_t)((pixel >> (i * 8)) & 0xff);
 }
 
+/* get pixel color */
+extern fb_color_t fb_get_pixel(uint32_t x, uint32_t y) {
+
+	if (x >= fb_width || y >= fb_height) return (fb_color_t){0, 0, 0};
+
+	uint8_t *addr = (uint8_t *)(fb_addr + y * fb_pitch + x * fb_format.bytes);
+
+	uint32_t pixel = 0;
+	for (uint32_t i = 0; i < fb_format.bytes; i++)
+		pixel |= (uint32_t)addr[i] << (i * 8);
+
+	/* convert a pixel to r8g8b8 format */
+	fb_color_t color;
+	color.r = (uint8_t)(((pixel >> fb_format.r.pos) & (0xffffffff >> (32-fb_format.r.pos))) * 8 / fb_format.r.masksz);
+	color.g = (uint8_t)(((pixel >> fb_format.g.pos) & (0xffffffff >> (32-fb_format.g.pos))) * 8 / fb_format.g.masksz);
+	color.b = (uint8_t)(((pixel >> fb_format.b.pos) & (0xffffffff >> (32-fb_format.b.pos))) * 8 / fb_format.b.masksz);
+
+	return color;
+}
+
 /* copy area to framebuffer memory */
 extern void fb_copy_area(uint32_t dstx, uint32_t dsty, uint32_t w, uint32_t h, void *data, fb_format_t *format) {
 

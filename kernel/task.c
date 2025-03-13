@@ -396,3 +396,9 @@ extern void task_release(void) {
 	task_active->res = NULL;
 	task_unlockcli();
 }
+
+/* get time for all tasks */
+extern uint64_t task_get_global_time(void) {
+
+	return timens;
+}

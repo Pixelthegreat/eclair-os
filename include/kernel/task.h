@@ -2,6 +2,7 @@
 #define ECLAIR_TASK_H
 
 #include <kernel/types.h>
+#include <kernel/mm/paging.h>
 
 #define TASK_READY 0
 #define TASK_RUNNING 1
@@ -52,5 +53,6 @@ extern void task_terminate(void); /* terminate current task */
 extern void task_cleanup(void); /* clean up terminated tasks */
 extern void task_acquire(fs_node_t *node); /* acquire resource */
 extern void task_release(void); /* release held resource */
+extern uint64_t task_get_global_time(void); /* get time for all tasks */
 
 #endif /* ECLAIR_TASK_H */

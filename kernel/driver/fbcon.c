@@ -1,6 +1,7 @@
 #include <kernel/types.h>
 #include <kernel/string.h>
 #include <kernel/tty.h>
+#include <kernel/task.h>
 #include <kernel/vfs/fs.h>
 #include <kernel/driver/device.h>
 #include <kernel/driver/fb.h>
@@ -64,8 +65,12 @@ static uint8_t cursor[CURSOR_WIDTH * CURSOR_HEIGHT] = {
 	1, 1, 1, 1, 1, 1, 1, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1, 1,
 };
-static bool cursor_show = false; /* cursor visibility */
-static uint32_t cursor_idx = 0; /* cursor index */
+static fb_color_t cursor_area_old[CURSOR_WIDTH * CURSOR_HEIGHT];
+static bool cursor_show = false; /* cursor is shown */
+
+#define CURSOR_UPDATE 500000000
+static uint64_t timens = 0; /* current time */
+static uint64_t timestart = 0; /* start time */
 
 /* default colors */
 #define DEFAULT_COLOR_INDEX 0x7
@@ -90,9 +95,9 @@ static uint8_t stcolors[10] = {
 
 #define IS_DIGIT(c) ((c) >= '0' && (c) <= '9')
 
-static void fbcon_clear_cursor(void);
-static void fbcon_draw_cursor(void);
-static void fbcon_set_cursor(void);
+static void fbcon_clear_cursor(uint32_t cidx);
+static void fbcon_draw_cursor(uint32_t cidx);
+static void fbcon_set_cursor(uint32_t old, uint32_t new);
 
 /* read integer from escape code buffer */
 static uint32_t read_esc_int(uint32_t p, int *d) {
@@ -112,7 +117,7 @@ static void fbcon_scroll(void) {
 
 	if (idx < width * height) return;
 
-	fbcon_clear_cursor();
+	uint32_t old = idx;
 
 	/* scroll display */
 	size_t ys = fb_height - ((height-1) * fb_font.h);
@@ -120,53 +125,59 @@ static void fbcon_scroll(void) {
 
 	idx = width * (height-1);
 
-	fbcon_set_cursor();
+	fbcon_set_cursor(old, idx);
 }
 
 /* clear cursor */
-static void fbcon_clear_cursor(void) {
+static void fbcon_clear_cursor(uint32_t cidx) {
 
-	uint32_t cx = (cursor_idx % width) * (fb_font.w + fb_font.hspace);
-	uint32_t cy = (cursor_idx / width) * fb_font.h;
+	uint32_t cx = (cidx % width) * (fb_font.w + fb_font.hspace);
+	uint32_t cy = (cidx / width) * fb_font.h;
 
 	if (cursor_show) {
 
 		cursor_show = false;
+
 		for (uint32_t y = 0; y < CURSOR_HEIGHT; y++) {
 			for (uint32_t x = 0; x < CURSOR_WIDTH; x++) {
 
 				if (cursor[y * CURSOR_WIDTH + x])
-					fb_set_pixel(cx+x, cy+y, bg);
+					fb_set_pixel(cx+x, cy+y, cursor_area_old[y * CURSOR_WIDTH + x]);
 			}
 		}
 	}
 }
 
 /* draw cursor */
-static void fbcon_draw_cursor(void) {
+static void fbcon_draw_cursor(uint32_t cidx) {
 
-	uint32_t cx = (cursor_idx % width) * (fb_font.w + fb_font.hspace);
-	uint32_t cy = (cursor_idx / width) * fb_font.h;
+	uint32_t cx = (cidx % width) * (fb_font.w + fb_font.hspace);
+	uint32_t cy = (cidx / width) * fb_font.h;
 
 	if (!cursor_show) {
 
 		cursor_show = true;
+
 		for (uint32_t y = 0; y < CURSOR_HEIGHT; y++) {
 			for (uint32_t x = 0; x < CURSOR_WIDTH; x++) {
 
-				if (cursor[y * CURSOR_WIDTH + x])
+				if (cursor[y * CURSOR_WIDTH + x]) {
+
+					cursor_area_old[y * CURSOR_WIDTH + x] = fb_get_pixel(cx+x, cy+y);
 					fb_set_pixel(cx+x, cy+y, DEFAULT_COLOR);
+				}
 			}
 		}
 	}
 }
 
 /* set cursor */
-static void fbcon_set_cursor(void) {
+static void fbcon_set_cursor(uint32_t old, uint32_t new) {
 
-	fbcon_clear_cursor();
-	cursor_idx = idx;
-	fbcon_draw_cursor();
+	if (!cursor_show) return;
+
+	fbcon_clear_cursor(old);
+	fbcon_draw_cursor(new);
 }
 
 /* draw character */
@@ -182,7 +193,13 @@ static void fbcon_drawc(uint32_t index, char c) {
 /* print character */
 static void fbcon_printc(char c) {
 
-	if (c == '\n') idx += width - (idx % width);
+	if (c == '\n') {
+		
+		uint32_t old = idx;
+		idx += width - (idx % width);
+
+		fbcon_set_cursor(old, idx);
+	}
 
 	/* escape code */
 	else if (c == 0x1b) {
@@ -211,9 +228,11 @@ static void fbcon_printc(char c) {
 
 	/* normal character */
 	else {
-		fbcon_clear_cursor();
+
 		fbcon_drawc(idx, c);
-		idx++;
+
+		uint32_t old = idx++;
+		fbcon_set_cursor(old, idx);
 	}
 
 	/* interpret escape code */
@@ -262,7 +281,6 @@ static void fbcon_printc(char c) {
 
 	/* update scrolling */
 	fbcon_scroll();
-	fbcon_set_cursor();
 }
 
 /* initialize */
@@ -322,10 +340,9 @@ extern kssize_t fbcon_read(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint
 			nread--;
 			if (nread < nbytes-1) buf[nread] = 0;
 
-			fbcon_clear_cursor();
-			idx--;
+			uint32_t old = idx--;
 			fbcon_drawc(idx, ' ');
-			fbcon_set_cursor();
+			fbcon_set_cursor(old, idx);
 			continue;
 		}
 
@@ -333,10 +350,8 @@ extern kssize_t fbcon_read(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint
 		char c = shift? ascii_shift[key]: ascii[key];
 		fbcon_printc(c);
 
-		if (nread < nbytes-1) {
-
+		if (nread < nbytes-1)
 			buf[nread] = c;
-		}
 		nread++;
 	}
 
@@ -351,4 +366,24 @@ extern kssize_t fbcon_write(fs_node_t *_dev, uint32_t offset, size_t nbytes, uin
 	for (size_t i = 0; i < nbytes; i++)
 		fbcon_printc(((char *)buf)[i]);
 	return (kssize_t)nbytes;
+}
+
+/* show/hide cursor */
+extern void fbcon_flip_cursor(void) {
+
+	if (cursor_show) fbcon_clear_cursor(idx);
+	else fbcon_draw_cursor(idx);
+}
+
+/* update console */
+extern void fbcon_update(void) {
+
+	timens = task_get_global_time();
+	uint64_t diff = timens - timestart;
+
+	if (diff >= CURSOR_UPDATE) {
+
+		timestart = timens;
+		fbcon_flip_cursor();
+	}
 }

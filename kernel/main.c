@@ -72,6 +72,7 @@ extern void kernel_main() {
 	while (true) {
 
 		task_cleanup();
+		device_update();
 		asm volatile("hlt");
 	}
 }
