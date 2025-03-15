@@ -125,8 +125,12 @@ extern void idt_set_gate(uint32_t n, void *p, uint8_t tp) {
 /* main isr handler */
 extern void idt_isr_handler(idt_regs_t *regs) {
 
-	kprintf(LOG_FATAL, "[idt] Exception: %d (code: 0x%x)", regs->n_int, regs->err_code);
-	kpanic(regs->n_int == 14? PANIC_CODE_FAULT: 0, "CPU exception", regs);
+	if (isrs[regs->n_int] != NULL) isrs[regs->n_int](regs);
+	else {
+
+		kprintf(LOG_FATAL, "[idt] Exception: %d (code: 0x%x)", regs->n_int, regs->err_code);
+		kpanic(regs->n_int == 14? PANIC_CODE_FAULT: 0, "CPU exception", regs);
+	}
 }
 
 /* main irq handler */
@@ -140,6 +144,13 @@ extern void idt_irq_handler(idt_regs_t *regs) {
 
 	port_outb(IDT_PIC0_CMD, IDT_PIC_CMD_EOI);
 	if (regs->n_int >= 40) port_outb(IDT_PIC1_CMD, IDT_PIC_CMD_EOI);
+}
+
+/* set isr callback */
+extern void idt_set_isr_callback(uint32_t n, idt_isr_t isr) {
+
+	if (n > 31) return;
+	isrs[n] = isr;
 }
 
 /* set irq callback */

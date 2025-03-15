@@ -1,5 +1,5 @@
 #include <kernel/types.h>
-#include <kernel/tty.h>
+#include <kernel/panic.h>
 #include <kernel/string.h>
 #include <kernel/mm/gdt.h>
 #include <kernel/driver/pit.h>
@@ -7,6 +7,16 @@
 #include <kernel/mm/paging.h>
 #include <kernel/mm/heap.h>
 #include <kernel/task.h>
+
+static const char *signames[TASK_NSIG] = {
+	"SIGNONE",
+	"SIGABRT",
+	"SIGFPE",
+	"SIGKILL",
+	"SIGINT",
+	"SIGSEGV",
+	"SIGTERM",
+};
 
 #define KSTACKSZ 16384 /* process kernel stack size */
 
@@ -28,6 +38,7 @@ static struct task_list *ready = NULL;
 static struct task_list *paused = NULL;
 static struct task_list *sleeping = NULL;
 static struct task_list *terminated = NULL;
+static struct task_list *signaled = NULL;
 
 static uint64_t timens = 0; /* time in nanoseconds */
 
@@ -76,6 +87,15 @@ static void task_move_to_list(struct task_list *dest, struct task_list *src, tas
 	task_add_to_list(dest, task);
 }
 
+/* cpu exception isr */
+static void task_isr(idt_regs_t *regs) {
+	
+	task_raise(TASK_SIGSEGV);
+
+	/* wait until the signal is handled completely */
+	while (!task_active->sigdone) asm volatile("hlt");
+}
+
 /* pit irq */
 static void task_irq(idt_regs_t *regs) {
 
@@ -108,7 +128,17 @@ static void task_irq(idt_regs_t *regs) {
 			task_unblock(cur);
 		}
 
-		cur = cur->next;
+		cur = next;
+	}
+
+	/* wake up signaled tasks */
+	cur = signaled->first;
+	while (cur) {
+
+		task_t *next = cur->next;
+
+		task_unblock(cur);
+		cur = next;
 	}
 
 	/* end of time slice */
@@ -116,6 +146,32 @@ static void task_irq(idt_regs_t *regs) {
 		task_schedule();
 
 	task_unlockpost();
+
+	/* task was signaled */
+	if (task_active->sig) {
+
+		task_lockcli();
+
+		uint32_t sig = task_active->sig;
+		task_active->sig = 0;
+
+		task_sig_t sigh = task_active->sigh[sig];
+		if (!sigh) {
+
+			kprintf(LOG_WARNING, "[task] Signal %d received (%s, task %d); Aborting...", (int)sig, signames[sig], (int)task_active->id);
+
+			task_unlockcli();
+			task_terminate();
+		}
+
+		*TASK_STACK_ADDR_SIGHANDLER = (uint32_t)sigh;
+		*TASK_STACK_ADDR_SIGEIP = regs->eip;
+
+		regs->eip = (uint32_t)TASK_SIGH_ADDR;
+
+		task_active->sigdone = true;
+		task_unlockcli();
+	}
 }
 
 /* allocate necessary memory before heap */
@@ -136,6 +192,7 @@ extern void task_init(void) {
 	paused = &lists[TASK_PAUSED];
 	sleeping = &lists[TASK_SLEEPING];
 	terminated = &lists[TASK_TERMINATED];
+	signaled = &lists[TASK_SIGNALED];
 
 	ktask = task_new(&kernel_stack_top, NULL);
 	ktask->cr3 = page_get_directory();
@@ -145,6 +202,10 @@ extern void task_init(void) {
 	task_remove_from_list(ready, ktask); /* remove from ready list */
 
 	task_active = ktask;
+
+	/* setup isrs */
+	idt_set_isr_callback(IDT_ISR_GPFAULT, task_isr);
+	idt_set_isr_callback(IDT_ISR_PGFAULT, task_isr);
 
 	/* setup pit */
 	idt_disable_irq_eoi(PIT_IRQ);
@@ -191,6 +252,11 @@ extern task_t *task_new(void *esp, void *seteip) {
 	task->nticks = NTICKS;
 	task->id = id;
 	task->res = NULL;
+	task->sig = 0;
+	for (uint32_t i = 0; i < TASK_NSIG; i++)
+		task->sigh[i] = NULL;
+	task->stale = false;
+	task->sigdone = false;
 
 	task_add_to_list(ready, task);
 	taskmap[id] = task;
@@ -336,9 +402,24 @@ extern void task_sleep(uint32_t s) {
 	task_nano_sleep((uint64_t)s * 1000000000);
 }
 
+/* free pages used by current task */
+extern void task_free(void) {
+
+	task_lockcli();
+
+	for (uint32_t i = 0; i < TASK_STACK_END; i++) {
+
+		page_frame_id_t f = page_get_frame(i);
+		if (f) page_frame_free(f);
+	}
+
+	task_unlockcli();
+}
+
 /* terminate current task */
 extern void task_terminate(void) {
 
+	task_free();
 	task_block(TASK_TERMINATED);
 }
 
@@ -409,10 +490,10 @@ extern uint64_t task_get_global_time(void) {
 static void task_test(void) {
 
 	int counter = 0;
-	while (1) {
+	while (counter++ < 33554432);
 
-		if (counter++ >= 33554432) asm volatile("hlt");
-	}
+	asm volatile("hlt");
+	while (1);
 }
 
 extern void task_entry(void) {
@@ -428,6 +509,12 @@ extern void task_entry(void) {
 	stack += TASK_STACK_SIZE;
 
 	gdt_tss.esp0 = (uint32_t)task_active->esp0;
+
+	/* copy task_handle_signal function to be able to run it in userspace */
+	for (uint32_t i = TASK_SIGH_START; i< TASK_SIGH_END; i++)
+		page_map_flags(i, page_frame_alloc(), PAGE_FLAG_US);
+
+	memcpy(TASK_SIGH_ADDR, task_handle_signal, task_handle_signal_size);
 
 	/* go to user mode */
 	asm volatile(
@@ -447,4 +534,34 @@ extern void task_entry(void) {
 		"push $task_test\n"
 		"iret\n"
 		: : "r"(stack));
+}
+
+/* raise signal on current task */
+extern void task_raise(uint32_t sig) {
+
+	task_active->sig = sig;
+	task_active->sigdone = false;
+	task_block(TASK_SIGNALED);
+}
+
+/* raise signal on other task */
+extern void task_signal(task_t *task, uint32_t sig) {
+
+	if (task == task_active) {
+
+		task_raise(sig);
+		return;
+	}
+
+	task_lockcli();
+
+	task_remove_from_list(&lists[task->state], task);
+	task->state = TASK_SIGNALED;
+	task_add_to_list(signaled, task);
+
+	task->stale = true;
+	task->sigdone = false;
+	task->sig = sig;
+
+	task_unlockcli();
 }

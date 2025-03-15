@@ -1,4 +1,6 @@
 	[global task_switch]
+	[global task_handle_signal]
+	[global task_handle_signal_size]
 	
 	[extern task_active]
 	[extern task_nlockpost]
@@ -25,6 +27,8 @@
 	endstruc
 
 section .text
+
+; switch to task ;
 task_switch:
 	cmp dword[task_nlockpost], 0
 	je .cont
@@ -62,3 +66,14 @@ task_switch:
 	pop ebx
 	
 	ret
+
+; userspace signal handler ;
+%define TASK_STACK_ADDR_SIGHANDLER 0x8000
+%define TASK_STACK_ADDR_SIGEIP 0x8004
+
+task_handle_signal:
+	call dword[TASK_STACK_ADDR_SIGHANDLER]
+	jmp dword[TASK_STACK_ADDR_SIGEIP]
+.end:
+
+task_handle_signal_size dd task_handle_signal.end-task_handle_signal
