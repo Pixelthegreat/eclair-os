@@ -126,14 +126,14 @@ extern void fb_text(uint32_t x, uint32_t y, const char *text, fb_color_t color, 
 
 		/* draw character */
 		for (uint32_t py = 0; py < fb_font.h; py++) {
-			for (uint32_t px = 0; px < fb_font.w; px++) {
+			for (uint32_t px = 0; px < fb_font.w+fb_font.hspace; px++) {
 
 				uint32_t bit = fb_font.flip? fb_font.w-1-px: px;
 
 				uint32_t dx = x + pos * (fb_font.w + fb_font.hspace) + px;
 				uint32_t dy = y + py;
 
-				if (bitmap[py+bit/fb_font.w] & (uint8_t)(1 << (bit%8)))
+				if (px < fb_font.w && bitmap[py+bit/fb_font.w] & (uint8_t)(1 << (bit%8)))
 					fb_set_pixel(dx, dy, color);
 				else fb_set_pixel(dx, dy, bgcolor);
 			}

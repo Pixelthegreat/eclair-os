@@ -39,7 +39,9 @@ extern void page_init(void); /* initialize page mapper */
 extern void page_init_top(void); /* map all page tables in kernel area */
 extern page_id_t page_dir_find_entry(void); /* find free page directory entry */
 extern void page_map_table(page_id_t p, page_frame_id_t f); /* map a page table */
+extern void page_map_table_flags(page_id_t p, page_frame_id_t f, uint32_t flags); /* map a page table with flags */
 extern void page_map(page_id_t p, page_frame_id_t f); /* map a page to a frame */
+extern void page_map_flags(page_id_t p, page_frame_id_t f, uint32_t flags); /* map a page with flags */
 extern void page_invalidate(page_id_t p); /* invalidate an entry in the tlb */
 extern bool page_is_mapped(page_id_t p); /* check if page is mapped */
 extern page_frame_id_t page_get_frame(page_id_t p); /* get frame from page */

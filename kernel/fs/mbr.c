@@ -74,7 +74,7 @@ extern fs_node_t *mbr_fs_probe(device_t *dev, mbr_t *mbr) {
 }
 
 /* search for root filesystem */
-extern fs_node_t *mbr_fs_mount_root(void) {
+extern void mbr_fs_mount_root(void) {
 
 	device_t *dev;
 	int i = 0;
@@ -95,5 +95,6 @@ extern fs_node_t *mbr_fs_mount_root(void) {
 
 		node = mbr_fs_probe(dev, mbr);
 	}
-	return node;
+
+	if (!node) kpanic(PANIC_CODE_NONE, "Failed to mount root file system\n", NULL);
 }

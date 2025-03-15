@@ -119,13 +119,13 @@ extern void idt_set_gate(uint32_t n, void *p, uint8_t tp) {
 	idt[n].segsel = 0x8; /* supervisor code selector */
 	idt[n].rsvd = 0;
 	idt[n].type = tp & 0xf;
-	idt[n].flags = IDT_GATE_FLAG_P;
+	idt[n].flags = IDT_GATE_FLAG_P | IDT_GATE_FLAG_DPLU;
 }
 
 /* main isr handler */
 extern void idt_isr_handler(idt_regs_t *regs) {
 
-	tty_printf("Exception: %d (code: 0x%x)\n", regs->n_int, regs->err_code);
+	kprintf(LOG_FATAL, "[idt] Exception: %d (code: 0x%x)", regs->n_int, regs->err_code);
 	kpanic(regs->n_int == 14? PANIC_CODE_FAULT: 0, "CPU exception", regs);
 }
 

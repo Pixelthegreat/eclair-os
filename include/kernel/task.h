@@ -12,6 +12,11 @@
 
 #define TASK_NSTATES 5
 
+#define TASK_STACK_START 8
+#define TASK_STACK_END 16
+#define TASK_STACK_SIZE 0x8000
+#define TASK_STACK_ADDR ((void *)0x8000)
+
 /* task control block */
 typedef struct task {
 	void *esp0; /* kernel stack top */
@@ -54,5 +59,6 @@ extern void task_cleanup(void); /* clean up terminated tasks */
 extern void task_acquire(fs_node_t *node); /* acquire resource */
 extern void task_release(void); /* release held resource */
 extern uint64_t task_get_global_time(void); /* get time for all tasks */
+extern void task_entry(void); /* task entry point */
 
 #endif /* ECLAIR_TASK_H */

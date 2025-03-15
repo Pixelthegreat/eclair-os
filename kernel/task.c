@@ -1,9 +1,11 @@
 #include <kernel/types.h>
 #include <kernel/tty.h>
 #include <kernel/string.h>
+#include <kernel/mm/gdt.h>
 #include <kernel/driver/pit.h>
-#include <kernel/mm/heap.h>
+#include <kernel/mm/gdt.h>
 #include <kernel/mm/paging.h>
+#include <kernel/mm/heap.h>
 #include <kernel/task.h>
 
 #define KSTACKSZ 16384 /* process kernel stack size */
@@ -401,4 +403,48 @@ extern void task_release(void) {
 extern uint64_t task_get_global_time(void) {
 
 	return timens;
+}
+
+/* task entry point */
+static void task_test(void) {
+
+	int counter = 0;
+	while (1) {
+
+		if (counter++ >= 33554432) asm volatile("hlt");
+	}
+}
+
+extern void task_entry(void) {
+
+	task_unlockcli();
+
+	/* map user stack */
+	for (uint32_t i = TASK_STACK_START; i < TASK_STACK_END; i++)
+		page_map_flags(i, page_frame_alloc(), PAGE_FLAG_US);
+
+	void *stack = TASK_STACK_ADDR;
+	memset(stack, 0, TASK_STACK_SIZE);
+	stack += TASK_STACK_SIZE;
+
+	gdt_tss.esp0 = (uint32_t)task_active->esp0;
+
+	/* go to user mode */
+	asm volatile(
+		"cli\n"
+		"mov %0, %%esp\n"
+		"mov $35, %%ax\n"
+		"mov %%ax, %%ds\n"
+		"mov %%ax, %%es\n"
+		"mov %%ax, %%fs\n"
+		"mov %%ax, %%gs\n"
+		"mov %%esp, %%eax\n"
+		"sti\n"
+		"push $35\n" /* data segment */
+		"push %%eax\n" /* stack pointer */
+		"pushf\n" /* eflags */
+		"push $27\n" /* code segment */
+		"push $task_test\n"
+		"iret\n"
+		: : "r"(stack));
 }

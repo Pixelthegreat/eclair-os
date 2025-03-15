@@ -135,8 +135,14 @@ extern page_id_t page_dir_find_entry(void) {
 /* map page table */
 extern void page_map_table(page_id_t p, page_frame_id_t f) {
 
-	if (page_dir_wrap) page_dir_wrap[p] = PAGE_ENT(f) | PAGE_FLAG_P | PAGE_FLAG_RW;
-	else page_dir[p] = PAGE_ENT(f) | PAGE_FLAG_P | PAGE_FLAG_RW;
+	page_map_table_flags(p, f, 0);
+}
+
+/* map page table with flags */
+extern void page_map_table_flags(page_id_t p, page_frame_id_t f, uint32_t flags) {
+
+	if (page_dir_wrap) page_dir_wrap[p] = PAGE_ENT(f) | PAGE_FLAG_P | PAGE_FLAG_RW | flags;
+	else page_dir[p] = PAGE_ENT(f) | PAGE_FLAG_P | PAGE_FLAG_RW | flags;
 	
 	/* invalidate entry in tlb to allow for editing of the table */
 	page_invalidate(page_table_id + p);
@@ -153,17 +159,23 @@ extern void page_map_table(page_id_t p, page_frame_id_t f) {
 /* map page to frame */
 extern void page_map(page_id_t p, page_frame_id_t f) {
 
+	page_map_flags(p, f, 0);
+}
+
+/* map page with flags */
+extern void page_map_flags(page_id_t p, page_frame_id_t f, uint32_t flags) {
+
 	page_id_t pt = p/1024;
 
 	/* map table if necessary */
 	if (!page_dir_wrap[pt]) {
 		
 		page_frame_id_t fr = page_frame_alloc();
-		page_map_table(pt, fr);
+		page_map_table_flags(pt, fr, flags);
 	}
 
 	/* map page */
-	page_table[p] = PAGE_ENT(f) | PAGE_FLAG_P | PAGE_FLAG_RW;
+	page_table[p] = PAGE_ENT(f) | PAGE_FLAG_P | PAGE_FLAG_RW | flags;
 	page_invalidate(p);
 }
 

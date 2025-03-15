@@ -32,6 +32,6 @@ extern mbr_t *mbr_get_table(device_t *dev); /* get mbr table from device */
 extern void mbr_print(mbr_t *mbr); /* print info from mbr */
 extern fs_node_t *mbr_fs_mount(fs_node_t *node, device_t *dev, mbr_ent_t *ent); /* try to mount mbr partition */
 extern fs_node_t *mbr_fs_probe(device_t *dev, mbr_t *mbr); /* probe mbr for file systems */
-extern fs_node_t *mbr_fs_mount_root(void); /* search for root filesystem */
+extern void mbr_fs_mount_root(void); /* search for root filesystem */
 
 #endif /* ECLAIR_FS_MBR_H */

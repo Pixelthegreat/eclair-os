@@ -1,3 +1,4 @@
+; TODO: change page flags from 0x007 to 0x003 to disable user mode access ;
 %define ADDR_START 0xC0000000
 %define WIDTH 640
 %define HEIGHT 480
@@ -111,7 +112,7 @@ _start:
 	
 	; map addresses as rw for now ;
 	mov edx, esi
-	or edx, 0x003
+	or edx, 0x007
 	mov [edi], edx
 
 .f2:
@@ -122,13 +123,13 @@ _start:
 
 .f3:
 	; map vga video memory ;
-	mov dword[boot_page_table1 - ADDR_START + 1023 * 4], 0x000B8003
+	mov dword[boot_page_table1 - ADDR_START + 1023 * 4], 0x000B8007
 
 	; map in directory ;
-	mov dword[boot_page_dir - ADDR_START], boot_page_table1 - ADDR_START + 0x003
-	mov dword[boot_page_dir - ADDR_START + 4], boot_page_table2 - ADDR_START + 0x1000 + 0x003
-	mov dword[boot_page_dir - ADDR_START + 768 * 4], boot_page_table1 - ADDR_START + 0x003
-	mov dword[boot_page_dir - ADDR_START + 769 * 4], boot_page_table2 - ADDR_START + 0x1000 + 0x003
+	mov dword[boot_page_dir - ADDR_START], boot_page_table1 - ADDR_START + 0x007
+	mov dword[boot_page_dir - ADDR_START + 4], boot_page_table2 - ADDR_START + 0x1000 + 0x007
+	mov dword[boot_page_dir - ADDR_START + 768 * 4], boot_page_table1 - ADDR_START + 0x007
+	mov dword[boot_page_dir - ADDR_START + 769 * 4], boot_page_table2 - ADDR_START + 0x1000 + 0x007
 	
 	; update page directory pointer ;
 	mov ecx, boot_page_dir - ADDR_START

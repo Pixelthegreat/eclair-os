@@ -6,6 +6,8 @@
 	
 	[extern page_dir_wrap]
 	
+	[extern gdt_tss]
+	
 	struc task
 		.esp0: resd 1
 		.esp: resd 1
@@ -14,6 +16,12 @@
 		.prev: resd 1
 		.next: resd 1
 		.state: resd 1
+	endstruc
+	
+	struc tss
+		.prev: resd 1
+		.esp0: resd 1
+		.ss0: resd 1
 	endstruc
 
 section .text
@@ -33,6 +41,9 @@ task_switch:
 	
 	mov esi,[esp+(4+1)*4]
 	mov [task_active], esi
+	
+	mov eax, [esi+task.esp0]
+	mov [gdt_tss+tss.esp0], eax
 	
 	mov esp, [esi+task.esp]
 	

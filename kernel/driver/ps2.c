@@ -250,7 +250,7 @@ extern void ps2_init(void) {
 	if (p2_pres && ps2_reset_device(1) < 0) {
 
 		kprintf(LOG_WARNING, "[ps/2 8042] failed to reset device on port 2");
-		return;
+		p2_pres = 0;
 	}
 
 	/* detect device types */
@@ -445,6 +445,7 @@ static void ps2_irqnone(idt_regs_t *regs, int d) {
 extern void ps2_irq1(idt_regs_t *regs) {
 
 	if (dev_p0_type == DEV_KEYBOARD) ps2_irqkbd(regs, 0);
+	else if (dev_p0_type == DEV_MOUSE) ps2_irqmouse(regs, 0);
 	else ps2_irqnone(regs, 0);
 }
 
@@ -452,5 +453,6 @@ extern void ps2_irq1(idt_regs_t *regs) {
 extern void ps2_irq12(idt_regs_t *regs) {
 
 	if (dev_p1_type == DEV_KEYBOARD) ps2_irqkbd(regs, 1);
+	else if (dev_p1_type == DEV_MOUSE) ps2_irqmouse(regs, 1);
 	else ps2_irqnone(regs, 1);
 }
