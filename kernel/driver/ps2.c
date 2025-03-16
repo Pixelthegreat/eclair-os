@@ -2,6 +2,7 @@
 #include <kernel/string.h>
 #include <kernel/panic.h>
 #include <kernel/io/port.h>
+#include <kernel/vfs/devfs.h>
 #include <kernel/driver/device.h>
 #include <kernel/driver/ps2.h>
 
@@ -28,6 +29,7 @@ static bool wait_int = true; /* ignore interrupts */
 static device_t *dev_p0 = NULL, *dev_p1 = NULL; /* devices */
 static bool rel = false; /* key was released */
 static bool other = false; /* key was pressed */
+static fs_node_t *node_p0 = NULL, *node_p1 = NULL; /* fs nodes */
 
 static int dev_p0_type, dev_p1_type; /* device types */
 
@@ -292,6 +294,21 @@ extern void ps2_init(void) {
 
 	/* disable ignoring of interrupts */
 	wait_int = false;
+}
+
+/* add devices */
+extern void ps2_init_devfs(void) {
+
+	if (dev_p0_type) {
+
+		node_p0 = fs_node_new(NULL, FS_CHARDEVICE);
+		devfs_add_node(dev_p0_type == DEV_KEYBOARD? "kbd": "mus", node_p0);
+	}
+	if (dev_p1_type) {
+
+		node_p1 = fs_node_new(NULL, FS_CHARDEVICE);
+		devfs_add_node(dev_p1_type == DEV_KEYBOARD? "kbd": "mus", node_p1);
+	}
 }
 
 /* wait for read */

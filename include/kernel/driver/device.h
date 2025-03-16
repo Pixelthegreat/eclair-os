@@ -38,6 +38,7 @@ typedef struct device {
 	char name[DEVICE_NAME_CHARS]; /* device type name */
 	char desc[DEVICE_DESC_MAX_CHARS]; /* device description */
 	uint32_t impl; /* implementation specific value */
+	bool held; /* indicate if a resource is busy */
 } device_t;
 
 /* character device */

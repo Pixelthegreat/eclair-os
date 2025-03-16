@@ -3,6 +3,7 @@
 #include <kernel/string.h>
 #include <kernel/io/port.h>
 #include <kernel/vfs/fs.h>
+#include <kernel/vfs/devfs.h>
 #include <kernel/driver/uart.h>
 #include <kernel/tty.h>
 
@@ -12,8 +13,26 @@ static int nttydev = 0;
 
 static const char *hex = "0123456789abcdef";
 
+/* write vfs node */
+static kssize_t write_fs(fs_node_t *node, uint32_t offset, size_t nbytes, uint8_t *buf) {
+
+	tty_write((void *)buf, nbytes);
+	return (kssize_t)nbytes;
+}
+
 /* initialize */
 extern void tty_init(void) {
+}
+
+/* initialize vfs nodes */
+extern void tty_init_devfs(void) {
+
+	fs_node_t *node = fs_node_new(NULL, FS_CHARDEVICE);
+	
+	if (nttydev) node->read = ttydev[0]->read;
+	node->write = write_fs;
+
+	devfs_add_node("tty", node);
 }
 
 /* add character device */

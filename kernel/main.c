@@ -7,11 +7,10 @@
 #include <kernel/mm/gdt.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/heap.h>
-#include <kernel/driver/fb.h>
 #include <kernel/driver/device.h>
 #include <kernel/vfs/fs.h>
+#include <kernel/vfs/devfs.h>
 #include <kernel/fs/mbr.h>
-#include <kernel/fs/ext2.h>
 #include <kernel/task.h>
 
 static task_t *task1;
@@ -38,6 +37,8 @@ extern void kernel_main() {
 	device_init();
 	ttydev = tty_get_device(0);
 	mbr_fs_mount_root();
+	devfs_init();
+	fs_node_print(fs_root);
 	task_init();
 
 	task1 = task_new(NULL, task_entry);

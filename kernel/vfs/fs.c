@@ -4,6 +4,9 @@
 #include <kernel/mm/heap.h>
 #include <kernel/vfs/fs.h>
 
+#define PATHBUFSZ 1024
+static char pathbuf[PATHBUFSZ];
+
 fs_node_t *fs_root; /* root node */
 
 /* initialize vfs */
@@ -50,6 +53,7 @@ extern fs_node_t *fs_node_new(fs_node_t *parent, uint32_t flags) {
 
 		node->parent = parent;
 	}
+	else node->mask = 0644;
 
 	return node;
 }
@@ -73,6 +77,8 @@ static int level = 0;
 extern void fs_node_print(fs_node_t *node) {
 
 	if (!node) return;
+
+	while (node->ptr) node = node->ptr;
 
 	/* print dirents */
 	fs_dirent_t *dent = node->first;
@@ -155,4 +161,79 @@ extern fs_node_t *fs_finddir(fs_node_t *node, const char *name) {
 		dent = dent->next;
 	}
 	return NULL;
+}
+
+/* check if resource is held/busy */
+extern bool fs_isheld(fs_node_t *node) {
+
+	if (!node) return false;
+
+	if (node->isheld) return node->isheld(node);
+	return node->held;
+}
+
+/* create a node as a child */
+extern fs_node_t *fs_create(fs_node_t *node, const char *name, uint32_t flags, uint32_t mask) {
+
+	if (!node || !(node->flags & FS_DIRECTORY) || !node->create) return NULL;
+
+	return node->create(node, name, flags, mask);
+}
+
+/* mount device node */
+extern fs_node_t *fs_mount(fs_node_t *node, fs_node_t *device) {
+
+	if (!node || !node->mount) return NULL;
+
+	return node->mount(node, device);
+}
+
+/* resolve a path to a node */
+extern fs_node_t *fs_resolve_full(const char *path, bool *create) {
+
+	fs_node_t *node = fs_root;
+	size_t pathlen = strlen(path);
+	size_t len = 0;
+	
+	while (path) {
+
+		while (node->ptr) node = node->ptr;
+
+		if (!node || !(node->flags & FS_DIRECTORY)) return NULL;
+
+		const char *end = strchr(path, '/');
+		size_t size = end? (size_t)(end - path): pathlen - len;
+
+		strncpy(pathbuf, path, MIN(size, PATHBUFSZ-1));
+
+		path = end? end+1: NULL;
+		len += size+1;
+		if (!size) continue;
+
+		/* search directory */
+		fs_node_t *next = fs_finddir(node, pathbuf);
+		if (!next) {
+
+			if (!path) {
+				
+				*create = true;
+				return node;
+			}
+			else return NULL;
+		}
+		node = next;
+	}
+
+	*create = false;
+	return node;
+}
+
+/* resolve a path to a node strictly */
+extern fs_node_t *fs_resolve(const char *path) {
+
+	bool create = false;
+	fs_node_t *node = NULL;
+	if (!(node = fs_resolve_full(path, &create)) || create)
+		return NULL;
+	return node;
 }

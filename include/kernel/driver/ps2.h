@@ -1,6 +1,7 @@
 #ifndef ECLAIR_DRIVER_PS2_H
 #define ECLAIR_DRIVER_PS2_H
 
+#include <kernel/types.h>
 #include <kernel/idt.h>
 
 /* ports for ps/2 8042 controller */
@@ -88,6 +89,7 @@
 
 /* functions */
 extern void ps2_init(void); /* initialize */
+extern void ps2_init_devfs(void); /* add devices */
 extern void ps2_wait_read(void); /* wait for read */
 extern void ps2_wait_write(void); /* wait for write */
 extern int ps2_reset_device(int d); /* reset device */

@@ -23,9 +23,12 @@ struct fs_node;
 /* file operations */
 typedef kssize_t (*fs_read_t)(struct fs_node *, uint32_t, size_t, uint8_t *);
 typedef kssize_t (*fs_write_t)(struct fs_node *, uint32_t, size_t, uint8_t *);
-typedef void (*fs_open_t)(struct fs_node *, uint32_t flags);
+typedef void (*fs_open_t)(struct fs_node *, uint32_t);
 typedef void (*fs_close_t)(struct fs_node *);
 typedef bool (*fs_filldir_t)(struct fs_node *);
+typedef bool (*fs_isheld_t)(struct fs_node *);
+typedef struct fs_node *(*fs_create_t)(struct fs_node *, const char *, uint32_t, uint32_t);
+typedef struct fs_node *(*fs_mount_t)(struct fs_node *, struct fs_node *);
 
 #define FS_NAMESZ 128
 
@@ -50,6 +53,7 @@ typedef struct fs_node {
 	uint32_t oflags; /* open flags */
 	int refcnt; /* reference count for open files */
 	void *odata; /* user data pointer for open files */
+	bool held; /* task is holding resource */
 	struct fs_node *parent; /* parent node */
 	struct fs_node *ptr; /* alias pointer for mountpoints and symlinks */
 	fs_dirent_t *first; /* first directory entry */
@@ -59,7 +63,9 @@ typedef struct fs_node {
 	fs_open_t open; /* open file */
 	fs_close_t close; /* close file */
 	fs_filldir_t filldir; /* fill directory node with entries */
-	bool held; /* task is holding resource */
+	fs_isheld_t isheld; /* check if file resource is held by a task */
+	fs_create_t create; /* create a node as a child */
+	fs_mount_t mount; /* mount device node */
 } fs_node_t;
 
 extern fs_node_t *fs_root; /* root node */
@@ -79,5 +85,11 @@ extern void fs_open(fs_node_t *node, uint32_t flags); /* open file */
 extern void fs_close(fs_node_t *node); /* close file */
 extern fs_dirent_t *fs_readdir(fs_node_t *node, uint32_t idx); /* read directory entry */
 extern fs_node_t *fs_finddir(fs_node_t *node, const char *name); /* find in directory */
+extern bool fs_isheld(fs_node_t *node); /* check if resource is held/busy */
+extern fs_node_t *fs_create(fs_node_t *node, const char *name, uint32_t flags, uint32_t mask); /* create a node as a child */
+extern fs_node_t *fs_mount(fs_node_t *node, fs_node_t *device); /* mount device node */
+
+extern fs_node_t *fs_resolve_full(const char *path, bool *create); /* resolve a path to a node */
+extern fs_node_t *fs_resolve(const char *path); /* resolve a path to a node strictly */
 
 #endif /* ECLAIR_VFS_FS_H */

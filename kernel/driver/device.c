@@ -58,6 +58,9 @@ extern device_t *device_new(device_type_t type, device_subtype_t subtype, const 
 	if (name) memcpy(dev->name, name, DEVICE_NAME_CHARS);
 	if (desc) strncpy(dev->desc, desc, DEVICE_DESC_MAX_CHARS);
 	else dev->desc[0] = 0;
+	dev->impl = 0;
+	dev->held = false;
+
 	devs[ndevs++] = dev;
 
 	return dev;

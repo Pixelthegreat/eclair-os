@@ -44,6 +44,7 @@ module = {
                             ('util/string.c', 'string.h'),
 
                             # virtual file system #
+                            ('vfs/devfs.c', 'vfs/devfs.h'),
                             ('vfs/fs.c', 'vfs/fs.h'),
 
                             # general #

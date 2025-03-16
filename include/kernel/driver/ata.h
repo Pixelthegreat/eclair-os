@@ -31,5 +31,6 @@
 
 /* functions */
 extern void ata_init(void); /* initialize */
+extern void ata_init_devfs(void); /* initialize vfs nodes */
 
 #endif /* ECLAIR_DRIVER_ATA_H */

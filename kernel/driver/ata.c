@@ -1,6 +1,7 @@
 #include <kernel/types.h>
 #include <kernel/mm/heap.h>
 #include <kernel/io/port.h>
+#include <kernel/vfs/devfs.h>
 #include <kernel/driver/device.h>
 #include <kernel/driver/ata.h>
 
@@ -52,6 +53,8 @@ static void ata_write_words(uint16_t port, uint16_t *buf, int cnt) {
 /* read lba */
 static void ata_read_lba(device_t *dev, uint32_t addr, size_t n, void *buf) {
 
+	dev->held = true;
+
 	int c = dev->impl / 2;
 	int d = dev->impl % 2;
 	uint16_t port = c? ATA_PORT_SECONDARY: ATA_PORT_PRIMARY;
@@ -68,14 +71,20 @@ static void ata_read_lba(device_t *dev, uint32_t addr, size_t n, void *buf) {
 	
 	/* send command */
 	port_outb(port + ATA_PORT_COMMAND, cmd);
-	if (ata_wait_flag(port, ATA_STATUS_BSY) < 0 || !(status & ATA_STATUS_DRQ))
+	if (ata_wait_flag(port, ATA_STATUS_BSY) < 0 || !(status & ATA_STATUS_DRQ)) {
+
+		dev->held = false;
 		return;
+	}
 
 	ata_read_words(port, buf, n * 256);
+	dev->held = false;
 }
 
 /* write lba */
 static void ata_write_lba(device_t *dev, uint32_t addr, size_t n, void *buf) {
+
+	dev->held = true;
 
 	int c = dev->impl / 2;
 	int d = dev->impl % 2;
@@ -93,10 +102,14 @@ static void ata_write_lba(device_t *dev, uint32_t addr, size_t n, void *buf) {
 
 	/* send command */
 	port_outb(port + ATA_PORT_COMMAND, cmd);
-	if (ata_wait_flag(port, ATA_STATUS_BSY) < 0 || !(status & ATA_STATUS_DRQ))
+	if (ata_wait_flag(port, ATA_STATUS_BSY) < 0 || !(status & ATA_STATUS_DRQ)) {
+
+		dev->held = false;
 		return;
+	}
 	
 	ata_write_words(port, buf, n * 256);
+	dev->held = false;
 }
 
 /* detect device */
@@ -128,6 +141,15 @@ static device_t *ata_detect_device(int c, int d) {
 	return dev;
 }
 
+/* add vfs node */
+static void ata_add_node(device_t *dev) {
+
+	fs_node_t *node = fs_node_new(NULL, FS_BLOCKDEVICE);
+	node->impl = dev->impl;
+
+	devfs_add_node("hd", node);
+}
+
 /* initialize */
 extern void ata_init(void) {
 
@@ -135,4 +157,13 @@ extern void ata_init(void) {
 	devs[1] = ata_detect_device(0, 1);
 	devs[2] = ata_detect_device(1, 0);
 	devs[3] = ata_detect_device(1, 1);
+}
+
+/* initialize vfs nodes; dummy devices for now */
+extern void ata_init_devfs(void) {
+
+	if (devs[0]) ata_add_node(devs[0]);
+	if (devs[1]) ata_add_node(devs[1]);
+	if (devs[2]) ata_add_node(devs[2]);
+	if (devs[3]) ata_add_node(devs[3]);
 }

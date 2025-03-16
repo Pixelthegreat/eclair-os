@@ -7,6 +7,7 @@
 
 /* functions */
 extern void tty_init(void); /* initialize */
+extern void tty_init_devfs(void); /* initialize vfs nodes */
 extern void tty_add_device(fs_node_t *devn); /* add character device */
 extern fs_node_t *tty_get_device(int i); /* get character device */
 extern void tty_write(void *buf, size_t n); /* write characters */

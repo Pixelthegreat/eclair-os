@@ -122,7 +122,7 @@ static void task_irq(idt_regs_t *regs) {
 
 		task_t *next = cur->next;
 
-		if (cur->res && !cur->res->held) {
+		if (cur->res && !fs_isheld(cur->res)) {
 
 			cur->res->held = true;
 			task_unblock(cur);
@@ -257,6 +257,8 @@ extern task_t *task_new(void *esp, void *seteip) {
 		task->sigh[i] = NULL;
 	task->stale = false;
 	task->sigdone = false;
+	for (uint32_t i = 0; i < TASK_MAXFILES; i++)
+		task->files[i] = NULL;
 
 	task_add_to_list(ready, task);
 	taskmap[id] = task;
@@ -451,7 +453,7 @@ extern void task_acquire(fs_node_t *node) {
 	task_active->res = node;
 
 	/* other task held */
-	if (node->held) {
+	if (fs_isheld(node)) {
 
 		task_unlockcli();
 		task_block(TASK_PAUSED);

@@ -4,6 +4,7 @@
 #include <kernel/string.h>
 #include <kernel/io/port.h>
 #include <kernel/vfs/fs.h>
+#include <kernel/vfs/devfs.h>
 #include <kernel/driver/device.h>
 #include <kernel/driver/uart.h>
 
@@ -74,11 +75,6 @@ extern void uart_init(uart_com_t bits, uint32_t rate) {
 			chardev->s_obuf = 0; chardev->e_obuf = 0;
 			chardev->flush = NULL;
 
-			/* create vfs char device */
-			nodes[i] = fs_node_new(NULL, FS_CHARDEVICE);
-			nodes[i]->write = write_fs;
-			nodes[i]->impl = (uint32_t)i;
-
 			/* write initial message */
 			uart_writes(i, "Initialized UART\n");
 		}
@@ -89,6 +85,21 @@ extern void uart_init(uart_com_t bits, uint32_t rate) {
 extern void uart_init_tty(void) {
 
 	if (first < UART_COM_COUNT) tty_add_device(nodes[first]);
+}
+
+/* initialize vfs nodes */
+extern void uart_init_devfs(void) {
+
+	for (uart_com_t i = 0; i < UART_COM_COUNT; i++) {
+		if (init & (1 << i)) {
+
+			nodes[i] = fs_node_new(NULL, FS_CHARDEVICE);
+			nodes[i]->write = write_fs;
+			nodes[i]->impl = (uint32_t)i;
+
+			devfs_add_node("uart", nodes[i]);
+		}
+	}
 }
 
 /* get initialized com ports */

@@ -42,6 +42,8 @@
 typedef void (*task_sig_t)();
 
 /* task control block */
+#define TASK_MAXFILES 32
+
 typedef struct task {
 	void *esp0; /* kernel stack top */
 	void *esp; /* current stack position */
@@ -59,6 +61,7 @@ typedef struct task {
 	task_sig_t sigh[TASK_NSIG]; /* signal handlers */
 	bool stale; /* a signal changed the task state */
 	bool sigdone; /* the signal is finished being handled */
+	fs_node_t *files[TASK_MAXFILES]; /* file table */
 } task_t;
 
 extern task_t *ktask; /* base kernel task */

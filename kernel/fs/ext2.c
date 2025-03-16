@@ -25,6 +25,7 @@ struct ext2_fs_info {
 	void *bub; /* block usage bitmap */
 	uint32_t curblock; /* current read block */
 	void *block; /* block data */
+	bool held; /* file system busy */
 };
 
 /* open file info */
@@ -313,6 +314,8 @@ static kssize_t ext2_read(fs_node_t *node, uint32_t offset, size_t nbytes, uint8
 	struct ext2_fs_info *info = (struct ext2_fs_info *)node->data;
 	struct ext2_file_info *file = (struct ext2_file_info *)node->odata;
 
+	info->held = true;
+
 	/* copy bytes */
 	size_t count;
 	for (count = 0; count < nbytes; count++) {
@@ -333,6 +336,8 @@ static kssize_t ext2_read(fs_node_t *node, uint32_t offset, size_t nbytes, uint8
 
 		buf[count] = ((uint8_t *)file->bdata)[pos % info->blocksize];
 	}
+
+	info->held = false;
 	return count;
 }
 
@@ -341,6 +346,8 @@ static kssize_t ext2_write(fs_node_t *node, uint32_t offset, size_t nbytes, uint
 
 	struct ext2_fs_info *info = (struct ext2_fs_info *)node->data;
 	struct ext2_file_info *file = (struct ext2_file_info *)node->odata;
+
+	info->held = true;
 
 	/* copy bytes */
 	size_t count = 0, pos = 0;
@@ -373,28 +380,40 @@ static kssize_t ext2_write(fs_node_t *node, uint32_t offset, size_t nbytes, uint
 		file->inode.losize = (uint32_t)node->len;
 		ext2_write_inode(info, node->inode, &file->inode);
 	}
+
+	info->held = false;
 	return count;
 }
 
 /* open file */
 static void ext2_open(fs_node_t *node, uint32_t flags) {
 
+	struct ext2_fs_info *info = (struct ext2_fs_info *)node->data;
+	info->held = true;
+
 	node->odata = kmalloc(sizeof(struct ext2_file_info));
-	
 	struct ext2_file_info *file = (struct ext2_file_info *)node->odata;
+
 	file->bblk = 0;
 	file->bidx = 0;
 	file->bdata = NULL;
 	file->bpdata = NULL;
 	ext2_read_inode((struct ext2_fs_info *)node->data, node->inode, &file->inode);
+
+	info->held = false;
 }
 
 /* close file */
 static void ext2_close(fs_node_t *node) {
 
+	struct ext2_fs_info *info = (struct ext2_fs_info *)node->data;
+	info->held = true;
+
 	struct ext2_file_info *file = (struct ext2_file_info *)node->odata;
 	if (file->bdata) kfree(file->bdata);
 	if (file->bpdata) kfree(file->bpdata);
+
+	info->held = false;
 }
 
 /* filldir */
@@ -403,6 +422,7 @@ static bool ext2_filldir(fs_node_t *node) {
 	if (!node || node->first) return false; /* directory has already been filled */
 
 	struct ext2_fs_info *info = node->data;
+	info->held = true;
 
 	/* read directory inode */
 	ext2_inode_t *dir_inode = (ext2_inode_t *)kmalloc(sizeof(ext2_inode_t));
@@ -448,7 +468,16 @@ static bool ext2_filldir(fs_node_t *node) {
 	kfree(dir_inode);
 	kfree(dirent_inode);
 	kfree(dirbuf);
+
+	info->held = false;
 	return true;
+}
+
+/* check if resource is busy */
+extern bool ext2_isheld(fs_node_t *node) {
+
+	struct ext2_fs_info *info = node->data;
+	return node->held || info->held || info->dev->held;
 }
 
 /* mount ext2 filesystem */
@@ -489,6 +518,7 @@ extern fs_node_t *ext2_mbr_mount(fs_node_t *mountp, device_t *dev, mbr_ent_t *pa
 	node->open = ext2_open;
 	node->close = ext2_close;
 	node->filldir = ext2_filldir;
+	node->isheld = ext2_isheld;
 	
 	mountp->ptr = node;
 	return node;

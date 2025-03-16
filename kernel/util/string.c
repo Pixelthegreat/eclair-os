@@ -56,7 +56,7 @@ extern int strncmp(const char *a, const char *b, size_t n) {
 extern char *strchr(const char *str, int ch) {
 
 	while (*str) {
-		if ((int)*str == ch)
+		if (*str == (char)ch)
 			return (char *)str;
 		str++;
 	}
