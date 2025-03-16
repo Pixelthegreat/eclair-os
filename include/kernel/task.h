@@ -41,6 +41,12 @@
 
 typedef void (*task_sig_t)();
 
+/* seek whences */
+#define TASK_SEEK_SET 0
+#define TASK_SEEK_CUR 1
+#define TASK_SEEK_END 2
+#define TASK_NWHENCE 3
+
 /* task control block */
 #define TASK_MAXFILES 32
 
@@ -61,7 +67,11 @@ typedef struct task {
 	task_sig_t sigh[TASK_NSIG]; /* signal handlers */
 	bool stale; /* a signal changed the task state */
 	bool sigdone; /* the signal is finished being handled */
-	fs_node_t *files[TASK_MAXFILES]; /* file table */
+	struct {
+		fs_node_t *file; /* vfs node */
+		uint32_t flags; /* flags passed from open */
+		long pos; /* position in file */
+	} files[TASK_MAXFILES]; /* file table */
 } task_t;
 
 extern task_t *ktask; /* base kernel task */
@@ -84,18 +94,29 @@ extern void task_lockpost(void); /* lock task switches */
 extern void task_unlockpost(void); /* unlock task switches */
 extern void task_block(uint32_t reason); /* block current task */
 extern void task_unblock(task_t *task); /* unblock task */
+
 extern void task_nano_sleep_until(uint64_t waketime); /* sleep in nanoseconds until */
 extern void task_nano_sleep(uint64_t ns); /* sleep in nanoseconds */
 extern void task_sleep(uint32_t s); /* sleep in seconds */
+
 extern void task_free(void); /* free pages used by current task */
 extern void task_terminate(void); /* terminate current task */
 extern void task_cleanup(void); /* clean up terminated tasks */
 extern void task_acquire(fs_node_t *node); /* acquire resource */
 extern void task_release(void); /* release held resource */
+
 extern uint64_t task_get_global_time(void); /* get time for all tasks */
 extern void task_entry(void); /* task entry point */
+
 extern void task_raise(uint32_t sig); /* raise signal on current task */
 extern void task_signal(task_t *task, uint32_t sig); /* raise signal on other task */
 extern void task_handle_signal(void); /* routine to handle signal; do not call directly */
+
+extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask); /* open file */
+extern kssize_t task_fs_read(int fd, void *buf, size_t cnt); /* read from file */
+extern kssize_t task_fs_write(int fd, void *buf, size_t cnt); /* write to file */
+extern koff_t task_fs_seek(int fd, koff_t pos, int whence); /* seek to position */
+extern koff_t task_fs_tell(int fd); /* get file position */
+extern int task_fs_close(int fd); /* close file */
 
 #endif /* ECLAIR_TASK_H */

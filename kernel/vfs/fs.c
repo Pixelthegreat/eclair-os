@@ -189,11 +189,12 @@ extern fs_node_t *fs_mount(fs_node_t *node, fs_node_t *device) {
 }
 
 /* resolve a path to a node */
-extern fs_node_t *fs_resolve_full(const char *path, bool *create) {
+extern fs_node_t *fs_resolve_full(const char *path, bool *create, const char **fname) {
 
 	fs_node_t *node = fs_root;
 	size_t pathlen = strlen(path);
 	size_t len = 0;
+	const char *oldpath = path;
 	
 	while (path) {
 
@@ -206,6 +207,7 @@ extern fs_node_t *fs_resolve_full(const char *path, bool *create) {
 
 		strncpy(pathbuf, path, MIN(size, PATHBUFSZ-1));
 
+		oldpath = path;
 		path = end? end+1: NULL;
 		len += size+1;
 		if (!size) continue;
@@ -217,6 +219,7 @@ extern fs_node_t *fs_resolve_full(const char *path, bool *create) {
 			if (!path) {
 				
 				*create = true;
+				*fname = oldpath;
 				return node;
 			}
 			else return NULL;
@@ -225,6 +228,7 @@ extern fs_node_t *fs_resolve_full(const char *path, bool *create) {
 	}
 
 	*create = false;
+	*fname = NULL;
 	return node;
 }
 
@@ -232,8 +236,9 @@ extern fs_node_t *fs_resolve_full(const char *path, bool *create) {
 extern fs_node_t *fs_resolve(const char *path) {
 
 	bool create = false;
+	const char *fname = NULL;
 	fs_node_t *node = NULL;
-	if (!(node = fs_resolve_full(path, &create)) || create)
+	if (!(node = fs_resolve_full(path, &create, &fname)) || create)
 		return NULL;
 	return node;
 }

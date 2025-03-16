@@ -257,8 +257,11 @@ extern task_t *task_new(void *esp, void *seteip) {
 		task->sigh[i] = NULL;
 	task->stale = false;
 	task->sigdone = false;
-	for (uint32_t i = 0; i < TASK_MAXFILES; i++)
-		task->files[i] = NULL;
+	for (uint32_t i = 0; i < TASK_MAXFILES; i++) {
+		task->files[i].file = NULL;
+		task->files[i].flags = 0;
+		task->files[i].pos = 0;
+	}
 
 	task_add_to_list(ready, task);
 	taskmap[id] = task;
@@ -415,6 +418,13 @@ extern void task_free(void) {
 		if (f) page_frame_free(f);
 	}
 
+	/* close files */
+	for (int i = 0; i < TASK_MAXFILES; i++) {
+
+		if (task_active->files[i].file)
+			(void)task_fs_close(i);
+	}
+
 	task_unlockcli();
 }
 
@@ -566,4 +576,154 @@ extern void task_signal(task_t *task, uint32_t sig) {
 	task->sig = sig;
 
 	task_unlockcli();
+}
+
+/* open file */
+extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask) {
+
+	/* find usable file descriptor */
+	int fd = 0;
+	for (; fd < TASK_MAXFILES && task_active->files[fd].file; fd++);
+	if (fd >= TASK_MAXFILES) return -1; /* should be -EMFILE */
+
+	/* locate file */
+	task_lockcli();
+	
+	bool create;
+	const char *fname;
+	fs_node_t *node = fs_resolve_full(path, &create, &fname);
+
+	task_unlockcli();
+	if ((create && ~(flags & FS_CREATE)) || !node)
+		return -1; /* should be -ENOENT */
+
+	task_active->stale = false;
+	task_acquire(node);
+	if (task_active->stale) return -1; /* should be -EAGAIN */
+
+	/* create file */
+	if (create && (flags & FS_CREATE)) {
+
+		fs_node_t *next = fs_create(node, fname, FS_FILE, mask);
+		task_release();
+
+		if (!next) return -1; /* should be either -EACCES or -ENOTDIR */
+		node = next;
+
+		task_active->stale = false;
+		task_acquire(node);
+		if (task_active->stale) return -1; /* should be -EAGAIN */
+	}
+
+	/* determine compatible open flags */
+	uint32_t oflags = 0;
+	if (node->refcnt) {
+
+		bool invflags = false;
+		if (!FS_ISRW(node->oflags)) {
+
+			if ((oflags & FS_READ) != (node->oflags & FS_READ)) invflags = true;
+			if ((oflags & FS_WRITE) != (node->oflags & FS_WRITE)) invflags = true;
+		}
+		if ((oflags & FS_TRUNCATE) != (node->oflags & FS_TRUNCATE)) invflags = true;
+
+		if (invflags) {
+
+			task_release();
+			return -1; /* should be -EINVAL */
+		}
+		oflags = node->oflags;
+	}
+	else oflags = flags & 0xff; /* mask off FS_CREATE and related */
+
+	/* open file */
+	fs_open(node, oflags);
+
+	task_active->files[fd].file = node;
+	task_active->files[fd].flags = flags;
+	task_active->files[fd].pos = 0;
+
+	task_release();
+	return fd;
+}
+
+/* read from file */
+extern kssize_t task_fs_read(int fd, void *buf, size_t cnt) {
+
+	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
+		return -1; /* should be -EBADF */
+	fs_node_t *node = task_active->files[fd].file;
+
+	if (!(task_active->files[fd].flags & FS_READ))
+		return -1; /* should be -EBADF */
+
+	task_active->stale = false;
+	task_acquire(node);
+	if (task_active->stale) return -1; /* should be -EAGAIN */
+
+	kssize_t nread = fs_read(node, (uint32_t)task_active->files[fd].pos, cnt, (uint8_t *)buf);
+	task_release();
+
+	return nread;
+}
+
+/* write to file */
+extern kssize_t task_fs_write(int fd, void *buf, size_t cnt) {
+
+	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
+		return -1; /* should be -EBADF */
+	fs_node_t *node = task_active->files[fd].file;
+
+	if (!(task_active->files[fd].flags & FS_WRITE))
+		return -1; /* should be -EBADF */
+
+	task_active->stale = false;
+	task_acquire(node);
+	if (task_active->stale) return -1; /* should be -EAGAIN */
+
+	kssize_t nwrite = fs_write(node, (uint32_t)task_active->files[fd].pos, cnt, (uint8_t *)buf);
+	task_release();
+
+	return nwrite;
+}
+
+/* seek to position */
+extern koff_t task_fs_seek(int fd, koff_t pos, int whence) {
+
+	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
+		return -1; /* should be -EBADF */
+	if (whence < 0 || whence >= TASK_NWHENCE)
+		return -1; /* should be -EINVAL */
+
+	if (whence == TASK_SEEK_SET) task_active->files[fd].pos = pos;
+	else if (whence == TASK_SEEK_CUR) task_active->files[fd].pos += pos;
+	else if (whence == TASK_SEEK_END) task_active->files[fd].pos = task_active->files[fd].file->len - pos;
+
+	task_active->files[fd].pos = CLAMP(task_active->files[fd].pos, 0, task_active->files[fd].file->len);
+	return task_active->files[fd].pos;
+}
+
+/* get file position */
+extern koff_t task_fs_tell(int fd) {
+
+	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
+		return -1; /* should be -EBADF */
+	return task_active->files[fd].pos;
+}
+
+/* close file */
+extern int task_fs_close(int fd) {
+
+	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
+		return -1; /* should be -EBADF */
+	fs_node_t *node = task_active->files[fd].file;
+
+	task_active->stale = false;
+	task_acquire(node);
+	if (task_active->stale) return -1; /* should be -EAGAIN */
+
+	fs_close(node);
+	task_release();
+
+	return 0;
 }

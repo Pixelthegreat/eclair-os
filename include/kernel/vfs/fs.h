@@ -19,6 +19,9 @@ struct fs_node;
 #define FS_READ 0x1
 #define FS_WRITE 0x2
 #define FS_TRUNCATE 0x4
+#define FS_CREATE 0x100
+
+#define FS_ISRW(fl) (((fl) & FS_READ) && ((fl) & FS_WRITE))
 
 /* file operations */
 typedef kssize_t (*fs_read_t)(struct fs_node *, uint32_t, size_t, uint8_t *);
@@ -89,7 +92,7 @@ extern bool fs_isheld(fs_node_t *node); /* check if resource is held/busy */
 extern fs_node_t *fs_create(fs_node_t *node, const char *name, uint32_t flags, uint32_t mask); /* create a node as a child */
 extern fs_node_t *fs_mount(fs_node_t *node, fs_node_t *device); /* mount device node */
 
-extern fs_node_t *fs_resolve_full(const char *path, bool *create); /* resolve a path to a node */
+extern fs_node_t *fs_resolve_full(const char *path, bool *create, const char **fname); /* resolve a path to a node */
 extern fs_node_t *fs_resolve(const char *path); /* resolve a path to a node strictly */
 
 #endif /* ECLAIR_VFS_FS_H */
