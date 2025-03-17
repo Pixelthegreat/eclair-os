@@ -53,6 +53,7 @@ module = {
                             ('main.c'),
                             ('multiboot.c', 'multiboot.h'),
                             ('panic.c', 'panic.h'),
+                            ('syscall.c', 'syscall.h'),
                             ('task.c', 'task.h'),
                             ('tty.c', 'tty.h'),
                         ),

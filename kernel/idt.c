@@ -3,6 +3,7 @@
 #include <kernel/mm/gdt.h>
 #include <kernel/tty.h>
 #include <kernel/panic.h>
+#include <kernel/syscall.h>
 #include <kernel/idt.h>
 
 static idt_descriptor_t idt_desc;
@@ -99,6 +100,10 @@ extern void idt_init(void) {
 	idt_set_gate(46, irq14, IDT_GATE_TYPE_INT);
 	idt_set_gate(47, irq15, IDT_GATE_TYPE_INT);
 
+	/* setup syscall interrupt */
+	idt_set_gate(IDT_INT_SYSCALL, sysint, IDT_GATE_TYPE_INT);
+	isrs[IDT_INT_SYSCALL] = sys_handle;
+
 	/* load idt */
 	idt_desc.size = sizeof(idt) - 1;
 	idt_desc.addr = (uint32_t)&idt;
@@ -144,6 +149,12 @@ extern void idt_irq_handler(idt_regs_t *regs) {
 
 	port_outb(IDT_PIC0_CMD, IDT_PIC_CMD_EOI);
 	if (regs->n_int >= 40) port_outb(IDT_PIC1_CMD, IDT_PIC_CMD_EOI);
+}
+
+/* main int handler */
+extern void idt_int_handler(idt_regs_t *regs) {
+
+	if (isrs[regs->n_int] != NULL) isrs[regs->n_int](regs);
 }
 
 /* set isr callback */

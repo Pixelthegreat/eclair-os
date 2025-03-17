@@ -51,12 +51,15 @@ typedef void (*idt_isr_t)(idt_regs_t *regs); /* custom handler */
 #define IDT_ISR_GPFAULT 13
 #define IDT_ISR_PGFAULT 14
 
+#define IDT_INT_SYSCALL 0x80
+
 /* functions */
 extern void idt_init(void); /* initialize */
 extern void idt_enable(void); /* enable interrupts */
 extern void idt_set_gate(uint32_t n, void *p, uint8_t tp); /* set handler */
 extern void idt_isr_handler(idt_regs_t *regs); /* main isr handler */
 extern void idt_irq_handler(idt_regs_t *regs); /* main irq handler */
+extern void idt_int_handler(idt_regs_t *regs); /* main int handler */
 extern void idt_set_isr_callback(uint32_t n, idt_isr_t isr); /* set isr callback */
 extern void idt_set_irq_callback(uint32_t n, idt_isr_t isr); /* set irq callback */
 extern void idt_send_eoi(void); /* send eoi command to first pic */
@@ -121,5 +124,7 @@ extern void irq12();
 extern void irq13();
 extern void irq14();
 extern void irq15();
+
+extern void sysint();
 
 #endif /* ECLAIR_IDT_H */

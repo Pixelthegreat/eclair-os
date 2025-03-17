@@ -498,16 +498,7 @@ extern uint64_t task_get_global_time(void) {
 	return timens;
 }
 
-/* task entry point */
-static void task_test(void) {
-
-	int counter = 0;
-	while (counter++ < 33554432);
-
-	asm volatile("hlt");
-	while (1);
-}
-
+/* generic task entry point */
 extern void task_entry(void) {
 
 	task_unlockcli();
@@ -594,7 +585,7 @@ extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask) {
 	fs_node_t *node = fs_resolve_full(path, &create, &fname);
 
 	task_unlockcli();
-	if ((create && ~(flags & FS_CREATE)) || !node)
+	if ((create && !(flags & FS_CREATE)) || !node)
 		return -1; /* should be -ENOENT */
 
 	task_active->stale = false;
@@ -652,6 +643,7 @@ extern kssize_t task_fs_read(int fd, void *buf, size_t cnt) {
 
 	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
 		return -1; /* should be -EBADF */
+	if (!buf) return -1; /* should be -EINVAL */
 	fs_node_t *node = task_active->files[fd].file;
 
 	if (!(task_active->files[fd].flags & FS_READ))
@@ -672,6 +664,7 @@ extern kssize_t task_fs_write(int fd, void *buf, size_t cnt) {
 
 	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
 		return -1; /* should be -EBADF */
+	if (!buf) return -1; /* should be -EINVAL */
 	fs_node_t *node = task_active->files[fd].file;
 
 	if (!(task_active->files[fd].flags & FS_WRITE))
@@ -725,5 +718,6 @@ extern int task_fs_close(int fd) {
 	fs_close(node);
 	task_release();
 
+	task_active->files[fd].file = NULL;
 	return 0;
 }

@@ -1,3 +1,4 @@
+%define SYSINT 0x80
 	; be prepared ;
 	global isr0
 	global isr1
@@ -49,9 +50,12 @@
 	global irq14
 	global irq15
 	
+	global sysint
+	
 	; handlers ;
 	extern idt_isr_handler
 	extern idt_irq_handler
+	extern idt_int_handler
 
 isr0:
 	push byte 0
@@ -294,6 +298,11 @@ irq15:
 	push byte 47
 	jmp irq_common_stub
 
+sysint:
+	push byte 0
+	push SYSINT
+	jmp int_common_stub
+
 ; the moment you've been waiting for ;
 isr_common_stub:
 	pusha ; gp regs ;
@@ -337,6 +346,34 @@ irq_common_stub:
 	
 	push esp ; idt_regs_t ;
 	call idt_irq_handler
+	pop eax
+	
+	; restore regs ;
+	pop eax
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	popa
+	
+	add esp, 8 ; n_int and err_code ;
+	iret
+
+; for software interrupts ;
+int_common_stub:
+	pusha ; gp regs ;
+	mov ax, ds
+	push eax ; data segment selector ;
+	
+	; kernel data segment ;
+	mov ax, 0x10 ; sp_data ;
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	
+	push esp ; idt_regs_t ;
+	call idt_int_handler
 	pop eax
 	
 	; restore regs ;
