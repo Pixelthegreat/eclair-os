@@ -8,12 +8,12 @@ module = {
                     'objdir': 'build/bin-obj',
                     'depsdir': 'bin',
 
-                    'asmflags': '-f$(ASMARCH)',
+                    'cflags': '-ffreestanding -Iinclude',
                     'ldflags': '-T bin/linker.ld -ffreestanding -nostdlib -lgcc',
 
                     # files #
-                    'asm-files': (
-                            ('init.asm'),
+                    'c-files': (
+                            ('init.c'),
                         )
                 },
             )
