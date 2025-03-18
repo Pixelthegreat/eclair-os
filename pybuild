@@ -37,6 +37,62 @@ class ArgumentParser:
 
         return flags
 
+# target object #
+class TargetObject:
+    __slots__ = (
+            'name',
+            'flags',
+            'out',
+            'srcdir',
+            'objdir',
+            'depsdir',
+            'cflags',
+            'asmflags',
+            'ldflags',
+            'cfiles',
+            'asmfiles',
+            )
+
+    def __init__(self, module, target):
+        self.name = target.get('name', '')
+        self.flags = module.flags + target.get('flags', ())
+        self.out = target.get('out', '')
+        self.srcdir = target.get('srcdir', module.srcdir)
+        self.objdir = target.get('objdir', module.objdir)
+        self.depsdir = target.get('depsdir', module.depsdir)
+        self.cflags = module.cflags + target.get('cflags', '')
+        self.asmflags = module.asmflags + target.get('asmflags', '')
+        self.ldflags = module.ldflags + target.get('ldflags', '')
+        self.cfiles = target.get('c-files', ())
+        self.asmfiles = target.get('asm-files', ())
+
+# module object #
+class ModuleObject:
+    __slots__ = (
+            'name',
+            'targets',
+            'flags',
+            'srcdir',
+            'objdir',
+            'depsdir',
+            'cflags',
+            'asmflags',
+            'ldflags',
+            )
+
+    def __init__(self, module):
+        self.name = module.get('name', '')
+        self.targets = module.get('targets', ())
+        self.flags = module.get('flags', ())
+        self.srcdir = module.get('srcdir', '')
+        self.objdir = module.get('objdir', '')
+        self.depsdir = module.get('depsdir', '')
+        self.cflags = module.get('cflags', '')
+        self.asmflags = module.get('asmflags', '')
+        self.ldflags = module.get('ldflags', '')
+
+        self.targets = tuple(TargetObject(self, target) for target in self.targets)
+
 # makefile generator #
 class MakefileGenerator:
     def __init__(self, modules, flags=None):
@@ -61,19 +117,21 @@ class MakefileGenerator:
         makefile_fname = f'{mod["name"]}.mk'
         print(f'Generating {makefile_fname}...')
 
-        self.string = START_MAKEFILE if not self.dep else ''
+        self.string = START_MAKEFILE
+
+        modobj = ModuleObject(mod)
 
         # add constants #
-        for target in mod['targets']:
+        for target in modobj.targets:
             self.add_constants(target)
 
         # add target list #
-        self.string += '\nall:' if not self.dep else f'\nall_{target["name"]}:'
-        for target in mod['targets']:
-            self.string += ' ' + target['out']
+        self.string += '\nall:'
+        for target in modobj.targets:
+            self.string += ' ' + target.out
 
         # targets #
-        for target in mod['targets']:
+        for target in modobj.targets:
             self.add_target(target)
 
         # save file #
@@ -84,34 +142,25 @@ class MakefileGenerator:
 
     # add constants #
     def add_constants(self, target):
-        flags = target['flags'] if 'flags' in target else ()
-        nolink = 'NO_LINK' in flags
+        nolink = 'NO_LINK' in target.flags
 
-        name = target['name'].upper()
-        objdir = target['objdir'] if 'objdir' in target else ''
-
-        if not self.dep: self.string += '\n'
+        name = target.name.upper()
+        objdir = target.objdir
 
         # cflags #
-        self.string += f'{name}_CFLAGS=-c'
-        if 'cflags' in target:
-            self.string += ' ' + target['cflags']
+        self.string += f'\n{name}_CFLAGS=-c {target.cflags}'
 
         # asmflags #
-        self.string += f'\n{name}_ASMFLAGS='
-        if 'asmflags' in target:
-            self.string += target['asmflags']
+        self.string += f'\n{name}_ASMFLAGS={target.asmflags}'
 
         if not nolink:
             # ldflags #
-            self.string += f'\n{name}_LDFLAGS='
-            if 'ldflags' in target:
-                self.string += target['ldflags']
+            self.string += f'\n{name}_LDFLAGS={target.ldflags}'
 
             # objfiles #
             self.string += f'\n{name}_OBJFILES='
-            if 'c-files' in target: self.add_objfiles(objdir, target['c-files'])
-            if 'asm-files' in target: self.add_objfiles(objdir, target['asm-files'])
+            self.add_objfiles(objdir, target.cfiles)
+            self.add_objfiles(objdir, target.asmfiles)
             self.string += '\n'
 
     # add object files #
@@ -122,33 +171,31 @@ class MakefileGenerator:
 
     # add target #
     def add_target(self, target):
-        flags = target['flags'] if 'flags' in target else ()
-        nolink = 'NO_LINK' in flags
-        hostcc = 'HOST_CC' in flags
+        nolink = 'NO_LINK' in target.flags
+        hostcc = 'HOST_CC' in target.flags
 
-        name = target['name'].upper()
-        out = target['out']
+        name = target.name.upper()
+        out = target.out
 
         linker = 'HOST_CC' if hostcc else 'LD'
         if not nolink:
             self.string += f'\n\n{out}: $({name}_OBJFILES)\n\t$(DST_FILENAME)\n\t@$({linker}) -o {out} $({name}_OBJFILES) $({name}_LDFLAGS)'
 
         # add source rules #
-        if 'c-files' in target: self.add_source_rules(target, target['c-files'])
-        if 'asm-files' in target: self.add_source_rules(target, target['asm-files'], ext='asm')
+        self.add_source_rules(target, target.cfiles)
+        self.add_source_rules(target, target.asmfiles, ext='asm')
 
     # add source rules #
     def add_source_rules(self, target, files, ext='c'):
-        flags = target['flags'] if 'flags' in target else ()
-        nolink = 'NO_LINK' in flags
-        hostcc = 'HOST_CC' in flags
+        nolink = 'NO_LINK' in target.flags
+        hostcc = 'HOST_CC' in target.flags
 
         comp='ASM' if ext == 'asm' else 'HOST_CC' if hostcc else 'CC'
         flags='ASMFLAGS' if ext == 'asm' else 'CFLAGS'
-        name = target['name'].upper()
-        srcdir = target['srcdir']
-        objdir = target['objdir'] if 'objdir' in target else ''
-        depsdir = target['depsdir']
+        name = target.name.upper()
+        srcdir = target.srcdir
+        objdir = target.objdir
+        depsdir = target.depsdir
 
         for src in files:
             fname = src[0] if isinstance(src, tuple) else src
@@ -158,7 +205,7 @@ class MakefileGenerator:
             fname = os.path.join(srcdir, fname)
             objfile = os.path.join(objdir, objfile)
 
-            if nolink: objfile = target['out']
+            if nolink: objfile = target.out
 
             self.string += f'\n\n{objfile}: {fname}'
             if deps:

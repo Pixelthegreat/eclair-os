@@ -5,6 +5,7 @@ bootdisk.img
 __pycache__
 kernel.mk
 boot.mk
+bin.mk
 
 # vim #
 **.swp

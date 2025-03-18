@@ -19,6 +19,9 @@
 #define TASK_STACK_SIZE 0x8000
 #define TASK_STACK_ADDR ((void *)0x8000)
 
+#define TASK_PROG_START 0x800
+#define TASK_PROG_ADDR ((void *)0x800000)
+
 #define TASK_SIGH_START 7
 #define TASK_SIGH_END 8
 #define TASK_SIGH_ADDR ((void *)0x7000)
@@ -72,6 +75,12 @@ typedef struct task {
 		uint32_t flags; /* flags passed from open */
 		long pos; /* position in file */
 	} files[TASK_MAXFILES]; /* file table */
+	struct {
+		const char *path; /* path of executable */
+		int res; /* result of load process */
+	} load; /* info for executable loading */
+	uint32_t brkp; /* break point */
+	uint32_t entp; /* entry point */
 } task_t;
 
 extern task_t *ktask; /* base kernel task */

@@ -4,6 +4,7 @@
 #include <kernel/tty.h>
 #include <kernel/boot.h>
 #include <kernel/panic.h>
+#include <kernel/elf.h>
 #include <kernel/mm/gdt.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/heap.h>
@@ -12,15 +13,6 @@
 #include <kernel/vfs/devfs.h>
 #include <kernel/fs/mbr.h>
 #include <kernel/task.h>
-
-static task_t *task1;
-static task_t *task2;
-static task_t *task3;
-
-static fs_node_t *ttydev = NULL;
-
-static void func2();
-static void func3();
 
 extern void kernel_main() {
 
@@ -35,40 +27,15 @@ extern void kernel_main() {
 	fs_init();
 	tty_init();
 	device_init();
-	ttydev = tty_get_device(0);
 	mbr_fs_mount_root();
 	devfs_init();
-	fs_node_print(fs_root);
 	task_init();
-
-	task1 = task_new(NULL, task_entry);
-	task2 = task_new(NULL, func2);
-	task3 = task_new(NULL, func3);
+	elf_load_task("/bin/init");
 
 	while (true) {
 
 		task_cleanup();
 		device_update();
-		asm volatile("hlt");
-	}
-}
-
-static void func2() {
-
-	task_unlockcli();
-
-	while (true) {
-
-		asm volatile("hlt");
-	}
-}
-
-static void func3() {
-
-	task_unlockcli();
-
-	while (true) {
-
 		asm volatile("hlt");
 	}
 }

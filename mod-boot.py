@@ -10,7 +10,7 @@ module = {
 
                     'asmflags': '-fbin -Iboot',
                     'asm-files': (
-                            ('stage0.asm',),
+                            ('stage0.asm'),
                         )
                 },
                 {

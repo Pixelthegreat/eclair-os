@@ -75,6 +75,10 @@ extern void uart_init(uart_com_t bits, uint32_t rate) {
 			chardev->s_obuf = 0; chardev->e_obuf = 0;
 			chardev->flush = NULL;
 
+			nodes[i] = fs_node_new(NULL, FS_CHARDEVICE);
+			nodes[i]->write = write_fs;
+			nodes[i]->impl = (uint32_t)i;
+
 			/* write initial message */
 			uart_writes(i, "Initialized UART\n");
 		}
@@ -91,14 +95,8 @@ extern void uart_init_tty(void) {
 extern void uart_init_devfs(void) {
 
 	for (uart_com_t i = 0; i < UART_COM_COUNT; i++) {
-		if (init & (1 << i)) {
-
-			nodes[i] = fs_node_new(NULL, FS_CHARDEVICE);
-			nodes[i]->write = write_fs;
-			nodes[i]->impl = (uint32_t)i;
-
+		if (init & (1 << i))
 			devfs_add_node("uart", nodes[i]);
-		}
 	}
 }
 

@@ -49,6 +49,7 @@ module = {
 
                             # general #
                             ('boot.c', 'boot.h'),
+                            ('elf.c', 'elf.h'),
                             ('idt.c', 'idt.h'),
                             ('main.c'),
                             ('multiboot.c', 'multiboot.h'),

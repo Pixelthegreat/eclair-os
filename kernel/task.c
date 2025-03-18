@@ -262,6 +262,9 @@ extern task_t *task_new(void *esp, void *seteip) {
 		task->files[i].flags = 0;
 		task->files[i].pos = 0;
 	}
+	task->load.path = NULL;
+	task->load.res = 0;
+	task->brkp = (uint32_t)TASK_PROG_ADDR;
 
 	task_add_to_list(ready, task);
 	taskmap[id] = task;
@@ -412,7 +415,8 @@ extern void task_free(void) {
 
 	task_lockcli();
 
-	for (uint32_t i = 0; i < TASK_STACK_END; i++) {
+	uint32_t brkp = ALIGN(task_active->brkp, 4096) >> 12;
+	for (uint32_t i = 0; i < brkp; i++) {
 
 		page_frame_id_t f = page_get_frame(i);
 		if (f) page_frame_free(f);
@@ -514,7 +518,7 @@ extern void task_entry(void) {
 	gdt_tss.esp0 = (uint32_t)task_active->esp0;
 
 	/* copy task_handle_signal function to be able to run it in userspace */
-	for (uint32_t i = TASK_SIGH_START; i< TASK_SIGH_END; i++)
+	for (uint32_t i = TASK_SIGH_START; i < TASK_SIGH_END; i++)
 		page_map_flags(i, page_frame_alloc(), PAGE_FLAG_US);
 
 	memcpy(TASK_SIGH_ADDR, task_handle_signal, task_handle_signal_size);
@@ -534,9 +538,9 @@ extern void task_entry(void) {
 		"push %%eax\n" /* stack pointer */
 		"pushf\n" /* eflags */
 		"push $27\n" /* code segment */
-		"push $task_test\n"
+		"push %1\n" /* entry point address */
 		"iret\n"
-		: : "r"(stack));
+		: : "r"(stack), "r"(task_active->entp));
 }
 
 /* raise signal on current task */
@@ -580,8 +584,8 @@ extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask) {
 	/* locate file */
 	task_lockcli();
 	
-	bool create;
-	const char *fname;
+	bool create = false;
+	const char *fname = NULL;
 	fs_node_t *node = fs_resolve_full(path, &create, &fname);
 
 	task_unlockcli();

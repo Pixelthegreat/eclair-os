@@ -82,64 +82,9 @@ task_handle_signal:
 %define BUF_SIZE 32
 
 task_test:
-	mov eax, 2 ; open ;
-	mov ebx, fname ; path ;
-	mov ecx, 0x3 ; flags: FS_READ | FS_WRITE ;
-	mov edx, 0 ; mask ;
-	int 0x80
-	
-	cmp eax, INT_MAX
-	jg .end
-	
-	mov dword[ttyfd], eax
-	
-	; write message ;
-	mov eax, 4 ; write ;
-	mov ebx, dword[ttyfd]
-	mov ecx, msg
-	mov edx, msg_len
-	int 0x80
-	
-	cmp eax, INT_MAX
-	jg .end
-	
-	; read input ;
-	mov eax, 3 ; read ;
-	mov ebx, dword[ttyfd]
-	mov ecx, buf
-	mov edx, BUF_SIZE
-	int 0x80
-	
-	cmp eax, INT_MAX
-	jg .end
-	
-	mov edx, eax
-	dec edx
-	mov eax, 4 ; write ;
-	int 0x80
-	
-	cmp eax, INT_MAX
-	jg .end
-	
-	; close tty file ;
-	mov eax, 6 ; close ;
-	mov ebx, dword[ttyfd]
-	int 0x80
-	
-	cmp eax, INT_MAX
-	jg .end
-.end:
-	mov eax, 1 ; exit ;
-	int 0x80
-	
+.halt:
 	hlt
+	jmp .halt
 
 section .data
 	task_handle_signal_size dd task_handle_signal.end-task_handle_signal
-	fname db "/dev/tty0", 0
-	msg db "Hello world from user mode!", 10
-	msg_len equ $-msg
-
-section .bss
-	ttyfd resd 1
-	buf resb BUF_SIZE

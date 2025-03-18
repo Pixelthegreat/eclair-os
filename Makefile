@@ -1,11 +1,11 @@
 include common.mk
 
-.PHONY: kernel boot bootdisk setup clean install_boot run run_uart_stdout run_debug
+.PHONY: kernel boot bin bootdisk setup clean install_boot run run_uart_stdout run_debug
 
 QEMUARGS_ALL=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw $(QEMUARGS)
 
 # primary targets #
-all: kernel boot bootdisk
+all: kernel boot bin bootdisk
 
 # os kernel #
 kernel:
@@ -17,14 +17,19 @@ boot:
 	$(BUILD_TARGETNAME)
 	@make -s -f boot.mk all
 
+# application binaries #
+bin:
+	$(BUILD_TARGETNAME)
+	@make -s -f bin.mk all
+
 # bootdisk setup #
-bootdisk: kernel
+bootdisk: kernel bin
 	$(BUILD_TARGETNAME)
 	@./bootdisk.sh
 
 # setup routines #
 setup:
-	@mkdir -pv build/kernel build/boot
+	@mkdir -pv build/kernel build/boot build/bin-obj build/bin
 	@./pybuild
 
 clean:
