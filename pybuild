@@ -6,34 +6,86 @@ import os
 # constants #
 START_MAKEFILE = """include common.mk
 """
+USAGE_STRING = """Usage: {0} [options]
+
+Options:
+    -help                    Display this help message
+    -arg <argument[=value]>  Pass an argument to the modules; Examples (not actual valid arguments for most software):
+                               build-on-host, target-override=x86_64-linux-gnu"""
+
+# functions for use by modules #
+mod_args = [] # arguments specified by -arg #
+
+def get_args():
+    return mod_args
+
+def get_arg(name):
+    for arg in mod_args:
+        if type(arg) in (tuple, list) and len(arg) >= 2:
+            if arg[0] == name:
+                return arg[1]
+        elif arg == name:
+            return True
+    return None
+
+mod_imps = [] # module imports #
+
+# proxy exception #
+class PBError(Exception):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+def next_alt(it):
+    try:
+        return next(it)
+    except StopIteration:
+        raise PBError()
 
 # argument parser #
 class ArgumentParser:
     HELP = 0x1 # display help #
-    DEPENDENCY = 0x2 # generate a dependency makefile instead of a standalone #
+    ARG = 0x2 # module argument #
 
     def __init__(self, argv):
         self.argv = argv
 
     # print usage #
     def print_usage(self):
-        print(f'Usage: {self.argv[0]} [options]\n\noptions:\n\t-help\tPrint usage\n\t-dep\tGenerate dependency makefiles (include *.mk)')
+        print(USAGE_STRING.format(self.argv[0]))
 
     # parse arguments #
     def parse(self):
         flags = 0
 
-        for arg in self.argv:
-            if arg[0] == '-':
-                if arg == '-help':
-                    self.print_usage()
-                    flags |= ArgumentParser.HELP
-                elif arg == '-dep':
-                    flags |= ArgumentParser.DEPENDENCY
-                else:
-                    print(f'Unrecognized option: \'{arg}\'')
-                    self.print_usage()
-                    flags |= ArgumentParser.HELP
+        it = iter(self.argv[1:])
+        arg = None
+        try:
+            while True:
+                arg = next(it)
+
+                if arg[0] == '-':
+                    if arg == '-help':
+                        self.print_usage()
+                        flags |= ArgumentParser.HELP
+
+                    elif arg == '-arg':
+                        val = next_alt(it)
+                        if '=' in val:
+                            mod_args.append(val.split('='))
+                        else:
+                            mod_args.append(val)
+
+                    else:
+                        print(f'Unrecognized option: \'{arg}\'')
+                        self.print_usage()
+                        flags |= ArgumentParser.HELP
+
+        except StopIteration:
+            pass
+        except PBError:
+            print(f'Expected argument after \'{arg}\'')
+            self.print_usage()
+            flags |= ArgumentParser.HELP
 
         return flags
 
@@ -51,6 +103,9 @@ class TargetObject:
             'ldflags',
             'cfiles',
             'asmfiles',
+            'extrac',
+            'extraasm',
+            'extrald',
             )
 
     def __init__(self, module, target):
@@ -65,6 +120,9 @@ class TargetObject:
         self.ldflags = module.ldflags + target.get('ldflags', '')
         self.cfiles = target.get('c-files', ())
         self.asmfiles = target.get('asm-files', ())
+        self.extrac = module.extrac + target.get('extra-c', ())
+        self.extraasm = module.extraasm + target.get('extra-asm', ())
+        self.extrald = module.extrald + target.get('extra-ld', ())
 
 # module object #
 class ModuleObject:
@@ -78,6 +136,9 @@ class ModuleObject:
             'cflags',
             'asmflags',
             'ldflags',
+            'extrac',
+            'extraasm',
+            'extrald',
             )
 
     def __init__(self, module):
@@ -90,6 +151,9 @@ class ModuleObject:
         self.cflags = module.get('cflags', '')
         self.asmflags = module.get('asmflags', '')
         self.ldflags = module.get('ldflags', '')
+        self.extrac = module.get('extra-c', ())
+        self.extraasm = module.get('extra-asm', ())
+        self.extrald = module.get('extra-ld', ())
 
         self.targets = tuple(TargetObject(self, target) for target in self.targets)
 
@@ -100,12 +164,10 @@ class MakefileGenerator:
         self.string = None
         self.dep = False # generate dependency makefiles #
 
-        for name in modules:
-            self.modules.append(__import__(name).module)
-
-        # interpret flags #
-        if flags is not None:
-            self.dep = bool(flags & ArgumentParser.DEPENDENCY)
+        main = sys.modules[__name__]
+        for module in modules:
+            module.pybuild = main
+            self.modules.append(module.module())
 
     # generate all associated makefiles #
     def generate_all(self):
@@ -173,13 +235,24 @@ class MakefileGenerator:
     def add_target(self, target):
         nolink = 'NO_LINK' in target.flags
         hostcc = 'HOST_CC' in target.flags
+        buildar = 'BUILD_AR' in target.flags
 
         name = target.name.upper()
         out = target.out
 
-        linker = 'HOST_CC' if hostcc else 'LD'
         if not nolink:
-            self.string += f'\n\n{out}: $({name}_OBJFILES)\n\t$(DST_FILENAME)\n\t@$({linker}) -o {out} $({name}_OBJFILES) $({name}_LDFLAGS)'
+            self.string += f'\n\n{out}: $({name}_OBJFILES)\n\t$(DST_FILENAME)\n\t'
+
+            if not buildar:
+                linker = ('HOST_CC' if hostcc else 'LD')
+                self.string += f'@$({linker}) -o {out} $({name}_OBJFILES) $({name}_LDFLAGS)'
+
+            else:
+                archiver = ('HOST_AR' if hostcc else 'AR')
+                self.string += f'@$({archiver}) r {out} $({name}_OBJFILES)'
+
+            for cmd in target.extrald:
+                self.string += f'\n\t@{cmd}'
 
         # add source rules #
         self.add_source_rules(target, target.cfiles)
@@ -214,19 +287,28 @@ class MakefileGenerator:
 
             self.string += f'\n\t$(SRC_FILENAME)\n\t@$({comp}) $({name}_{flags}) -o {objfile} {fname}'
 
+            for cmd in (target.extraasm if ext == 'asm' else target.extrac):
+                self.string += f'\n\t@{cmd}'
+
 # main #
 def main():
     from modules import modules
+    for name in modules:
+        mod_imps.append(__import__(name))
 
     # parse arguments #
     argparse = ArgumentParser(sys.argv)
     flags = argparse.parse()
 
     if flags & ArgumentParser.HELP:
+        for mod in mod_imps:
+            if hasattr(mod, 'print_help'):
+                print()
+                mod.print_help()
         return
 
     # generate makefiles #
-    makegen = MakefileGenerator(modules, flags)
+    makegen = MakefileGenerator(mod_imps, flags)
     makegen.generate_all()
 
 if __name__ == '__main__':

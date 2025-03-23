@@ -1,4 +1,5 @@
-module = {
+def module():
+    return {
         'name': 'kernel',
         'targets': (
                 {
@@ -62,7 +63,7 @@ module = {
                             ('idta.asm', 'idt.h'),
                             ('multiboota.asm', 'multiboot.h'),
                             ('taska.asm', 'task.h'),
-                        )
+                        ),
                 },
             )
         }

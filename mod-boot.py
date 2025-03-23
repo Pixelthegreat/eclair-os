@@ -1,4 +1,5 @@
-module = {
+def module():
+    return {
         'name': 'boot',
         'targets': (
                 {
