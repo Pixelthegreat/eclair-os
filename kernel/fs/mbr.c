@@ -76,14 +76,11 @@ extern fs_node_t *mbr_fs_probe(device_t *dev, mbr_t *mbr) {
 /* search for root filesystem */
 extern void mbr_fs_mount_root(void) {
 
-	device_t *dev;
+	device_t *dev = devclass_storage.first;
 	int i = 0;
 	fs_node_t *node = NULL;
 	
-	while ((dev = device_get(i++)) && !node) {
-
-		if (dev->type != DEVICE_TYPE_STORAGE)
-			continue;
+	for (; dev && !node; dev = dev->clsnext) {
 
 		/* get partition info */
 		mbr_t *mbr = mbr_get_table(dev);

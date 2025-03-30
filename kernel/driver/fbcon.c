@@ -307,14 +307,14 @@ extern void fbcon_init_tty(void) {
 /* read */
 extern kssize_t fbcon_read(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint8_t *buf) {
 
-	device_t *kbd = device_find_name("kybd", 0);
+	device_t *kbd = devclass_keyboard.first;
 	if (!kbd) return -1;
 
 	/* read */
 	size_t nread = 0;
 	uint32_t key = 0;
 	bool shift = false;
-	while ((key = device_char_read(kbd, true)) != DEVICE_KEYCODE_RETURN) {
+	while ((key = device_keyboard_getkey_block(kbd)) != DEVICE_KEYCODE_RETURN) {
 
 		uint32_t keyrel = key & DEVICE_KEYCODE_RELEASE;
 		key &= DEVICE_KEYCODE_CODE;

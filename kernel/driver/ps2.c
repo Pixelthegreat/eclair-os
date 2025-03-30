@@ -14,18 +14,19 @@ enum  {
 	DEV_COUNT,
 };
 
-static const char *names[DEV_COUNT] = {
-	"none",
-	"kybd",
-	"mous",
+static device_t *(*creates[DEV_COUNT])(const char *) = {
+	device_terminal_new, /* used here as dummy device */
+	device_keyboard_new,
+	device_mouse_new,
 };
-static const char *descs[DEV_COUNT] = {
+static const char *names[DEV_COUNT] = {
 	"PS/2 Device",
 	"PS/2 Keyboard",
 	"PS/2 Mouse",
 };
 
 static bool wait_int = true; /* ignore interrupts */
+static device_t *bus = NULL; /* device bus */
 static device_t *dev_p0 = NULL, *dev_p1 = NULL; /* devices */
 static bool rel = false; /* key was released */
 static bool other = false; /* key was pressed */
@@ -278,17 +279,16 @@ extern void ps2_init(void) {
 	port_outb(PS2_PORT_DATA, fl);
 
 	/* create devices */
-	dev_p0 = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, names[dev_p0_type], descs[dev_p0_type], sizeof(device_char_t));
+	bus = device_bus_new("PS/2 8042+");
+
+	dev_p0 = creates[dev_p0_type](names[dev_p0_type]);
+	device_bus_add(bus, dev_p0);
 	kprintf(LOG_INFO, "[ps/2 8042] Detected first PS/2 device");
-
-	device_char_t *inpdev_p0 = (device_char_t *)dev_p0;
-
-	inpdev_p0->s_ibuf = 0;
-	inpdev_p0->e_ibuf = 0;
 
 	if (p2_pres) {
 		
-		dev_p1 = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_PS2, names[dev_p1_type], descs[dev_p1_type], sizeof(device_char_t));
+		dev_p1 = creates[dev_p1_type](names[dev_p1_type]);
+		device_bus_add(bus, dev_p1);
 		kprintf(LOG_INFO, "[ps/2 8042] Detected second PS/2 device");
 	}
 
@@ -427,11 +427,8 @@ static void ps2_irqkbd(idt_regs_t *regs, int d) {
 	if (wait_int) return;
 
 	/* add to input buffer */
-	device_char_t *inpdev = (device_char_t *)dev;
-	if (!inpdev) return;
-
-	inpdev->ibuf[inpdev->e_ibuf] = key;
-	inpdev->e_ibuf = (inpdev->e_ibuf + 1) % DEVICE_CHAR_BUFSZ;
+	if (!dev) return;
+	device_keyboard_putkey(dev, (int)key);
 }
 
 /* mouse irq function */

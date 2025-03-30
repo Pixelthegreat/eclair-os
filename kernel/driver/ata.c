@@ -7,6 +7,7 @@
 
 #define ATA_WAIT_MAX 4096
 
+static device_t *bus[2]; /* ata buses */
 static device_t *devs[4]; /* ata devices */
 static const char *dev_names[4] = {
 	"ATA Primary Master",
@@ -131,7 +132,7 @@ static device_t *ata_detect_device(int c, int d) {
 	
 	kfree(buf);
 
-	device_t *dev = device_new(DEVICE_TYPE_STORAGE, DEVICE_SUBTYPE_STORAGE_ATA, "disk", dev_names[c * 2 + d], sizeof(device_storage_t));
+	device_t *dev = device_storage_new(dev_names[c*2+d]);
 	device_storage_t *stdev = (device_storage_t *)dev;
 	
 	dev->impl = c * 2 + d; /* device index number */
@@ -157,6 +158,20 @@ extern void ata_init(void) {
 	devs[1] = ata_detect_device(0, 1);
 	devs[2] = ata_detect_device(1, 0);
 	devs[3] = ata_detect_device(1, 1);
+
+	/* create device buses */
+	if (devs[0] || devs[1]) {
+
+		bus[0] = device_bus_new("ATA Primary");
+		device_bus_add(bus[0], devs[0]);
+		device_bus_add(bus[0], devs[1]);
+	}
+	if (devs[2] || devs[3]) {
+
+		bus[1] = device_bus_new("ATA Secondary");
+		device_bus_add(bus[1], devs[2]);
+		device_bus_add(bus[1], devs[3]);
+	}
 }
 
 /* initialize vfs nodes; dummy devices for now */

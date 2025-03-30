@@ -1,8 +1,9 @@
 include common.mk
 
-.PHONY: kernel boot bin bootdisk setup clean install_boot run run_uart_stdout run_debug
+.PHONY: kernel boot bin bootdisk setup clean install_boot run run_uart_stdout run_debug help
 
 QEMUARGS_ALL=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw $(QEMUARGS)
+PYBUILDARGS_ALL=$(PYBUILDARGS)
 
 # primary targets #
 all: kernel boot bin bootdisk
@@ -30,7 +31,7 @@ bootdisk: kernel bin
 # setup routines #
 setup:
 	@mkdir -pv build/kernel build/boot build/bin-obj build/bin
-	@./pybuild
+	@./pybuild $(PYBUILDARGS_ALL)
 
 clean:
 	@rm -v build/kernel/* build/boot/* build/e.clair
@@ -50,3 +51,24 @@ run_uart_stdout:
 
 run_debug:
 	qemu-system-i386 $(QEMUARGS_ALL) -d int
+
+# help information #
+help:
+	@echo \
+	"Common commands:\n"\
+	"    help            - Display this message\n"\
+	"    (none)/all      - Build all OS components\n"\
+	"    setup           - Prepare for build\n"\
+	"    clean           - Remove built objects\n"\
+	"    run             - Run the OS in QEMU\n"\
+	"Other commands:\n"\
+	"    kernel          - Build kernel\n"\
+	"    boot            - Build bootloader\n"\
+	"    bin             - Build userspace\n"\
+	"    bootdisk        - Copy files to the bootdisk\n"\
+	"    install_boot    - Install the bootloader to the bootdisk\n"\
+	"    run_debug       - Run the OS in QEMU with debugging\n"\
+	"    run_uart_stdout - Run the OS in QEMU with the UART terminal promoted to /dev/stdout\n"\
+	"Common arguments:\n"\
+	"    PYBUILDARGS     - Pass arguments to ./pybuild (setup)\n"\
+	"    QEMUARGS        - Pass arguments to QEMU (run, run_debug, run_uart_stdout)"

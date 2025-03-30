@@ -15,10 +15,14 @@
 #include <kernel/driver/uart.h>
 #include <kernel/driver/device.h>
 
-#define MAX_DEVS 32
-static device_t *devs[MAX_DEVS]; /* device pointers */
-static int ndevs = 0; /* number of devices */
 static boot_cmdline_t *cmdline; /* command line info */
+
+/* device classes */
+devclass_t devclass_bus = DEVCLASS_INIT(sizeof(device_bus_t), "Buses");
+devclass_t devclass_storage = DEVCLASS_INIT(sizeof(device_storage_t), "Storage");
+devclass_t devclass_keyboard = DEVCLASS_INIT(sizeof(device_keyboard_t), "Keyboards");
+devclass_t devclass_mouse = DEVCLASS_INIT(sizeof(device_mouse_t), "Mice");
+devclass_t devclass_terminal = DEVCLASS_INIT(sizeof(device_t), "Terminals");
 
 /* initialize tty devices */
 static void init_tty(void) {
@@ -48,123 +52,109 @@ extern void device_update(void) {
 }
 
 /* create new device */
-extern device_t *device_new(device_type_t type, device_subtype_t subtype, const char name[DEVICE_NAME_CHARS], const char *desc, size_t sz) {
+extern device_t *device_new(devclass_t *cls, const char *desc) {
 
-	device_t *dev = (device_t *)kmalloc(sz);
+	device_t *dev = (device_t *)kmalloc(cls->size);
 
-	dev->id = ndevs;
-	dev->type = type;
-	dev->subtype = subtype;
-	if (name) memcpy(dev->name, name, DEVICE_NAME_CHARS);
+	dev->cls = cls;
 	if (desc) strncpy(dev->desc, desc, DEVICE_DESC_MAX_CHARS);
 	else dev->desc[0] = 0;
 	dev->impl = 0;
 	dev->held = false;
+	dev->clsnext = NULL;
+	dev->busnext = NULL;
 
-	devs[ndevs++] = dev;
+	if (!cls->first) cls->first = dev;
+	if (cls->last) cls->last->clsnext = dev;
+	cls->last = dev;
 
 	return dev;
+}
+
+/* print devices in class */
+extern void device_print_class(devclass_t *cls) {
+
+	kprintf(LOG_INFO, "[devices] %s:", cls->desc);
+
+	device_t *cur = cls->first;
+	while (cur) {
+
+		kprintf(LOG_INFO, "[devices]  - %s", cur->desc);
+		cur = cur->clsnext;
+	}
 }
 
 /* debug */
 extern void device_print_all(void) {
 
-	for (int i = 0; i < ndevs; i++)
-		kprintf(LOG_INFO, "Device: %d, Type: %d, Subtype: %d, Desc: %s", devs[i]->id, devs[i]->type, devs[i]->subtype, devs[i]->desc);
+	device_print_class(&devclass_bus);
+	device_print_class(&devclass_storage);
+	device_print_class(&devclass_keyboard);
+	device_print_class(&devclass_mouse);
+	device_print_class(&devclass_terminal);
 }
 
-/* get device by index */
-extern device_t *device_get(int i) {
+/* create bus device */
+extern device_t *device_bus_new(const char *desc) {
 
-	if (i < 0 || i >= ndevs) return NULL;
-	return devs[i];
+	device_t *dev = device_new(&devclass_bus, desc);
+	device_bus_t *busdev = (device_bus_t *)dev;
+
+	busdev->first = NULL;
+	busdev->last = NULL;
+
+	return dev;
 }
 
-/* find nth device of type and subtype */
-extern device_t *device_find(device_type_t type, device_subtype_t subtype, int n) {
+/* create storage device */
+extern device_t *device_storage_new(const char *desc) {
 
-	int f = 0; /* devices found */
-	for (int i = 0; i < ndevs; i++) {
+	device_t *dev = device_new(&devclass_storage, desc);
+	device_storage_t *stdev = (device_storage_t *)dev;
 
-		if (devs[i]->type == type && devs[i]->subtype == subtype) {
+	stdev->busy = false;
+	stdev->read = NULL;
+	stdev->write = NULL;
 
-			if (f < n) f++;
-			else return devs[i];
-		}
-	}
-	return NULL; /* none found */
+	return dev;
 }
 
-/* translate a bios device number */
-extern void device_translate_biosdev(uint32_t dev, device_subtype_t *subtp, int *n) {
+/* create keyboard device */
+extern device_t *device_keyboard_new(const char *desc) {
 
-	if (dev >= 0x80) {
-		*subtp = DEVICE_SUBTYPE_STORAGE_ATA;
-		*n = dev - 0x80;
-	}
-	else {
-		*subtp = DEVICE_SUBTYPE_NONE;
-		*n = 0;
-	}
+	device_t *dev = device_new(&devclass_keyboard, desc);
+	device_keyboard_t *kbdev = (device_keyboard_t *)dev;
+
+	kbdev->kstart = 0;
+	kbdev->kend = 0;
+
+	return dev;
 }
 
-/* search for root device */
-extern device_t *device_find_root(void) {
+/* create mouse device */
+extern device_t *device_mouse_new(const char *desc) {
 
-	return device_find(DEVICE_TYPE_STORAGE, DEVICE_SUBTYPE_STORAGE_ATA, 0);
+	device_t *dev = device_new(&devclass_mouse, desc);
+	device_mouse_t *msdev = (device_mouse_t *)dev;
+
+	for (int i = 0; i < DEVICE_BUTTONCODE_COUNT; i++)
+		msdev->state[i] = false;
+	msdev->evstart = 0;
+	msdev->evend = 0;
+
+	return dev;
 }
 
-/* find device by type name */
-extern device_t *device_find_name(const char name[DEVICE_NAME_CHARS], int n) {
+/* create terminal device (stub) */
+extern device_t *device_terminal_new(const char *desc) {
 
-	int f = 0;
-	for (int i = 0; i < ndevs; i++) {
-
-		if (!memcmp(devs[i]->name, name, DEVICE_NAME_CHARS)) {
-
-			if (f < n) f++;
-			else return devs[i];
-		}
-	}
-	return NULL;
-}
-
-/* read next int from device */
-extern uint32_t device_char_read(device_t *dev, bool block) {
-
-	device_char_t *inpdev = (device_char_t *)dev;
-
-	/* wait for values to become available */
-	if (inpdev->s_ibuf == inpdev->e_ibuf) {
-		if (block) {
-			while (inpdev->s_ibuf == inpdev->e_ibuf)
-				__asm__("hlt");
-		}
-		else return 0;
-	}
-
-	/* get value */
-	uint32_t val = inpdev->ibuf[inpdev->s_ibuf];
-	inpdev->s_ibuf = (inpdev->s_ibuf + 1) % DEVICE_CHAR_BUFSZ;
-	return val;
-}
-
-/* write next int to device */
-extern void device_char_write(device_t *dev, uint32_t val, bool flush) {
-
-	device_char_t *outpdev = (device_char_t *)dev;
-
-	outpdev->obuf[outpdev->e_obuf] = val;
-	outpdev->e_obuf = (outpdev->e_obuf + 1) % DEVICE_CHAR_BUFSZ;
-
-	/* flush ringbuffer */
-	if (flush) outpdev->flush(dev);
+	return device_new(&devclass_terminal, desc);
 }
 
 /* read n blocks from storage device */
 extern void device_storage_read(device_t *dev, uint32_t addr, size_t n, void *buf) {
 
-	if (dev->type != DEVICE_TYPE_STORAGE) return;
+	if (!dev || dev->cls != &devclass_storage) return;
 
 	device_storage_t *stdev = (device_storage_t *)dev;
 	if (stdev->read) stdev->read(dev, addr, n, buf);
@@ -173,8 +163,85 @@ extern void device_storage_read(device_t *dev, uint32_t addr, size_t n, void *bu
 /* write n blocks to storage device */
 extern void device_storage_write(device_t *dev, uint32_t addr, size_t n, void *buf) {
 
-	if (dev->type != DEVICE_TYPE_STORAGE) return;
+	if (!dev || dev->cls != &devclass_storage) return;
 
 	device_storage_t *stdev = (device_storage_t *)dev;
 	if (stdev->write) stdev->write(dev, addr, n, buf);
+}
+
+/* add device to bus */
+extern void device_bus_add(device_t *dev, device_t *child) {
+
+	if (!dev || !child || dev->cls != &devclass_bus) return;
+	device_bus_t *busdev = (device_bus_t *)dev;
+
+	if (!busdev->first) busdev->first = child;
+	if (busdev->last) busdev->last->busnext = child;
+	busdev->last = child;
+}
+
+/* write key to ringbuffer */
+extern void device_keyboard_putkey(device_t *dev, int key) {
+
+	if (!dev || dev->cls != &devclass_keyboard) return;
+	device_keyboard_t *kbdev = (device_keyboard_t *)dev;
+
+	int end = (kbdev->kend + 1) % DEVICE_KEYBOARD_MAX_KEYS;
+	if (end == kbdev->kstart) return;
+
+	kbdev->keys[kbdev->kend] = key;
+	kbdev->kend = end;
+}
+
+/* read key from ringbuffer */
+extern int device_keyboard_getkey(device_t *dev) {
+
+	if (!dev || dev->cls != &devclass_keyboard) return 0;
+	device_keyboard_t *kbdev = (device_keyboard_t *)dev;
+
+	if (kbdev->kstart == kbdev->kend) return 0;
+
+	int key = kbdev->keys[kbdev->kstart];
+	kbdev->kstart = (kbdev->kstart + 1) % DEVICE_KEYBOARD_MAX_KEYS;
+	return key;
+}
+
+/* wait and read key from ringbuffer */
+extern int device_keyboard_getkey_block(device_t *dev) {
+
+	if (!dev || dev->cls != &devclass_keyboard) return 0;
+	device_keyboard_t *kbdev = (device_keyboard_t *)dev;
+
+	while (kbdev->kstart == kbdev->kend)
+		asm volatile("hlt");
+
+	int key = kbdev->keys[kbdev->kstart];
+	kbdev->kstart = (kbdev->kstart + 1) % DEVICE_KEYBOARD_MAX_KEYS;
+	return key;
+}
+
+/* write event to ringbuffer */
+extern void device_mouse_putev(device_t *dev, device_mouse_event_t *ev) {
+
+	if (!dev || dev->cls != &devclass_mouse) return;
+	device_mouse_t *msdev = (device_mouse_t *)dev;
+
+	int end = (msdev->evend + 1) % DEVICE_MOUSE_MAX_EVENTS;
+	if (end == msdev->evstart) return;
+
+	memcpy(&msdev->ev[msdev->evend], ev, sizeof(device_mouse_event_t));
+	msdev->evend = end;
+}
+
+/* read event from ringbuffer */
+extern device_mouse_event_t *device_mouse_getev(device_t *dev) {
+
+	if (!dev || dev->cls != &devclass_mouse) return 0;
+	device_mouse_t *msdev = (device_mouse_t *)dev;
+
+	if (msdev->evstart == msdev->evend) return 0;
+
+	device_mouse_event_t *ev = &msdev->ev[msdev->evstart];
+	msdev->evstart = (msdev->evstart + 1) % DEVICE_KEYBOARD_MAX_KEYS;
+	return ev;
 }

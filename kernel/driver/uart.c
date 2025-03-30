@@ -20,6 +20,7 @@ static const char *names[UART_COM_COUNT] = {
 	"UART COM3",
 	"UART COM4",
 };
+static device_t *bus;
 static device_t *devs[UART_COM_COUNT];
 static fs_node_t *nodes[UART_COM_COUNT];
 
@@ -36,7 +37,9 @@ static kssize_t write_fs(fs_node_t *dev, uint32_t offset, size_t nbytes, uint8_t
 /* initialize uart */
 extern void uart_init(uart_com_t bits, uint32_t rate) {
 
-	if (init) return;
+	if (init || !bits) return;
+
+	bus = device_bus_new("UART");
 
 	for (uart_com_t i = 0; i < UART_COM_COUNT; i++) {
 
@@ -66,14 +69,9 @@ extern void uart_init(uart_com_t bits, uint32_t rate) {
 			if (first >= UART_COM_COUNT) first = i;
 
 			/* create driver device */
-			devs[i] = device_new(DEVICE_TYPE_CHAR, DEVICE_SUBTYPE_CHAR_UART, "uart", names[i], sizeof(device_char_t));
+			devs[i] = device_terminal_new(names[i]);
 			devs[i]->impl = (uint32_t)i;
-
-			device_char_t *chardev = (device_char_t *)devs[i];
-
-			chardev->s_ibuf = 0; chardev->e_ibuf = 0;
-			chardev->s_obuf = 0; chardev->e_obuf = 0;
-			chardev->flush = NULL;
+			device_bus_add(bus, devs[i]);
 
 			nodes[i] = fs_node_new(NULL, FS_CHARDEVICE);
 			nodes[i]->write = write_fs;
