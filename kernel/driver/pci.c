@@ -61,6 +61,28 @@ extern uint16_t pci_get_vendor(uint32_t bus, uint32_t dev, uint16_t *devid) {
 	return (uint16_t)(data & 0xffff);
 }
 
+/* read size of a BAR */
+extern uint32_t pci_read_bar_size(uint32_t bus, uint32_t dev, uint32_t func, uint32_t i) {
+
+	uint16_t cmd = pci_inw(PCI_ADDR(bus, dev, func, PCI_REG_COMMAND), 0);
+	uint16_t newcmd = cmd & ~(PCI_CMD_IO | PCI_CMD_MEM);
+
+	pci_outw(PCI_ADDR(bus, dev, func, PCI_REG_COMMAND), newcmd);
+
+	/* read bar size */
+	uint32_t reg = PCI_GENERIC_BAR0+i*4;
+	uint32_t orig = pci_ind(PCI_ADDR(bus, dev, func, reg));
+
+	pci_outd(PCI_ADDR(bus, dev, func, reg), 0xffffffff);
+	uint32_t res = pci_ind(PCI_ADDR(bus, dev, func, reg));
+
+	pci_outd(PCI_ADDR(bus, dev, func, reg), orig);
+
+	/* restore command and return */
+	pci_outw(PCI_ADDR(bus, dev, func, PCI_REG_COMMAND), cmd);
+	return res;
+}
+
 /* check pci device function */
 extern void pci_check_function(uint32_t bus, uint32_t dev, uint32_t func) {
 
@@ -82,6 +104,9 @@ extern void pci_check_device(uint32_t bus, uint32_t dev) {
 	pdev->present = true;
 	pdev->nbus = bus;
 	pdev->ndev = dev;
+	
+	pci_match_info_t minfo = {vendorid, devid};
+	pci_driver_t *driver = NULL;
 
 	uint8_t htype = pci_inb(PCI_ADDR(bus, dev, 0, PCI_REG_HTYPE), 0);
 	if (htype & PCI_HTYPE_MFUNC) {
@@ -90,6 +115,15 @@ extern void pci_check_device(uint32_t bus, uint32_t dev) {
 
 				pci_check_function(bus, dev, i);
 				pdev->func |= (1 << i);
+
+				/* attempt to match driver and initialize device */
+				minfo.cls = pci_inb(PCI_ADDR(bus, dev, i, PCI_REG_CLASS), 0);
+				minfo.subcls = pci_inb(PCI_ADDR(bus, dev, i, PCI_REG_SUBCLASS), 0);
+				minfo.progif = pci_inb(PCI_ADDR(bus, dev, i, PCI_REG_PROGIF), 0);
+
+				driver = pci_match_driver(&minfo);
+				if (driver && driver->init) pdev->devs[i] = driver->init(pdev, i, &minfo);
+				if (pdev->devs[i]) device_bus_add(buses[bus]->bus, pdev->devs[i]);
 			}
 		}
 	}
@@ -97,11 +131,16 @@ extern void pci_check_device(uint32_t bus, uint32_t dev) {
 
 		pci_check_function(bus, dev, 0);
 		pdev->func = 1;
-	}
 
-	/* match device and initialize driver */
-	pci_driver_t *driver = pci_match_driver(vendorid, devid);
-	if (driver && driver->init) pdev->device = driver->init(pdev);
+		/* match driver */
+		minfo.cls = pci_inb(PCI_ADDR(bus, dev, 0, PCI_REG_CLASS), 0);
+		minfo.subcls = pci_inb(PCI_ADDR(bus, dev, 0, PCI_REG_SUBCLASS), 0);
+		minfo.progif = pci_inb(PCI_ADDR(bus, dev, 0, PCI_REG_PROGIF), 0);
+
+		driver = pci_match_driver(&minfo);
+		if (driver && driver->init) pdev->devs[0] = driver->init(pdev, 0, &minfo);
+		if (pdev->devs[0]) device_bus_add(buses[bus]->bus, pdev->devs[0]);
+	}
 }
 
 /* check pci bus */
@@ -129,12 +168,12 @@ extern void pci_register_driver(pci_driver_t *driver) {
 }
 
 /* match device to driver */
-extern pci_driver_t *pci_match_driver(uint32_t vendor, uint32_t device) {
+extern pci_driver_t *pci_match_driver(pci_match_info_t *info) {
 
 	pci_driver_t *cur = dfirst;
 	while (cur) {
 
-		if (cur->match && cur->match(vendor, device))
+		if (cur->match && cur->match(info))
 			break;
 		cur = cur->next;
 	}

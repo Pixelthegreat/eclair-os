@@ -29,6 +29,7 @@ def module():
                             ('driver/ps2.c', 'driver/ps2.h'),
                             ('driver/rtc.c', 'driver/rtc.h'),
                             ('driver/uart.c', 'driver/uart.h'),
+                            ('driver/uhci.c', 'driver/uhci.h'),
                             ('driver/vgacon.c', 'driver/vgacon.h'),
 
                             # partition and file systems #

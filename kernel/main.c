@@ -31,6 +31,7 @@ extern void kernel_main() {
 	devfs_init();
 
 	device_print_all();
+
 	return;
 
 	task_init();

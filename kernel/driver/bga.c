@@ -7,8 +7,8 @@
 static pci_device_t *pdev = NULL;
 
 /* driver info */
-static bool bga_match(uint32_t vendor, uint32_t device);
-static device_t *bga_init(pci_device_t *pdev);
+static bool bga_match(pci_match_info_t *info);
+static device_t *bga_init(pci_device_t *_pdev, uint32_t func, pci_match_info_t *info);
 
 static pci_driver_t driver = {
 	.match = bga_match,
@@ -16,13 +16,14 @@ static pci_driver_t driver = {
 };
 
 /* match with pci device */
-static bool bga_match(uint32_t vendor, uint32_t device) {
+static bool bga_match(pci_match_info_t *info) {
 
-	return (vendor == BGA_VENDORID) && (device == BGA_DEVICEID);
+	return (info->vendor == BGA_VENDORID) &&\
+	       (info->device == BGA_DEVICEID);
 }
 
 /* create kernel device */
-static device_t *bga_init(pci_device_t *_pdev) {
+static device_t *bga_init(pci_device_t *_pdev, uint32_t func, pci_match_info_t *info) {
 
 	if (pdev) return NULL;
 	pdev = _pdev;

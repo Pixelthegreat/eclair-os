@@ -15,11 +15,13 @@ typedef struct heap_block {
 /* functions */
 extern void heap_init(void); /* initialize heap */
 extern heap_block_t *heap_find(heap_block_t *b, size_t sz); /* find a block */
+extern heap_block_t *heap_find_aligned(heap_block_t *b, size_t sz, size_t a); /* find an aligned block */
 extern void heap_split(heap_block_t *b, size_t sz); /* split block into two */
 extern heap_block_t *heap_merge(heap_block_t *b); /* merge chunk with front and back */
 extern void heap_print(void); /* debug */
 
 extern void *kmalloc(size_t sz); /* allocate sz bytes */
+extern void *kmalloca(size_t sz, size_t a); /* allocate sz bytes aligned to a bytes */
 extern void kfree(void *p); /* free pointer */
 
 #endif /* ECLAIR_HEAP_H */

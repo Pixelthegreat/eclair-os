@@ -2,7 +2,7 @@ include common.mk
 
 .PHONY: kernel boot bin bootdisk setup clean install_boot run run_uart_stdout run_debug help
 
-QEMUARGS_ALL=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw $(QEMUARGS)
+QEMUARGS_ALL=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw -usb -device piix3-usb-uhci,id=uhci $(QEMUARGS)
 PYBUILDARGS_ALL=$(PYBUILDARGS)
 
 # primary targets #

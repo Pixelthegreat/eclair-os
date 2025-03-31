@@ -30,7 +30,18 @@ extern void pit_delay(uint32_t div) {
 	pit_set_mode(PIT_COMMAND(PIT_CHANNEL0, PIT_ACCESS_HILO, PIT_MODE_INT));
 	pit_set_channel(PIT_CHANNEL0, (uint8_t)(div & 0xff));
 	pit_set_channel(PIT_CHANNEL0, (uint8_t)((div >> 8) & 0xff));
-	while (!called);
+	while (!called) asm volatile("hlt");
+}
+
+/* delay milliseconds */
+extern void pit_delay_ms(uint32_t ms) {
+
+	while (ms >= 10) {
+		
+		pit_delay(11930);
+		ms -= 10;
+	}
+	pit_delay(1193 * ms);
 }
 
 /* set operating mode */

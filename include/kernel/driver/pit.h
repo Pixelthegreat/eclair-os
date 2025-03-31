@@ -43,6 +43,7 @@ typedef void (*pit_callback_t)(idt_regs_t *); /* timer interrupt callback */
 /* functions */
 extern void pit_init(void); /* initialize pit */
 extern void pit_delay(uint32_t div); /* delay */
+extern void pit_delay_ms(uint32_t ms); /* delay milliseconds */
 extern void pit_set_mode(uint8_t mode); /* set operating mode */
 extern void pit_set_channel(uint8_t ch, uint8_t val); /* set value of channel */
 extern void pit_set_callback(pit_callback_t cb); /* set timer callback */

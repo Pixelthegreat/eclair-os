@@ -41,10 +41,59 @@ extern heap_block_t *heap_find(heap_block_t *b, size_t sz) {
 	l->next = (void *)(l + 1) + l->size;
 	l->next->size = 0;
 	l->next->avail = true;
-	l->next->page = (uint32_t)l->next / 4096;
+	l->next->page = (uint32_t)l->next >> 12;
 	l->next->prev = l;
 	l->next->next = NULL;
 	return l->next;
+}
+
+/* find an aligned block */
+extern heap_block_t *heap_find_aligned(heap_block_t *b, size_t sz, size_t a) {
+
+	heap_block_t *p = b;
+	heap_block_t *l = NULL;
+	while (p) {
+
+		/* usable */
+		if ((p->size >= sz || !p->next) && p->avail &&\
+		    !(((size_t)p + sizeof(heap_block_t)) & (a-1)))
+			return p;
+
+		l = p;
+		p = p->next;
+	}
+
+	size_t pl = (size_t)(l + 1);
+	pl = ALIGN(pl + l->size + sizeof(heap_block_t), a) - pl - sizeof(heap_block_t);
+
+	/* set next block */
+	l->next = (heap_block_t *)((void *)(l + 1) + pl);
+	l->next->size = 0;
+	l->next->avail = true;
+	l->next->page = (uint32_t)l->next >> 12;
+	l->next->prev = l;
+	l->next->next = NULL;
+
+	heap_block_t *bp = l->next;
+
+	/* insert block */
+	size_t nsz = pl - l->size;
+
+	if (l->avail) l->size = pl;
+	else if (nsz >= sizeof(heap_block_t)) {
+
+		heap_block_t *n = (heap_block_t *)((void *)(l + 1) + l->size);
+		n->size = nsz - sizeof(heap_block_t);
+		n->avail = true;
+		n->page = (uint32_t)n >> 12;
+		n->next = l->next;
+		n->prev = l;
+		l->next = n;
+
+		if (n->next) n->next->prev = n;
+	}
+
+	return bp;
 }
 
 /* split block */
@@ -56,7 +105,7 @@ extern void heap_split(heap_block_t *b, size_t sz) {
 	heap_block_t *n = (heap_block_t *)((void *)(b + 1) + sz);
 	n->size = b->size - sz - sizeof(heap_block_t);
 	n->avail = true;
-	n->page = (uint32_t)n / 4096;
+	n->page = (uint32_t)n >> 12;
 	n->next = b->next;
 	n->prev = b;
 
@@ -112,11 +161,39 @@ extern void heap_print(void) {
 /* allocate */
 extern void *kmalloc(size_t sz) {
 
-	/* quick and dirty alignment fix */
 	sz = ALIGN(sz, 4);
 
 	heap_block_t *b = heap_find(head, sz);
-	if (b == NULL) return NULL;
+	if (!b) return NULL;
+
+	/* map pages */
+	uint32_t boff = (uint32_t)b - b->page * 4096;
+	uint32_t pagel = (boff + sz + (sizeof(heap_block_t) * 2)) / 4096 + 1;
+	
+	for (uint32_t i = b->page; i < b->page + pagel; i++) {
+		if (!page_is_mapped(i))
+			page_map(i, page_frame_alloc());
+	}
+
+	/* set values */
+	b->avail = false;
+
+	/* split block if possible */
+	heap_split(b, sz);
+	b->size = sz;
+
+	/* return data pointer */
+	last = b;
+	return (void *)(b + 1);
+}
+
+/* allocate sz bytes aligned to a bytes */
+extern void *kmalloca(size_t sz, size_t a) {
+
+	sz = ALIGN(sz, 4);
+
+	heap_block_t *b = heap_find_aligned(head, sz, a);
+	if (!b) return NULL;
 
 	/* map pages */
 	uint32_t boff = (uint32_t)b - b->page * 4096;

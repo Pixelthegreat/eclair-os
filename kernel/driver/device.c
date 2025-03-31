@@ -15,6 +15,7 @@
 #include <kernel/driver/uart.h>
 #include <kernel/driver/bga.h>
 #include <kernel/driver/pci.h>
+#include <kernel/driver/uhci.h>
 #include <kernel/driver/device.h>
 
 static boot_cmdline_t *cmdline; /* command line info */
@@ -49,6 +50,7 @@ extern void device_init(void) {
 
 	/* register pci drivers and initialize pci */
 	bga_register();
+	uhci_register();
 	pci_init();
 }
 
