@@ -13,6 +13,8 @@
 #include <kernel/driver/fb.h>
 #include <kernel/driver/fbcon.h>
 #include <kernel/driver/uart.h>
+#include <kernel/driver/bga.h>
+#include <kernel/driver/pci.h>
 #include <kernel/driver/device.h>
 
 static boot_cmdline_t *cmdline; /* command line info */
@@ -23,6 +25,7 @@ devclass_t devclass_storage = DEVCLASS_INIT(sizeof(device_storage_t), "Storage")
 devclass_t devclass_keyboard = DEVCLASS_INIT(sizeof(device_keyboard_t), "Keyboards");
 devclass_t devclass_mouse = DEVCLASS_INIT(sizeof(device_mouse_t), "Mice");
 devclass_t devclass_terminal = DEVCLASS_INIT(sizeof(device_t), "Terminals");
+devclass_t devclass_video = DEVCLASS_INIT(sizeof(device_video_t), "Video Adapters");
 
 /* initialize tty devices */
 static void init_tty(void) {
@@ -43,6 +46,10 @@ extern void device_init(void) {
 	pit_init();
 	ps2_init();
 	ata_init();
+
+	/* register pci drivers and initialize pci */
+	bga_register();
+	pci_init();
 }
 
 /* update devices */
@@ -92,6 +99,7 @@ extern void device_print_all(void) {
 	device_print_class(&devclass_keyboard);
 	device_print_class(&devclass_mouse);
 	device_print_class(&devclass_terminal);
+	device_print_class(&devclass_video);
 }
 
 /* create bus device */
@@ -137,7 +145,7 @@ extern device_t *device_mouse_new(const char *desc) {
 	device_t *dev = device_new(&devclass_mouse, desc);
 	device_mouse_t *msdev = (device_mouse_t *)dev;
 
-	for (int i = 0; i < DEVICE_BUTTONCODE_COUNT; i++)
+	for (int i = 0; i < ECB_COUNT; i++)
 		msdev->state[i] = false;
 	msdev->evstart = 0;
 	msdev->evend = 0;
@@ -149,6 +157,12 @@ extern device_t *device_mouse_new(const char *desc) {
 extern device_t *device_terminal_new(const char *desc) {
 
 	return device_new(&devclass_terminal, desc);
+}
+
+/* create video device */
+extern device_t *device_video_new(const char *desc) {
+
+	return device_new(&devclass_video, desc);
 }
 
 /* read n blocks from storage device */

@@ -20,8 +20,8 @@ static bool escready = false; /* ready to interpret sequence */
 static const char *endstr = "mM"; /* escape code endings */
 
 /* translations */
-static const char ascii[DEVICE_KEYCODE_COUNT+1] = "?0123456789abcdefghijklmnopqrstuvwxyz`;\'()[]/\\,.=- ????????????????????????0123456789/*-+.?????????????";
-static const char ascii_shift[DEVICE_KEYCODE_COUNT+1] = "?)!@#$%^&*(ABCDEFGHIJKLMNOPQRSTUVWXYZ~:\"(){}?|<>+_ ????????????????????????0123456789/*-+.?????????????";
+static const char ascii[ECK_COUNT+1] = "?0123456789abcdefghijklmnopqrstuvwxyz`;\'()[]/\\,.=- ????????????????????????0123456789/*-+.?????????????";
+static const char ascii_shift[ECK_COUNT+1] = "?)!@#$%^&*(ABCDEFGHIJKLMNOPQRSTUVWXYZ~:\"(){}?|<>+_ ????????????????????????0123456789/*-+.?????????????";
 
 /* ega text colors */
 static const fb_color_t ega_colors[16] = {
@@ -314,15 +314,15 @@ extern kssize_t fbcon_read(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint
 	size_t nread = 0;
 	uint32_t key = 0;
 	bool shift = false;
-	while ((key = device_keyboard_getkey_block(kbd)) != DEVICE_KEYCODE_RETURN) {
+	while ((key = device_keyboard_getkey_block(kbd)) != ECK_RETURN) {
 
-		uint32_t keyrel = key & DEVICE_KEYCODE_RELEASE;
-		key &= DEVICE_KEYCODE_CODE;
+		uint32_t keyrel = key & ECK_RELEASE;
+		key &= ECK_CODE;
 
-		if (key >= DEVICE_KEYCODE_COUNT) continue;
+		if (key >= ECK_COUNT) continue;
 
 		/* enable/disable shift set */
-		else if (key == DEVICE_KEYCODE_LEFT_SHIFT || key == DEVICE_KEYCODE_RIGHT_SHIFT) {
+		else if (key == ECK_LEFT_SHIFT || key == ECK_RIGHT_SHIFT) {
 
 			if (keyrel) shift = false;
 			else shift = true;
@@ -333,7 +333,7 @@ extern kssize_t fbcon_read(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint
 		else if (keyrel) continue;
 
 		/* remove char */
-		else if (key == DEVICE_KEYCODE_BACKSPACE) {
+		else if (key == ECK_BACKSPACE) {
 
 			if (!nread) continue;
 

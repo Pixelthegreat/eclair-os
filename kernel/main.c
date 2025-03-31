@@ -29,6 +29,10 @@ extern void kernel_main() {
 	device_init();
 	mbr_fs_mount_root();
 	devfs_init();
+
+	device_print_all();
+	return;
+
 	task_init();
 	elf_load_task("/bin/init");
 

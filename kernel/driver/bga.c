@@ -1,0 +1,37 @@
+#include <kernel/types.h>
+#include <kernel/panic.h>
+#include <kernel/driver/device.h>
+#include <kernel/driver/pci.h>
+#include <kernel/driver/bga.h>
+
+static pci_device_t *pdev = NULL;
+
+/* driver info */
+static bool bga_match(uint32_t vendor, uint32_t device);
+static device_t *bga_init(pci_device_t *pdev);
+
+static pci_driver_t driver = {
+	.match = bga_match,
+	.init = bga_init,
+};
+
+/* match with pci device */
+static bool bga_match(uint32_t vendor, uint32_t device) {
+
+	return (vendor == BGA_VENDORID) && (device == BGA_DEVICEID);
+}
+
+/* create kernel device */
+static device_t *bga_init(pci_device_t *_pdev) {
+
+	if (pdev) return NULL;
+	pdev = _pdev;
+
+	return device_video_new("Bochs Graphics Adapter");
+}
+
+/* register pci driver */
+extern void bga_register(void) {
+
+	pci_register_driver(&driver);
+}
