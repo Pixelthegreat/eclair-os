@@ -6,6 +6,7 @@
 %define MBR_ENTRY_SIZE 16
 
 %define MBR_TYPE_LINUX 0x83
+%define MBR_TYPE_ECLAIR 0xec
 %define MBR_BOOTABLE 0x80
 
 ; main table ;
@@ -70,6 +71,8 @@ mbr_load_fs:
 	mov al, byte[si+mbr_entry.type]
 	cmp al, MBR_TYPE_LINUX
 	je .linux
+	cmp al, MBR_TYPE_ECLAIR
+	je .eclair
 .error:
 	mov si, mbr_fs_error_msg
 	call print_error
@@ -83,6 +86,17 @@ mbr_load_fs:
 	
 	mov eax, dword[si+mbr_entry.start_lba]
 	call ext2_init
+	jmp .done
+.eclair:
+	push si
+	mov si, mbr_eclair_msg
+	call print
+	pop si
+	
+	mov byte[mbr_part_fs], MBR_TYPE_ECLAIR
+	
+	mov eax, dword[si+mbr_entry.start_lba]
+	call ecfs_init
 .done:
 	popa
 	ret
@@ -93,5 +107,6 @@ mbr_part_fs db 0
 mbr_error_msg db "Failed to locate bootable partition!", 10, 0
 mbr_fs_error_msg db "Unrecognized file system on partition!", 10, 0
 mbr_linux_msg db "File system is Ext2/3/4...", 10, 0
+mbr_eclair_msg db "File system is EcFS...", 10, 0
 
 %endif ; MBR_ASM ;

@@ -9,6 +9,7 @@
 %include "memory.asm"
 %include "mbr.asm"
 %include "ext2.asm"
+%include "ecfs.asm"
 %include "config.asm"
 %include "vbe.asm"
 %include "menu.asm"

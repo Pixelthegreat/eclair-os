@@ -6,11 +6,11 @@ __pycache__
 kernel.mk
 boot.mk
 bin.mk
+tools.mk
 
 # vim #
 **.swp
 
 # personal files #
 notes
-tools
 old

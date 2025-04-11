@@ -18,9 +18,19 @@ I am considering Éclair OS to be in the first stage of development. This is the
 
 Although this order generally follows how these things should be implemented, they aren't necessarily the exact order that everything will be _completed_ in. Note as well that this list only includes things that are important to the primary goal of this stage, which as I mentioned was basic userspace support. However, I most certainly will work on various miscellaneous things inbetween. If you want to know where exactly the project is, you can take a look at the commit messages, which will give a general idea. I also (try to) update the screenshot every commit to reflect what changes were made.
 
-## build and run
-This project assumes that you are using a Unix-like environment (i.e. Linux, BSD, Mac OS) and you have a generic x86 ELF (i686-elf) gcc cross compiler installed. If you're system uses ELF format executables and is an 32-bit x86 machine, you may be able to use your system's gcc installation. However, it is not recommended. Nevertheless, if you have a cross compiler (or would like to use your system compiler anyway), edit the `TARGET` variable in `config.mk` with the associated target triple.
+## Build Requirements
+There are a few requirements for the build to work. Here they are:
 
-Before building, you must run the `genbootdisk.sh` script in order to generate the template bootdisk. You must also run `make setup` to create any necessary build files.
+ - A UNIX-like environment (Linux, BSD, etc)
+ - Python 3
+ - Make
+ - NASM (Netwide Assembler)
+ - Host GCC (GCC that runs on your system and compiles for your system, available with most package managers as just `gcc`)
+
+In addition to a host GCC suite for some of the host system tools, a cross-compilation suite is also required to build the OS itself. In the future, there will be a script probably named `scripts/toolchain.sh` that will automatically build and install this cross-compilation suite. However, in the mean time please refer to [this osdev wiki article](https://wiki.osdev.org/GCC_Cross-Compiler). As an extremely important note, the _target triple_ for Eclair OS is `i686-elf`.
+
+## Build and Run
+
+Before building, run `make setup_init` to do basic preparation tasks.
 
 To build the project, just run `make` as you normally would. Run `make run` to run the project in qemu.

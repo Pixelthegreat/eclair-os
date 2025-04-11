@@ -1,5 +1,6 @@
 #!/bin/sh
 # bootdisk generation script for eclair-os #
+bootdisk=bootdisk.img
 
 # exit in case of an error #
 exit_on_error() {
@@ -12,46 +13,37 @@ exit_on_error() {
 }
 
 echo Generating file...
-dd if=/dev/zero of=bootdisk.img count=1 bs=16M
+dd if=/dev/zero of="$bootdisk" count=1 bs=16M
 exit_on_error
 
-echo Generating partition table...
-sudo parted --script bootdisk.img mklabel msdos mkpart p ext2 1 16 set 1 boot on
-exit_on_error
-
-# map disk image #
-echo Mapping partitions...
-
-looppart=`sudo kpartx -l bootdisk.img | awk '{ print $1; exit }'`
-loopdev=`sudo kpartx -l bootdisk.img | awk '{ print $5; exit }'`
-sudo kpartx -a bootdisk.img
-exit_on_error
-sleep 1
-
-# setup fat32 fs #
-echo Generating fs...
-sudo mkfs.ext2 "/dev/mapper/$looppart"
+# setup file system and partition table #
+echo Generating partition table and fs...
+build/mkecfs "$bootdisk" -b 1024 -n 'eclair-os' -m 1024
 exit_on_error
 
 # mount partition #
 echo Mounting partition...
 mkdir -pv tmp
-sudo mount "/dev/mapper/$looppart" tmp
+build/mntecfs "$bootdisk" tmp -m
+exit_on_error
 
 # copy files #
 echo Copying system files...
-sudo mkdir -pv tmp/boot tmp/boot
-sudo cp -v boot/s3b/menu.cfg tmp/boot
+mkdir -pv tmp/boot tmp/boot
+cp -v boot/s3b/menu.cfg tmp/boot
 
 # unmount #
 echo Unmounting...
-sudo umount tmp
-
-# unmap #
-echo Unmapping...
-sudo kpartx -d bootdisk.img
+umount tmp
 
 # install bootloader #
+stat build/boot/stage0.bin 1>/dev/null 2>/dev/null
+if [ $? != 0 ]; then
+
+	echo Done.
+	exit 0
+fi
+
 echo Installing bootloader...
 cp build/boot/stage0.bin build/boot.bin
 dd if=build/boot/stage1.bin of=build/boot.bin bs=512 seek=1 conv=notrunc

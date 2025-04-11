@@ -11,7 +11,10 @@ USAGE_STRING = """Usage: {0} [options]
 Options:
     -help                    Display this help message
     -arg <argument[=value]>  Pass an argument to the modules; Examples (not actual valid arguments for most software):
-                               build-on-host, target-override=x86_64-linux-gnu"""
+                               build-on-host, target-override=x86_64-linux-gnu
+
+Builtin Arguments:
+    mk-outdir=<directory>    Set the output directory for the generated Makefiles"""
 
 # functions for use by modules #
 mod_args = [] # arguments specified by -arg #
@@ -176,7 +179,8 @@ class MakefileGenerator:
 
     # generate associated makefile #
     def generate(self, mod):
-        makefile_fname = f'{mod["name"]}.mk'
+        outdir = get_arg('mk-outdir') or '.'
+        makefile_fname = f'{outdir}/{mod["name"]}.mk'
         print(f'Generating {makefile_fname}...')
 
         self.string = START_MAKEFILE

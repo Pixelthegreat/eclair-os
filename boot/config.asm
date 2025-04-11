@@ -37,12 +37,21 @@ config_copy:
 	
 	popad
 	ret
+.ecfs:
+	pushad
+	
+	mov ax, word[ecfs_block_size]
+	call allocate
+	
+	mov di, si
+	mov si, word[ecfs_block_area]
+	call memcpy
+	
+	popad
+	ret
 
 ; load config file ;
 config_load:
-	cmp word[mbr_part_fs], MBR_TYPE_LINUX
-	je .ext2
-.ext2:
 	pusha
 	mov si, config_msg
 	call print
@@ -50,6 +59,13 @@ config_load:
 	mov bx, word[memory_breakp]
 	mov word[config_area], bx
 	
+	cmp byte[mbr_part_fs], MBR_TYPE_LINUX
+	je .ext2
+	cmp byte[mbr_part_fs], MBR_TYPE_ECLAIR
+	je .ecfs
+	
+	jmp .done
+.ext2:
 	mov si, boot_path
 	mov di, config_path
 	mov bx, config_copy.ext2
@@ -60,6 +76,18 @@ config_load:
 	add si, word[config_area]
 	mov byte[si], 0
 	
+	jmp .done
+.ecfs:
+	mov si, boot_path
+	mov di, config_path
+	mov bx, config_copy.ecfs
+	call ecfs_load_file
+	
+	mov si, word[ecfs_file_area]
+	mov si, word[si+ecfs_file_s.fsz]
+	add si, word[config_area]
+	mov byte[si], 0
+.done:
 	popa
 	ret
 
@@ -355,19 +383,51 @@ config_copy_kernel:
 	add di, word[ext2_block_size]
 	mov word[config_kernel_size], di
 	cmp di, 0
-	jne .end
+	jne .ext2_end
 	
 	add word[config_kernel_segment], 0x1000
-.end:
+.ext2_end:
+	popa
+	ret
+.ecfs:
+	pusha
+	
+	mov si, word[ecfs_block_area]
+	
+	push bx
+	mov bx, 0
+	mov es, bx
+	mov bx, word[config_kernel_segment]
+	mov gs, bx
+	pop bx
+	
+	mov di, word[config_kernel_size]
+	
+	push ax
+	mov ax, word[ecfs_block_size]
+	call memcpy
+	pop ax
+	
+	mov bx, 0
+	mov gs, bx
+	
+	add di, word[ecfs_block_size]
+	mov word[config_kernel_size], di
+	cmp di, 0
+	jne .ecfs_end
+	
+	add word[config_kernel_segment], 0x1000
+.ecfs_end:
 	popa
 	ret
 
 ; load kernel ;
 ; ax = index of entry ;
 config_load_kernel:
-	
-	cmp word[mbr_part_fs], MBR_TYPE_LINUX
+	cmp byte[mbr_part_fs], MBR_TYPE_LINUX
 	je .ext2
+	cmp byte[mbr_part_fs], MBR_TYPE_ECLAIR
+	je .ecfs
 .ext2:
 	pusha
 	mov word[config_kernel_segment], CONFIG_KERNEL_BASE
@@ -382,6 +442,25 @@ config_load_kernel:
 	add di, config_entry.kernel
 	mov bx, config_copy_kernel.ext2
 	call ext2_load_file
+	
+	call elf16_validate_kernel
+	
+	popa
+	ret
+.ecfs:
+	pusha
+	mov word[config_kernel_segment], CONFIG_KERNEL_BASE
+	mov word[config_kernel_size], 0
+	
+	mov si, boot_path
+	
+	mov di, word[config_entry_area]
+	mov bx, config_entry_size
+	mul bx
+	add di, ax
+	add di, config_entry.kernel
+	mov bx, config_copy_kernel.ecfs
+	call ecfs_load_file
 	
 	call elf16_validate_kernel
 	
