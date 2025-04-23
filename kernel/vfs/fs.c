@@ -32,8 +32,14 @@ extern fs_dirent_t *fs_dirent_new(const char *name) {
 /* create new node */
 extern fs_node_t *fs_node_new(fs_node_t *parent, uint32_t flags) {
 
-	fs_node_t *node = (fs_node_t *)kmalloc(sizeof(fs_node_t));
-	memset(node, 0, sizeof(fs_node_t));
+	return fs_node_new_ext(parent, flags, sizeof(fs_node_t));
+}
+
+/* create new node with size */
+extern fs_node_t *fs_node_new_ext(fs_node_t *parent, uint32_t flags, size_t sz) {
+
+	fs_node_t *node = (fs_node_t *)kmalloc(sz);
+	memset(node, 0, sz);
 	node->flags = flags;
 
 	/* copy file operations and fs specific stuff */

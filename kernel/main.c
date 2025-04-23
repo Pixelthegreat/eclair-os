@@ -14,6 +14,8 @@
 #include <kernel/fs/mbr.h>
 #include <kernel/task.h>
 
+extern void _kernel_end();
+
 extern void kernel_main() {
 
 	gdt_init();
@@ -29,11 +31,6 @@ extern void kernel_main() {
 	device_init();
 	mbr_fs_mount_root();
 	devfs_init();
-
-	device_print_all();
-
-	return;
-
 	task_init();
 	elf_load_task("/bin/init");
 

@@ -33,6 +33,7 @@ def module():
                             ('driver/vgacon.c', 'driver/vgacon.h'),
 
                             # partition and file systems #
+                            ('fs/ecfs.c', 'fs/ecfs.h'),
                             ('fs/ext2.c', 'fs/ext2.h'),
                             ('fs/mbr.c', 'fs/mbr.h'),
 

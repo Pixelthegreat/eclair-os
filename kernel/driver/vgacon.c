@@ -19,7 +19,7 @@ static fs_node_t *dev = NULL;
 #define DEFAULT_COLOR 0x7
 static uint8_t color = DEFAULT_COLOR;
 
-static uint8_t *vidmem = (uint8_t *)0xC03FF000;
+static uint8_t *vidmem = (uint8_t *)0xC04FF000;
 static uint32_t idx = 0;
 
 #define ESCBUFSZ 32

@@ -18,7 +18,7 @@ static const char *signames[TASK_NSIG] = {
 	"SIGTERM",
 };
 
-#define KSTACKSZ 16384 /* process kernel stack size */
+#define KSTACKSZ 32768 /* process kernel stack size */
 
 #define NTICKS 10
 

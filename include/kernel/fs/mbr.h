@@ -26,6 +26,7 @@ typedef struct mbr {
 
 /* mbr file system identifiers */
 #define MBR_FS_LINUX 0x83
+#define MBR_FS_ECFS 0xec
 
 /* functions */
 extern mbr_t *mbr_get_table(device_t *dev); /* get mbr table from device */

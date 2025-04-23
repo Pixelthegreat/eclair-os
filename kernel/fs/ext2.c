@@ -492,7 +492,7 @@ extern fs_node_t *ext2_mbr_mount(fs_node_t *mountp, device_t *dev, mbr_ent_t *pa
 	if (!ext2_verify_sb(&info->sb)) {
 
 		kfree(info);
-		kprintf(LOG_WARNING, "Invalid Ext2 superblock");
+		kprintf(LOG_WARNING, "[ext2] Invalid Ext2 superblock");
 		return NULL;
 	}
 

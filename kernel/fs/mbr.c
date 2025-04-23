@@ -5,6 +5,7 @@
 #include <kernel/mm/heap.h>
 #include <kernel/driver/device.h>
 #include <kernel/fs/ext2.h>
+#include <kernel/fs/ecfs.h>
 #include <kernel/fs/mbr.h>
 
 /* bootloader id info */
@@ -16,7 +17,7 @@ static char osid[12] = "eclair-os   ";
 
 static void *mbrbuf = NULL;
 
-#define FSNAME(p) ((p) == MBR_FS_LINUX? "Ext2": NULL)
+#define FSNAME(p) ((p) == MBR_FS_LINUX? "Ext2": ((p) == MBR_FS_ECFS? "EcFS": NULL))
 
 /* get mbr table from device */
 extern mbr_t *mbr_get_table(device_t *dev) {
@@ -48,12 +49,20 @@ extern void mbr_print(mbr_t *mbr) {
 extern fs_node_t *mbr_fs_mount(fs_node_t *node, device_t *dev, mbr_ent_t *ent) {
 
 	fs_node_t *res = NULL;
-	if (ent->type == MBR_FS_LINUX)
+	const char *name = NULL;
+
+	if (ent->type == MBR_FS_LINUX) {
+
 		res = ext2_mbr_mount(node, dev, ent);
+		name = "Ext2";
+	}
+	else if (ent->type == MBR_FS_ECFS) {
+
+		res = ecfs_mbr_mount(node, dev, ent);
+		name = "EcFS";
+	}
 
 	if (res) {
-
-		const char *name = FSNAME(ent->type);
 
 		if (!name) kprintf(LOG_INFO, "[mbr] Mounted filesystem on device '%s'", dev->desc);
 		else kprintf(LOG_INFO, "[mbr] Mounted filesystem on device '%s' as %s", dev->desc, name);

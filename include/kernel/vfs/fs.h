@@ -79,6 +79,8 @@ extern void fs_init(void); /* initialize vfs */
 extern fs_dirent_t *fs_dirent_new(const char *name); /* create new directory entry */
 
 extern fs_node_t *fs_node_new(fs_node_t *parent, uint32_t flags); /* create new node */
+extern fs_node_t *fs_node_new_ext(fs_node_t *parent, uint32_t flags, size_t sz); /* create new node with size */
+
 extern void fs_node_add_dirent(fs_node_t *node, fs_dirent_t *dent); /* add dirent */
 extern void fs_node_print(fs_node_t *node); /* print node tree */
 
