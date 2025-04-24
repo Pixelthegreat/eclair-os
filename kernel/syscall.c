@@ -1,22 +1,47 @@
 #include <kernel/types.h>
+#include <kernel/panic.h>
+#include <kernel/string.h>
 #include <kernel/task.h>
 #include <kernel/syscall.h>
 
 static idt_isr_t sysh[ECN_COUNT] = {
-	NULL,
-	sys_exit,
-	sys_open,
-	sys_read,
-	sys_write,
-	sys_lseek,
-	sys_close,
+	[ECN_EXIT] = sys_exit,
+	[ECN_OPEN] = sys_open,
+	[ECN_READ] = sys_read,
+	[ECN_WRITE] = sys_write,
+	[ECN_LSEEK] = sys_lseek,
+	[ECN_CLOSE] = sys_close,
+	[ECN_STAT] = sys_stat,
+	[ECN_FSTAT] = sys_fstat,
+	[ECN_ISATTY] = sys_isatty,
 };
+
+#define RETURN_ERROR(c) ({\
+		regs->eax = (uint32_t)(c);\
+		return;\
+	})
+
+/* get file information */
+static void nstat(fs_node_t *node, ec_stat_t *st) {
+
+	memset(st, 0, sizeof(ec_stat_t));
+
+	st->ino = (int)node->inode;
+	st->mode = (ec_mode_t)node->mask;
+	st->nlink = 1;
+	st->uid = (int)node->uid;
+	st->gid = (int)node->gid;
+	st->size = (long)node->len;
+
+	fs_stat(node, st);
+}
 
 /* handle a generic syscall */
 extern void sys_handle(idt_regs_t *regs) {
 
 	uint32_t idx = regs->eax;
 	if (idx < ECN_COUNT && sysh[idx]) sysh[idx](regs);
+	else regs->eax = (uint32_t)-1;
 }
 
 /* exit task */
@@ -73,4 +98,46 @@ extern void sys_close(idt_regs_t *regs) {
 	int fd = (int)regs->ebx;
 
 	regs->eax = (uint32_t)task_fs_close(fd);
+}
+
+/* get file info */
+extern void sys_stat(idt_regs_t *regs) {
+
+	const char *path = (const char *)regs->ebx;
+	ec_stat_t *st = (ec_stat_t *)regs->ecx;
+
+	fs_node_t *node = fs_resolve(path);
+	if (!node) RETURN_ERROR(-1);
+
+	nstat(node, st);
+	regs->eax = 0;
+}
+
+/* get open file info */
+extern void sys_fstat(idt_regs_t *regs) {
+
+	int fd = (int)regs->ebx;
+	ec_stat_t *st = (ec_stat_t *)regs->ecx;
+
+	if (fd < 0 || fd >= TASK_MAXFILES)
+		RETURN_ERROR(-1);
+
+	fs_node_t *node = task_active->files[fd].file;
+	if (!node) RETURN_ERROR(-1);
+
+	nstat(node, st);
+	regs->eax = 0;
+}
+
+/* check if file is a teletype */
+extern void sys_isatty(idt_regs_t *regs) {
+
+	int fd = (int)regs->ebx;
+	if (fd < 0 || fd >= TASK_MAXFILES)
+		RETURN_ERROR(-1);
+
+	fs_node_t *node = task_active->files[fd].file;
+	if (!node) RETURN_ERROR(-1);
+
+	regs->eax = (uint32_t)fs_isatty(node);
 }

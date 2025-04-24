@@ -29,6 +29,7 @@ typedef struct device {
 	bool held; /* indicate if a resource is busy */
 	struct device *clsnext; /* next sibling in class */
 	struct device *busnext; /* next sibling in bus */
+	int id; /* device id */
 } device_t;
 
 /* bus device */

@@ -19,6 +19,7 @@
 #include <kernel/driver/device.h>
 
 static boot_cmdline_t *cmdline; /* command line info */
+static int devid = 1; /* current device id */
 
 /* device classes */
 devclass_t devclass_bus = DEVCLASS_INIT(sizeof(device_bus_t), "Buses");
@@ -49,8 +50,12 @@ extern void device_init(void) {
 	ata_init();
 
 	/* register pci drivers and initialize pci */
+#ifdef DRIVER_BGA
 	bga_register();
+#endif
+#ifdef DRIVER_UHCI
 	uhci_register();
+#endif
 	pci_init();
 }
 
@@ -72,6 +77,7 @@ extern device_t *device_new(devclass_t *cls, const char *desc) {
 	dev->held = false;
 	dev->clsnext = NULL;
 	dev->busnext = NULL;
+	dev->id = devid++;
 
 	if (!cls->first) cls->first = dev;
 	if (cls->last) cls->last->clsnext = dev;

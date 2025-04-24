@@ -51,16 +51,18 @@ extern fs_node_t *mbr_fs_mount(fs_node_t *node, device_t *dev, mbr_ent_t *ent) {
 	fs_node_t *res = NULL;
 	const char *name = NULL;
 
-	if (ent->type == MBR_FS_LINUX) {
-
-		res = ext2_mbr_mount(node, dev, ent);
-		name = "Ext2";
-	}
-	else if (ent->type == MBR_FS_ECFS) {
+	if (ent->type == MBR_FS_ECFS) {
 
 		res = ecfs_mbr_mount(node, dev, ent);
 		name = "EcFS";
 	}
+#ifdef DRIVER_EXT2
+	else if (ent->type == MBR_FS_LINUX) {
+
+		res = ext2_mbr_mount(node, dev, ent);
+		name = "Ext2";
+	}
+#endif
 
 	if (res) {
 

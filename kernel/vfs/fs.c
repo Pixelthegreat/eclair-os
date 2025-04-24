@@ -194,6 +194,22 @@ extern fs_node_t *fs_mount(fs_node_t *node, fs_node_t *device) {
 	return node->mount(node, device);
 }
 
+/* get file info */
+extern void fs_stat(fs_node_t *node, ec_stat_t *st) {
+
+	if (!node || !node->stat) return;
+
+	node->stat(node, st);
+}
+
+/* check if file is a teletype */
+extern bool fs_isatty(fs_node_t *node) {
+
+	if (!node || !node->isatty) return false;
+
+	return node->isatty(node);
+}
+
 /* resolve a path to a node */
 extern fs_node_t *fs_resolve_full(const char *path, bool *create, const char **fname) {
 

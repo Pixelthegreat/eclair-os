@@ -20,6 +20,12 @@ static kssize_t write_fs(fs_node_t *node, uint32_t offset, size_t nbytes, uint8_
 	return (kssize_t)nbytes;
 }
 
+/* is a tty */
+static bool isatty_fs(fs_node_t *node) {
+
+	return true;
+}
+
 /* initialize */
 extern void tty_init(void) {
 }
@@ -32,6 +38,7 @@ extern void tty_init_devfs(void) {
 	
 	if (nttydev) node->read = ttydev[0]->read;
 	node->write = write_fs;
+	node->isatty = isatty_fs;
 
 	devfs_add_node("tty", node);
 }

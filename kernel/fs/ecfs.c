@@ -254,6 +254,22 @@ static bool ecfs_isheld(fs_node_t *node) {
 	return node->held || info->held || info->dev->held;
 }
 
+/* get file info */
+static void ecfs_stat(fs_node_t *node, ec_stat_t *st) {
+
+	struct ecfs_fs_info *info = kmalloc(sizeof(struct ecfs_fs_info));
+	info->held = true;
+
+	read_block(info, node->inode, (uint8_t *)info->block);
+	ecfs_file_t *file = (ecfs_file_t *)info->block;
+
+	st->atime = ((long long)file->atime_hi << 32) | (long long)file->atime_lo;
+	st->mtime = ((long long)file->mtime_hi << 32) | (long long)file->mtime_lo;
+	st->ctime = ((long long)file->ctime_hi << 32) | (long long)file->ctime_lo;
+
+	info->held = false;
+}
+
 /* mount file system */
 extern fs_node_t *ecfs_mbr_mount(fs_node_t *mountp, device_t *dev, mbr_ent_t *part) {
 
@@ -298,6 +314,7 @@ extern fs_node_t *ecfs_mbr_mount(fs_node_t *mountp, device_t *dev, mbr_ent_t *pa
 	node->close = ecfs_close;
 	node->filldir = ecfs_filldir;
 	node->isheld = ecfs_isheld;
+	node->stat = ecfs_stat;
 
 	mountp->ptr = node;
 	return node;

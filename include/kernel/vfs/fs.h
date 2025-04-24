@@ -2,6 +2,7 @@
 #define ECLAIR_VFS_FS_H
 
 #include <kernel/types.h>
+#include <ec.h>
 
 struct fs_node;
 
@@ -32,6 +33,8 @@ typedef bool (*fs_filldir_t)(struct fs_node *);
 typedef bool (*fs_isheld_t)(struct fs_node *);
 typedef struct fs_node *(*fs_create_t)(struct fs_node *, const char *, uint32_t, uint32_t);
 typedef struct fs_node *(*fs_mount_t)(struct fs_node *, struct fs_node *);
+typedef void (*fs_stat_t)(struct fs_node *, ec_stat_t *);
+typedef bool (*fs_isatty_t)(struct fs_node *);
 
 #define FS_NAMESZ 128
 
@@ -69,6 +72,8 @@ typedef struct fs_node {
 	fs_isheld_t isheld; /* check if file resource is held by a task */
 	fs_create_t create; /* create a node as a child */
 	fs_mount_t mount; /* mount device node */
+	fs_stat_t stat; /* get file info */
+	fs_isatty_t isatty; /* check if file is a teletype */
 } fs_node_t;
 
 extern fs_node_t *fs_root; /* root node */
@@ -93,6 +98,8 @@ extern fs_node_t *fs_finddir(fs_node_t *node, const char *name); /* find in dire
 extern bool fs_isheld(fs_node_t *node); /* check if resource is held/busy */
 extern fs_node_t *fs_create(fs_node_t *node, const char *name, uint32_t flags, uint32_t mask); /* create a node as a child */
 extern fs_node_t *fs_mount(fs_node_t *node, fs_node_t *device); /* mount device node */
+extern void fs_stat(fs_node_t *node, ec_stat_t *st); /* get file info */
+extern bool fs_isatty(fs_node_t *node); /* check if file is a teletype */
 
 extern fs_node_t *fs_resolve_full(const char *path, bool *create, const char **fname); /* resolve a path to a node */
 extern fs_node_t *fs_resolve(const char *path); /* resolve a path to a node strictly */

@@ -49,11 +49,13 @@ extern uint32_t ec_syscall3(uint32_t i, uint32_t a, uint32_t b, uint32_t c) {
 
 	uint32_t ret = 0;
 	asm volatile(
+		"push %%ebx\n"
 		"mov %0, %%eax\n"
 		"mov %1, %%ebx\n"
 		"mov %2, %%ecx\n"
 		"mov %3, %%edx\n"
 		"int $0x80\n"
+		"pop %%ebx\n"
 		"mov %%eax, %4\n"
 		: : "m"(i), "m"(a), "m"(b), "m"(c), "m"(ret)
 		);
@@ -63,19 +65,21 @@ extern uint32_t ec_syscall3(uint32_t i, uint32_t a, uint32_t b, uint32_t c) {
 /*
  * System call with 3 arguments and a uint64_t return value:
  *   eax = i, ebx = a, ecx = b, edx = c
- *   ret = (ebx << 32) | eax
+ *   ret = (ecx << 32) | eax
  */
 extern uint64_t ec_syscall3r2(uint32_t i, uint32_t a, uint32_t b, uint32_t c) {
 
 	uint32_t reta = 0, retb = 0;
 	asm volatile(
+		"push %%ebx\n"
 		"mov %0, %%eax\n"
 		"mov %1, %%ebx\n"
 		"mov %2, %%ecx\n"
 		"mov %3, %%edx\n"
 		"int $0x80\n"
+		"pop %%ebx\n"
 		"mov %%eax, %4\n"
-		"mov %%ebx, %5\n"
+		"mov %%ecx, %5\n"
 		: : "m"(i), "m"(a), "m"(b), "m"(c), "m"(reta), "m"(retb)
 		);
 	return ((uint64_t)retb << 32) | (uint64_t)reta;
@@ -147,6 +151,53 @@ static inline ec_off_t ec_lseek(int fd, ec_off_t pos, int whence) {
 static inline int ec_close(int fd) {
 
 	return (int)ec_syscall3(ECN_CLOSE, (uint32_t)fd, 0, 0);
+}
+
+/*
+ * Stat a file.
+ *   ebx/path = File path
+ *   ecx/st = Stat buffer
+ *   eax (return) = Zero if successful, negative on error
+ */
+typedef struct {
+	int dev; /* device id */
+	int ino; /* file serial number */
+	ec_mode_t mode; /* file mode */
+	int nlink; /* number of hard links */
+	int uid; /* user owner */
+	int gid; /* group owner */
+	int rdev; /* special file device id */
+	long size; /* file size */
+	long long atime; /* access time */
+	long long mtime; /* modification time */
+	long long ctime; /* status change time */
+	int blksize; /* block size */
+	int blocks; /* number of blocks */
+} ec_stat_t;
+
+static inline int ec_stat(const char *path, ec_stat_t *st) {
+
+	return (int)ec_syscall3(ECN_STAT, (uint32_t)path, (uint32_t)st, 0);
+}
+
+/* Stat an open file.
+ *   ebx/fd = File descriptor
+ *   ecx = Stat buffer
+ *   eax (return) = Zero if successful, negative on error
+ */
+static inline int ec_fstat(int fd, ec_stat_t *st) {
+
+	return (int)ec_syscall3(ECN_FSTAT, (uint32_t)fd, (uint32_t)st, 0);
+}
+
+/*
+ * Check if a file is a teletype.
+ *   ebx/fd = File descriptor
+ *   eax (return) = Zero if not a tty, one if a tty, negative on error
+ */
+static inline int ec_isatty(int fd) {
+
+	return (int)ec_syscall3(ECN_ISATTY, (uint32_t)fd, 0, 0);
 }
 
 #endif /* EC_H */
