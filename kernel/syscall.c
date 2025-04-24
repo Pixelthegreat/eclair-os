@@ -2,6 +2,7 @@
 #include <kernel/panic.h>
 #include <kernel/string.h>
 #include <kernel/task.h>
+#include <kernel/driver/rtc.h>
 #include <kernel/syscall.h>
 
 static idt_isr_t sysh[ECN_COUNT] = {
@@ -13,7 +14,13 @@ static idt_isr_t sysh[ECN_COUNT] = {
 	[ECN_CLOSE] = sys_close,
 	[ECN_STAT] = sys_stat,
 	[ECN_FSTAT] = sys_fstat,
+	[ECN_GETPID] = sys_getpid,
+	[ECN_KILL] = sys_kill,
+	[ECN_SBRK] = sys_sbrk,
+	[ECN_GETTIMEOFDAY] = sys_gettimeofday,
+	[ECN_TIMENS] = sys_timens,
 	[ECN_ISATTY] = sys_isatty,
+	[ECN_SIGNAL] = sys_signal,
 };
 
 #define RETURN_ERROR(c) ({\
@@ -129,6 +136,64 @@ extern void sys_fstat(idt_regs_t *regs) {
 	regs->eax = 0;
 }
 
+/* get process id */
+extern void sys_getpid(idt_regs_t *regs) {
+
+	regs->eax = (uint32_t)task_active->id;
+}
+
+/* raise a signal on a process */
+extern void sys_kill(idt_regs_t *regs) {
+
+	int pid = (int)regs->ebx;
+	int sig = (int)regs->ecx;
+
+	task_t *task = task_get(pid);
+	if (!task) RETURN_ERROR(-1);
+
+	task_signal(task, (uint32_t)sig);
+
+	regs->eax = 0;
+}
+
+/* increase or decrease breakpoint */
+extern void sys_sbrk(idt_regs_t *regs) {
+
+	intptr_t inc = (intptr_t)regs->ebx;
+
+	void *brkp = task_sbrk(inc);
+	if (!brkp) RETURN_ERROR(0);
+
+	regs->eax = (uint32_t)brkp;
+}
+
+/* get epoch time */
+extern void sys_gettimeofday(idt_regs_t *regs) {
+
+	ec_timeval_t *tv = (ec_timeval_t *)regs->ebx;
+
+	rtc_cmos_regs_t cmos;
+	rtc_get_registers(&cmos);
+
+	tv->sec = rtc_get_time(&cmos);
+	tv->nsec = 0;
+
+	regs->eax = 0;
+}
+
+/* get arbitrary timestamp */
+extern void sys_timens(idt_regs_t *regs) {
+
+	ec_timeval_t *tv = (ec_timeval_t *)regs->ebx;
+
+	uint64_t timens = task_get_global_time();
+
+	tv->sec = timens / 1000000000;
+	tv->nsec = timens % 1000000000;
+
+	regs->eax = 0;
+}
+
 /* check if file is a teletype */
 extern void sys_isatty(idt_regs_t *regs) {
 
@@ -140,4 +205,17 @@ extern void sys_isatty(idt_regs_t *regs) {
 	if (!node) RETURN_ERROR(-1);
 
 	regs->eax = (uint32_t)fs_isatty(node);
+}
+
+/* set a signal handler */
+extern void sys_signal(idt_regs_t *regs) {
+
+	int sig = (int)regs->ebx;
+	task_sig_t sigh = (task_sig_t)regs->ecx;
+
+	if (sig < 0 || sig >= TASK_NSIG)
+		RETURN_ERROR(-1);
+
+	task_active->sigh[sig] = sigh;
+	regs->eax = 0;
 }

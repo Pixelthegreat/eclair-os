@@ -573,6 +573,64 @@ extern void task_signal(task_t *task, uint32_t sig) {
 	task_unlockcli();
 }
 
+/* get task from id */
+extern task_t *task_get(int id) {
+
+	if (id < 0 || id >= NTASKS)
+		return NULL;
+	return taskmap[id];
+}
+
+/* increment or decrement breakpoint */
+extern void *task_sbrk(intptr_t inc) {
+
+	task_lockcli();
+
+	void *ptr = (void *)task_active->brkp;
+
+	uint32_t brkp = task_active->brkp + (uint32_t)inc;
+	if (brkp < TASK_MINBRKP || brkp >= TASK_MAXBRKP) {
+
+		task_unlockcli();
+		return NULL;
+	}
+	
+	uint32_t obrkp = task_active->brkp;
+
+	/* allocate pages */
+	if (brkp > obrkp) {
+
+		uint32_t start = ALIGN(obrkp, 0x1000) >> 12;
+		uint32_t end = ALIGN(brkp, 0x1000) >> 12;
+
+		for (uint32_t i = start; i < end; i++) {
+			if (!page_is_mapped(i))
+				page_map_flags(i, page_frame_alloc(), PAGE_FLAG_US);
+		}
+	}
+
+	/* free pages */
+	else {
+
+		uint32_t start = ALIGN(brkp, 0x1000) >> 12;
+		uint32_t end = ALIGN(obrkp, 0x1000) >> 12;
+
+		for (uint32_t i = start; i < end; i++) {
+
+			page_frame_id_t fr = page_get_frame(i);
+			if (fr) {
+				page_frame_free(fr);
+				page_unmap(i);
+			}
+		}
+	}
+
+	task_active->brkp = brkp;
+
+	task_unlockcli();
+	return ptr;
+}
+
 /* open file */
 extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask) {
 

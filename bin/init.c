@@ -34,6 +34,12 @@ static void m_printi(int d) {
 	ec_write(ttyfd, buf2, n2);
 }
 
+static void segvh() {
+
+	ec_write(ttyfd, "Segmentation fault\n", 19);
+	ec_exit();
+}
+
 static void run() {
 
 	const char *msg = NULL; size_t len = 0;
@@ -41,33 +47,28 @@ static void run() {
 	if ((ttyfd = ec_open("/dev/tty0", 0x3, 0)) < 0)
 		return;
 
-	int fd = ec_open("/hello.txt", 0x1, 0);
+	ec_signal(5, segvh);
 
-	ec_stat_t st;
-	ec_fstat(fd, &st);
+	/* print time */
+	ec_timeval_t tv;
+	ec_gettimeofday(&tv);
 
-	msg = "File 'hello.txt' size: ";
+	msg = "Seconds since epoch: ";
 	len = m_strlen(msg);
-	if (ec_write(ttyfd, msg, len) != len)
-		return;
+	ec_write(ttyfd, msg, len);
 
-	m_printi((int)st.size);
-
-	ec_close(fd);
+	m_printi((int)tv.sec);
 
 	/* write message */
 	msg = "\nHello world from /bin/init!\n";
 	len = m_strlen(msg);
-	if (ec_write(ttyfd, msg, len) != len)
-		return;
+	ec_write(ttyfd, msg, len);
 
 	/* read input */
 	char buf[32];
 	ec_ssize_t blen = ec_read(ttyfd, buf, 32);
-	if (blen < 0) return;
 
-	if (ec_write(ttyfd, buf, (size_t)blen-1) < 0)
-		return;
+	ec_write(ttyfd, buf, (size_t)blen-1);
 }
 
 static void cleanup() {

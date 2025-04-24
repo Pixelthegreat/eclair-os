@@ -30,6 +30,9 @@
 #define TASK_STACK_ADDR_SIGHANDLER ((uint32_t *)0x8000)
 #define TASK_STACK_ADDR_SIGEIP ((uint32_t *)0x8004)
 
+#define TASK_MINBRKP 0x800000
+#define TASK_MAXBRKP 0xB0000000
+
 /* signals */
 #define TASK_SIGNONE 0
 
@@ -120,6 +123,8 @@ extern void task_entry(void); /* task entry point */
 extern void task_raise(uint32_t sig); /* raise signal on current task */
 extern void task_signal(task_t *task, uint32_t sig); /* raise signal on other task */
 extern void task_handle_signal(void); /* routine to handle signal; do not call directly */
+extern task_t *task_get(int id); /* get task from id */
+extern void *task_sbrk(intptr_t inc); /* increment or decrement breakpoint */
 
 extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask); /* open file */
 extern kssize_t task_fs_read(int fd, void *buf, size_t cnt); /* read from file */

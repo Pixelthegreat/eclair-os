@@ -9,6 +9,7 @@
 #include <kernel/mm/paging.h>
 #include <kernel/mm/heap.h>
 #include <kernel/driver/device.h>
+#include <kernel/driver/rtc.h>
 #include <kernel/vfs/fs.h>
 #include <kernel/vfs/devfs.h>
 #include <kernel/fs/mbr.h>
@@ -31,6 +32,7 @@ extern void kernel_main() {
 	device_init();
 	mbr_fs_mount_root();
 	devfs_init();
+
 	task_init();
 	elf_load_task("/bin/init");
 

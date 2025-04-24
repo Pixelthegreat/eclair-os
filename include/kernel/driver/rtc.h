@@ -41,6 +41,7 @@ extern uint64_t rtc_ns; /* nanoseconds, irq must update */
 extern void rtc_init(void); /* initialize rtc */
 extern void rtc_set_callback(rtc_callback_t _cb); /* set callback */
 extern void rtc_get_registers(rtc_cmos_regs_t *regs); /* get register values */
+extern uint64_t rtc_get_time(rtc_cmos_regs_t *regs); /* get time from register values */
 
 /* enable next interrupt to occur */
 static inline void rtc_enable_next_interrupt(void) {

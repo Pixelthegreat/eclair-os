@@ -28,11 +28,12 @@ typedef int ec_mode_t;
 #define ECN_GETPID 9
 #define ECN_KILL 10
 #define ECN_SBRK 11
-#define ECN_TIMES 12
+#define ECN_TIMENS 12
 #define ECN_GETTIMEOFDAY 13
 #define ECN_ISATTY 14
+#define ECN_SIGNAL 15
 
-#define ECN_COUNT 15
+#define ECN_COUNT 16
 
 /* generic system call wrappers */
 extern uint32_t ec_syscall3(uint32_t i, uint32_t a, uint32_t b, uint32_t c);
@@ -180,7 +181,8 @@ static inline int ec_stat(const char *path, ec_stat_t *st) {
 	return (int)ec_syscall3(ECN_STAT, (uint32_t)path, (uint32_t)st, 0);
 }
 
-/* Stat an open file.
+/*
+ * Stat an open file.
  *   ebx/fd = File descriptor
  *   ecx = Stat buffer
  *   eax (return) = Zero if successful, negative on error
@@ -191,6 +193,64 @@ static inline int ec_fstat(int fd, ec_stat_t *st) {
 }
 
 /*
+ * Get current process id.
+ *   eax (return) = Process/task id
+ */
+static inline int ec_getpid(void) {
+
+	return (int)ec_syscall3(ECN_GETPID, 0, 0, 0);
+}
+
+/*
+ * Raise a signal on a process.
+ *   ebx/pid = Process/task id
+ *   ecx/sig = Signal number
+ *   eax (return) = Zero if successful, negative on error
+ */
+static inline int ec_kill(int pid, int sig) {
+
+	return (int)ec_syscall3(ECN_KILL, (uint32_t)pid, (uint32_t)sig, 0);
+}
+
+/*
+ * Increase or decrease breakpoint.
+ *   ebx/inc = Increment
+ *   eax (return) = Breakpoint address if successful, NULL on error
+ */
+static inline void *ec_sbrk(intptr_t inc) {
+
+	return (void *)ec_syscall3(ECN_SBRK, (uint32_t)inc, 0, 0);
+}
+
+/*
+ * Get epoch time.
+ *   ebx/tv = Time info to fill
+ *   eax (return) = Zero if successful, negative on error
+ * The time value on success should be in Greenwich Meantime (GMT).
+ * The normal gettimeofday function will properly convert between .nsec and .tv_usec.
+ */
+typedef struct ec_timeval {
+	uint64_t sec; /* seconds */
+	uint64_t nsec; /* nanoseconds */
+} ec_timeval_t;
+
+static inline int ec_gettimeofday(ec_timeval_t *tv) {
+
+	return (int)ec_syscall3(ECN_GETTIMEOFDAY, (uint32_t)tv, 0, 0);
+}
+
+/*
+ * Get arbitrary timestamp in nanosecond resolution.
+ *   ebx/tv = Time info to fill
+ *   eax (return) = Zero if successful, negative on error
+ * The times syscall is not implemented here due to a lack of task time accounting.
+ */
+static inline int ec_timens(ec_timeval_t *tv) {
+
+	return (int)ec_syscall3(ECN_TIMENS, (uint32_t)tv, 0, 0);
+}
+
+/*
  * Check if a file is a teletype.
  *   ebx/fd = File descriptor
  *   eax (return) = Zero if not a tty, one if a tty, negative on error
@@ -198,6 +258,17 @@ static inline int ec_fstat(int fd, ec_stat_t *st) {
 static inline int ec_isatty(int fd) {
 
 	return (int)ec_syscall3(ECN_ISATTY, (uint32_t)fd, 0, 0);
+}
+
+/*
+ * Set a signal handler.
+ *   ebx/sig = Signal number
+ *   ecx/handler = Signal handler
+ *   eax (return) = Zero if successful, negative on error
+ */
+static inline int ec_signal(int sig, void (*handler)()) {
+
+	return (int)ec_syscall3(ECN_SIGNAL, (uint32_t)sig, (uint32_t)handler, 0);
 }
 
 #endif /* EC_H */
