@@ -69,9 +69,12 @@ typedef struct boot_framebuf_info {
 } __attribute__((packed)) boot_framebuf_t;
 
 /* command line info */
+#define BOOT_CMDLINE_PARAM_MAX_CHARS 32
+
 typedef struct boot_cmdline {
 	bool uart_tty; /* initialize uart as tty device */
 	bool quiet; /* do not display log messages under info or warning */
+	char init_profile[BOOT_CMDLINE_PARAM_MAX_CHARS]; /* profile for init to load */
 } boot_cmdline_t;
 
 extern boot_protocol_t boot_protocol;

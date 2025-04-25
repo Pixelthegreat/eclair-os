@@ -260,6 +260,10 @@ extern void ps2_init(void) {
 	dev_p0_type = ps2_get_device_type(0);
 	if (p2_pres) dev_p1_type = ps2_get_device_type(1);
 
+	/* TODO: Actually fix ps/2 device type detection issue on real hw */
+	if (dev_p0_type < 0) dev_p0_type = DEV_KEYBOARD;
+	if (dev_p1_type < 0) dev_p1_type = DEV_KEYBOARD;
+
 	/* set handlers */
 	idt_set_irq_callback(1, ps2_irq1);
 	if (p2_pres) idt_set_irq_callback(12, ps2_irq12);

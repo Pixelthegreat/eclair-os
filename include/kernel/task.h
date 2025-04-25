@@ -19,6 +19,9 @@
 #define TASK_STACK_SIZE 0x8000
 #define TASK_STACK_ADDR ((void *)0x8000)
 
+#define TASK_ENV_START 16
+#define TASK_ENV_ADDR ((void *)0x10000)
+
 #define TASK_PROG_START 0x800
 #define TASK_PROG_ADDR ((void *)0x800000)
 
@@ -26,9 +29,11 @@
 #define TASK_SIGH_END 8
 #define TASK_SIGH_ADDR ((void *)0x7000)
 
-/* have a place to store signal info */
+/* have a place to store signal and environment info */
 #define TASK_STACK_ADDR_SIGHANDLER ((uint32_t *)0x8000)
 #define TASK_STACK_ADDR_SIGEIP ((uint32_t *)0x8004)
+#define TASK_STACK_ADDR_ARGV ((uint32_t *)0x8008)
+#define TASK_STACK_ADDR_ENVP ((uint32_t *)0x800C)
 
 #define TASK_MINBRKP 0x800000
 #define TASK_MAXBRKP 0xB0000000
@@ -84,6 +89,8 @@ typedef struct task {
 	} load; /* info for executable loading */
 	uint32_t brkp; /* break point */
 	uint32_t entp; /* entry point */
+	const char **argv; /* initial argv */
+	const char **envp; /* initial envp */
 } task_t;
 
 extern task_t *ktask; /* base kernel task */

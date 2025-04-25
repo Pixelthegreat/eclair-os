@@ -37,6 +37,7 @@ static void map_structure(void) {
 /* parse command line */
 static void parse_cmdline(void) {
 
+	cmdline.init_profile[0] = 0;
 	if (saved.f_cmdline) {
 
 		const char *arg = saved.cmdline;
@@ -55,6 +56,18 @@ static void parse_cmdline(void) {
 			/* no info or warning messages */
 			else if (!strncmp("quiet", arg, len))
 				cmdline.quiet = true;
+
+			/* profile for init to load */
+			else if (!strncmp("init-profile", arg, MIN(len, 12))) {
+
+				if (arg[12] == '=') {
+
+					const char *param = arg+13;
+					size_t plen = len-13;
+
+					strncpy(cmdline.init_profile, param, BOOT_CMDLINE_PARAM_MAX_CHARS);
+				}
+			}
 		}
 	}
 }

@@ -102,6 +102,7 @@ def module():
                             ('boot.c', 'boot.h'),
                             ('elf.c', 'elf.h'),
                             ('idt.c', 'idt.h'),
+                            ('init.c', 'init.h'),
                             ('main.c'),
                             ('multiboot.c', 'multiboot.h'),
                             ('panic.c', 'panic.h'),

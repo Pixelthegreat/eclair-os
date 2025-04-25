@@ -32,8 +32,9 @@ typedef int ec_mode_t;
 #define ECN_GETTIMEOFDAY 13
 #define ECN_ISATTY 14
 #define ECN_SIGNAL 15
+#define ECN_PANIC 16
 
-#define ECN_COUNT 16
+#define ECN_COUNT 17
 
 /* generic system call wrappers */
 extern uint32_t ec_syscall3(uint32_t i, uint32_t a, uint32_t b, uint32_t c);
@@ -103,6 +104,11 @@ static inline void ec_exit(void) {
  *   edx/mode = File mode (with O_CREAT only)
  *   eax (return) = File descriptor if successful, negative on error
  */
+#define ECF_READ 0x1
+#define ECF_WRITE 0x2
+#define ECF_TRUNCATE 0x4
+#define ECF_CREATE 0x100
+
 static inline int ec_open(const char *path, int flags, ec_mode_t mode) {
 
 	return (int)ec_syscall3(ECN_OPEN, (uint32_t)path, (uint32_t)flags, (uint32_t)mode);
@@ -269,6 +275,17 @@ static inline int ec_isatty(int fd) {
 static inline int ec_signal(int sig, void (*handler)()) {
 
 	return (int)ec_syscall3(ECN_SIGNAL, (uint32_t)sig, (uint32_t)handler, 0);
+}
+
+/*
+ * Cause a kernel panic.
+ *   ebx/msg = Panic message
+ *   eax (return) = Doesn't return if successful, negative on error
+ * This system call can only be called by the init process (pid = 1).
+ */
+static inline int ec_panic(const char *msg) {
+
+	return (int)ec_syscall3(ECN_PANIC, (uint32_t)msg, 0, 0);
 }
 
 #endif /* EC_H */

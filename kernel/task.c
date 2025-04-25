@@ -265,6 +265,8 @@ extern task_t *task_new(void *esp, void *seteip) {
 	task->load.path = NULL;
 	task->load.res = 0;
 	task->brkp = (uint32_t)TASK_PROG_ADDR;
+	task->argv = NULL;
+	task->envp = NULL;
 
 	task_add_to_list(ready, task);
 	taskmap[id] = task;
@@ -522,6 +524,66 @@ extern void task_entry(void) {
 		page_map_flags(i, page_frame_alloc(), PAGE_FLAG_US);
 
 	memcpy(TASK_SIGH_ADDR, task_handle_signal, task_handle_signal_size);
+
+	/* copy arguments and environment */
+	if (task_active->argv && task_active->envp) {
+
+		size_t size = 0;
+		size_t argc = 0;
+		size_t envc = 0;
+
+		size_t i = 0;
+		while (task_active->argv[i]) {
+			argc++;
+			size += sizeof(const char *);
+			size += strlen(task_active->argv[i]) + 1;
+			i++;
+		}
+		size += sizeof(const char *); /* account for NULL at end */
+		i = 0;
+		while (task_active->envp[i]) {
+			envc++;
+			size += sizeof(const char *);
+			size += strlen(task_active->envp[i]) + 1;
+			i++;
+		}
+		size += sizeof(const char *);
+
+		/* allocate memory for environment */
+		size_t npages = ALIGN(size, 0x1000) >> 12;
+		for (uint32_t j = TASK_ENV_START; j < TASK_ENV_START+npages; j++)
+			page_map_flags(j, page_frame_alloc(), PAGE_FLAG_US);
+
+		/* copy data */
+		const char **ptr = (const char **)TASK_ENV_ADDR;
+		char *str = (char *)ptr + (argc + envc + 2) * sizeof(const char *);
+
+		i = 0;
+		*TASK_STACK_ADDR_ARGV = (uint32_t)ptr;
+
+		for (size_t j = 0; j < argc; j++) {
+
+			ptr[i++] = str;
+			size_t len = strlen(task_active->argv[j]);
+
+			memcpy(str, task_active->argv[j], len);
+			str[len++] = 0;
+			str += len;
+		}
+		ptr[i++] = NULL;
+		*TASK_STACK_ADDR_ENVP = (uint32_t)&ptr[i];
+
+		for (size_t j = 0; j < envc; j++) {
+
+			ptr[i++] = str;
+			size_t len = strlen(task_active->envp[j]);
+
+			memcpy(str, task_active->envp[j], len);
+			str[len++] = 0;
+			str += len;
+		}
+		ptr[i++] = NULL;
+	}
 
 	/* go to user mode */
 	asm volatile(

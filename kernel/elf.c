@@ -108,7 +108,7 @@ static void load_entry() {
 }
 
 /* load an executable */
-extern int elf_load_task(const char *path) {
+extern int elf_load_task(const char *path, const char **argv, const char **envp) {
 
 	task_lockcli();
 	if (!dummy)
@@ -121,7 +121,11 @@ extern int elf_load_task(const char *path) {
 	res = 0;
 	task_lockcli();
 	task_t *task = task_new(NULL, load_entry);
+	
 	task->load.path = path;
+	task->argv = argv;
+	task->envp = envp;
+	
 	task_unlockcli();
 	while (!res);
 

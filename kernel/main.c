@@ -1,15 +1,12 @@
 #include <kernel/types.h>
-#include <kernel/string.h>
 #include <kernel/idt.h>
 #include <kernel/tty.h>
 #include <kernel/boot.h>
-#include <kernel/panic.h>
-#include <kernel/elf.h>
+#include <kernel/init.h>
 #include <kernel/mm/gdt.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/heap.h>
 #include <kernel/driver/device.h>
-#include <kernel/driver/rtc.h>
 #include <kernel/vfs/fs.h>
 #include <kernel/vfs/devfs.h>
 #include <kernel/fs/mbr.h>
@@ -32,9 +29,8 @@ extern void kernel_main() {
 	device_init();
 	mbr_fs_mount_root();
 	devfs_init();
-
 	task_init();
-	elf_load_task("/bin/init");
+	init_load();
 
 	while (true) {
 

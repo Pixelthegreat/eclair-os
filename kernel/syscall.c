@@ -21,6 +21,7 @@ static idt_isr_t sysh[ECN_COUNT] = {
 	[ECN_TIMENS] = sys_timens,
 	[ECN_ISATTY] = sys_isatty,
 	[ECN_SIGNAL] = sys_signal,
+	[ECN_PANIC] = sys_panic,
 };
 
 #define RETURN_ERROR(c) ({\
@@ -217,5 +218,17 @@ extern void sys_signal(idt_regs_t *regs) {
 		RETURN_ERROR(-1);
 
 	task_active->sigh[sig] = sigh;
+	regs->eax = 0;
+}
+
+/* cause a kernel panic */
+extern void sys_panic(idt_regs_t *regs) {
+
+	const char *msg = (const char *)regs->ebx;
+	
+	if (task_active->id != 1)
+		RETURN_ERROR(-1);
+
+	kpanic(PANIC_CODE_NONE, msg, regs);
 	regs->eax = 0;
 }

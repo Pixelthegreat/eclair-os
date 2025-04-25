@@ -22,5 +22,6 @@ extern void sys_gettimeofday(idt_regs_t *regs); /* get epoch time */
 extern void sys_timens(idt_regs_t *regs); /* get arbitrary timestamp */
 extern void sys_isatty(idt_regs_t *regs); /* check if file is a teletype */
 extern void sys_signal(idt_regs_t *regs); /* set a signal handler */
+extern void sys_panic(idt_regs_t *regs); /* cause a kernel panic */
 
 #endif /* ECLAIR_SYSCALL_H */
