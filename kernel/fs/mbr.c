@@ -4,8 +4,6 @@
 #include <kernel/boot.h>
 #include <kernel/mm/heap.h>
 #include <kernel/driver/device.h>
-#include <kernel/fs/ext2.h>
-#include <kernel/fs/ecfs.h>
 #include <kernel/fs/mbr.h>
 
 /* bootloader id info */
@@ -16,8 +14,6 @@ struct boot_id {
 static char osid[12] = "eclair-os   ";
 
 static void *mbrbuf = NULL;
-
-#define FSNAME(p) ((p) == MBR_FS_LINUX? "Ext2": ((p) == MBR_FS_ECFS? "EcFS": NULL))
 
 /* get mbr table from device */
 extern mbr_t *mbr_get_table(device_t *dev) {
@@ -51,18 +47,22 @@ extern fs_node_t *mbr_fs_mount(fs_node_t *node, device_t *dev, mbr_ent_t *ent) {
 	fs_node_t *res = NULL;
 	const char *name = NULL;
 
-	if (ent->type == MBR_FS_ECFS) {
+	driverinfo_t *drivers = DRIVERINFO_START;
+	size_t count = DRIVERINFO_COUNT;
 
-		res = ecfs_mbr_mount(node, dev, ent);
-		name = "EcFS";
-	}
-#ifdef DRIVER_EXT2
-	else if (ent->type == MBR_FS_LINUX) {
+	/* search for fs driver */
+	for (size_t i = 0; i < count; i++) {
+		if (drivers[i].type == DRIVERINFO_MBRFS) {
 
-		res = ext2_mbr_mount(node, dev, ent);
-		name = "Ext2";
+			mbr_driver_t *md = (mbr_driver_t *)drivers[i].data;
+			if (ent->type == md->fstype) {
+
+				res = md->mount(node, dev, ent);
+				name = drivers[i].name;
+				break;
+			}
+		}
 	}
-#endif
 
 	if (res) {
 

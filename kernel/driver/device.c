@@ -13,9 +13,7 @@
 #include <kernel/driver/fb.h>
 #include <kernel/driver/fbcon.h>
 #include <kernel/driver/uart.h>
-#include <kernel/driver/bga.h>
 #include <kernel/driver/pci.h>
-#include <kernel/driver/uhci.h>
 #include <kernel/driver/device.h>
 
 static boot_cmdline_t *cmdline; /* command line info */
@@ -50,12 +48,13 @@ extern void device_init(void) {
 	ata_init();
 
 	/* register pci drivers and initialize pci */
-#ifdef DRIVER_BGA
-	bga_register();
-#endif
-#ifdef DRIVER_UHCI
-	uhci_register();
-#endif
+	driverinfo_t *drivers = DRIVERINFO_START;
+	size_t count = DRIVERINFO_COUNT;
+
+	for (size_t i = 0; i < count; i++) {
+		if (drivers[i].type == DRIVERINFO_PCI)
+			pci_register_driver((pci_driver_t *)drivers[i].data);
+	}
 	pci_init();
 }
 

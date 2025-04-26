@@ -3,11 +3,19 @@
 #include <kernel/panic.h>
 #include <kernel/mm/heap.h>
 #include <kernel/vfs/fs.h>
+#include <kernel/driver/device.h>
+#include <kernel/fs/mbr.h>
 #include <kernel/fs/ext2.h>
 
 #define EXT2_BLOCK_GROUP(info, inode) (((inode)-1) / (info)->sb.nbginodes)
 #define EXT2_INDEX(info, inode) (((inode)-1) % (info)->sb.nbginodes)
 #define EXT2_CONT_BLOCK(info, idx) (((idx) * (info)->inodesize) / (info)->blocksize)
+
+static mbr_driver_t mbrfs = {
+	.fstype = MBR_FS_LINUX,
+	.mount = ext2_mbr_mount,
+};
+DRIVERINFO(ext2, DRIVERINFO_MBRFS, &mbrfs);
 
 /* file system info */
 struct ext2_fs_info {

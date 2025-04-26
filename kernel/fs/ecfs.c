@@ -2,10 +2,17 @@
 #include <kernel/string.h>
 #include <kernel/panic.h>
 #include <kernel/mm/heap.h>
+#include <kernel/driver/device.h>
 #include <kernel/fs/ecfs.h>
 
 #define ECFS_IMPL
 #include <ec/ecfs.h>
+
+mbr_driver_t mbrfs = {
+	.fstype = MBR_FS_ECFS,
+	.mount = ecfs_mbr_mount,
+};
+DRIVERINFO(ecfs, DRIVERINFO_MBRFS, &mbrfs);
 
 /* file system info */
 struct ecfs_fs_info {

@@ -14,6 +14,7 @@ static pci_driver_t driver = {
 	.match = bga_match,
 	.init = bga_init,
 };
+DRIVERINFO(bga, DRIVERINFO_PCI, &driver);
 
 /* match with pci device */
 static bool bga_match(pci_match_info_t *info) {

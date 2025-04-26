@@ -27,6 +27,7 @@ static pci_driver_t driver = {
 	.match = uhci_match,
 	.init = uhci_init,
 };
+DRIVERINFO(uhci, DRIVERINFO_PCI, &driver);
 
 /* match with pci device */
 static bool uhci_match(pci_match_info_t *info) {

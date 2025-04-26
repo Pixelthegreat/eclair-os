@@ -79,6 +79,29 @@ typedef struct device_video {
 	device_t base;
 } device_video_t;
 
+/* driver info */
+#define DRIVERINFO_PCI 1
+#define DRIVERINFO_MBRFS 2
+
+#define DRIVERINFO_NAME_MAX_CHARS 32
+typedef struct driverinfo {
+	char name[DRIVERINFO_NAME_MAX_CHARS]; /* name of driver */
+	int type; /* type of driver */
+	void *data; /* associated data */
+} __attribute__((aligned(4))) driverinfo_t;
+
+#define DRIVERINFO(pname, ptype, pdata) __attribute__((section(".driverinfo"))) __attribute__((aligned(4))) driverinfo_t driver_##pname = {\
+	.name = #pname,\
+	.type = ptype,\
+	.data = pdata,\
+}
+
+extern void _driverinfo_start();
+extern void _driverinfo_end();
+
+#define DRIVERINFO_START ((driverinfo_t *)_driverinfo_start)
+#define DRIVERINFO_COUNT (((size_t)_driverinfo_end - (size_t)_driverinfo_start) / sizeof(driverinfo_t))
+
 /* device classes */
 extern devclass_t devclass_bus; /* device bus class */
 extern devclass_t devclass_storage; /* storage class */
