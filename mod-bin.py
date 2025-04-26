@@ -15,7 +15,9 @@ def module():
         'depsdir': 'bin',
 
         'cflags': '-ffreestanding -Iinclude',
-        'ldflags': '-T bin/linker.ld -ffreestanding -nostdlib -lgcc',
+        'ldflags': '-T bin/linker.ld -ffreestanding -nostdlib build/libc.a -lgcc',
+
+        'extra-ld': ('@$(STRIP) -g $@',),
 
         'targets': (
                 gen_bin('init'),

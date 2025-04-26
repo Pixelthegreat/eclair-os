@@ -256,7 +256,7 @@ class MakefileGenerator:
                 self.string += f'@$({archiver}) r {out} $({name}_OBJFILES)'
 
             for cmd in target.extrald:
-                self.string += f'\n\t@{cmd}'
+                self.string += f'\n\t{cmd}'
 
         # add source rules #
         self.add_source_rules(target, target.cfiles)
@@ -292,7 +292,7 @@ class MakefileGenerator:
             self.string += f'\n\t$(SRC_FILENAME)\n\t@$({comp}) $({name}_{flags}) -o {objfile} {fname}'
 
             for cmd in (target.extraasm if ext == 'asm' else target.extrac):
-                self.string += f'\n\t@{cmd}'
+                self.string += f'\n\t{cmd}'
 
 # main #
 def main():

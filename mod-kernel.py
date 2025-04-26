@@ -63,6 +63,9 @@ def module():
                     'asmflags': '-f$(ASMARCH)',
                     'ldflags': '-T kernel/linker.ld -ffreestanding -nostdlib -lgcc',
 
+                    # extra make commands #
+                    'extra-ld': ('@$(STRIP) -g $@',),
+
                     # files #
                     'c-files': (
 

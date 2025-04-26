@@ -11,6 +11,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define EC_ALIGN(x, sz) (((x) + ((sz)-1)) & ~((sz)-1))
+
 typedef long ec_ssize_t;
 typedef long ec_off_t;
 typedef int ec_mode_t;

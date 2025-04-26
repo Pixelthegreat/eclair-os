@@ -1,12 +1,14 @@
 include common.mk
 
-.PHONY: kernel boot bin tools bootdisk setup_common setup_init_common setup setup_init clean install_boot run run_uart_stdout run_debug help
+.PHONY: kernel boot libc bin tools
+.PHONY: bootdisk setup_common setup_init_common setup setup_init
+.PHONY: clean install_boot run run_uart_stdout run_debug help
 
 QEMUARGS_ALL=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw -usb -device piix3-usb-uhci,id=uhci -vga cirrus $(QEMUARGS)
 PYBUILDARGS_ALL=-arg mk-outdir=build $(PYBUILDARGS)
 
 # primary targets #
-all: kernel boot bin tools bootdisk
+all: kernel boot libc bin tools bootdisk
 
 # os kernel #
 kernel:
@@ -17,6 +19,11 @@ kernel:
 boot:
 	$(BUILD_TARGETNAME)
 	@make -s -f build/boot.mk all
+
+# c library #
+libc:
+	$(BUILD_TARGETNAME)
+	@make -s -f build/libc.mk all
 
 # application binaries #
 bin:
@@ -35,7 +42,7 @@ bootdisk: kernel bin
 
 # setup routines #
 setup_common:
-	@mkdir -pv build/kernel build/boot build/bin-obj build/bin build/tools
+	@mkdir -pv build/kernel build/boot build/libc build/bin-obj build/bin build/tools
 	@./pybuild $(PYBUILDARGS_ALL)
 
 setup_init_common:

@@ -11,6 +11,7 @@ CC=$(TARGET)-gcc
 LD=$(TARGET)-gcc
 ASM=nasm
 AR=$(TARGET)-ar
+STRIP=$(TARGET)-strip
 
 ASMARCH=elf32
 LDARCH=elf_i386

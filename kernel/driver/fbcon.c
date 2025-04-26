@@ -12,6 +12,11 @@ static fs_node_t *dev = NULL;
 static uint32_t width, height;
 static uint32_t idx = 0;
 
+#define LINEBUFSZ 4096
+static char linebuf[LINEBUFSZ];
+static size_t nlinebuf = 0;
+static size_t plinebuf = 0;
+
 #define ESCBUFSZ 32
 static char escbuf[32]; /* escape code buffer */
 static size_t nescbuf = 0; /* number of chars in buffer */
@@ -307,6 +312,17 @@ extern void fbcon_init_tty(void) {
 /* read */
 extern kssize_t fbcon_read(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint8_t *buf) {
 
+	size_t toread = 0;
+	if (nlinebuf) {
+
+		toread = MIN(nlinebuf, nbytes);
+		memcpy(buf, linebuf+plinebuf, toread);
+		nlinebuf -= toread;
+		plinebuf += toread;
+
+		return toread;
+	}
+
 	device_t *kbd = devclass_keyboard.first;
 	if (!kbd) return -1;
 
@@ -338,7 +354,7 @@ extern kssize_t fbcon_read(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint
 			if (!nread) continue;
 
 			nread--;
-			if (nread < nbytes-1) buf[nread] = 0;
+			if (nread < LINEBUFSZ-2) linebuf[nread] = 0;
 
 			uint32_t old = idx--;
 			fbcon_drawc(idx, ' ');
@@ -350,14 +366,28 @@ extern kssize_t fbcon_read(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint
 		char c = shift? ascii_shift[key]: ascii[key];
 		fbcon_printc(c);
 
-		if (nread < nbytes-1)
-			buf[nread] = c;
+		if (nread < LINEBUFSZ-2)
+			linebuf[nread] = c;
 		nread++;
 	}
 
 	fbcon_printc('\n');
-	buf[nread++] = 0;
-	return nread > nbytes? nbytes: nread;
+	if (nread <= LINEBUFSZ-2) {
+
+		linebuf[nread++] = '\n';
+		linebuf[nread++] = 0;
+	}
+
+	toread = MIN(nread, nbytes);
+	memcpy(buf, linebuf, toread);
+
+	if (nread > nbytes) {
+
+		plinebuf = nbytes;
+		nlinebuf = nread - nbytes;
+	}
+
+	return toread;
 }
 
 /* write */

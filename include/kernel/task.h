@@ -15,12 +15,12 @@
 #define TASK_NSTATES 6
 
 #define TASK_STACK_START 8
-#define TASK_STACK_END 16
-#define TASK_STACK_SIZE 0x8000
+#define TASK_STACK_END 40
+#define TASK_STACK_SIZE 0x20000
 #define TASK_STACK_ADDR ((void *)0x8000)
 
-#define TASK_ENV_START 16
-#define TASK_ENV_ADDR ((void *)0x10000)
+#define TASK_ENV_START 40
+#define TASK_ENV_ADDR ((void *)0x28000)
 
 #define TASK_PROG_START 0x800
 #define TASK_PROG_ADDR ((void *)0x800000)
