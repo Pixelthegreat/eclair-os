@@ -6,18 +6,17 @@
 /* main proc */
 extern int main(int argc, const char **argv) {
 
-	for (int i = 0; i < argc; i++)
-		printf("Argument %d: '%s'\n", i, argv[i]);
+	int pid = ec_pexec("/bin/sh", argv, NULL);
+	if (pid >= 0) {
 
-	/* print */
-	printf("Hello, world!\nPress enter to cause a kernel panic\n");
+		int status = 0;
+		while (!ECW_ISEXITED(status)) {
 
-	char buf[32];
-	fgets(buf, 32, stdin);
-	size_t len = strlen(buf);
-	if (buf[len-1] == '\n') buf[len-1] = 0;
-
-	printf("Input: %s\n", buf);
+			ec_timeval_t tv = {.sec = 1, .nsec = 500000000};
+			ec_pwait(pid, &status, &tv);
+		}
+		printf("Exited with code %d\n", ECW_TOEXITCODE(status));
+	}
 
 	ec_panic("You're not supposed to be here");
 }

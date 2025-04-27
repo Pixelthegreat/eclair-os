@@ -4,6 +4,8 @@
  * To use this header as a library, add this line of code:
  *   #define EC_IMPL
  * To JUST ONE source code file, before the #include statement.
+ *
+ * This step is not necessary if linked with libc.
  */
 #ifndef EC_H
 #define EC_H
@@ -35,8 +37,11 @@ typedef int ec_mode_t;
 #define ECN_ISATTY 14
 #define ECN_SIGNAL 15
 #define ECN_PANIC 16
+#define ECN_PEXEC 17
+#define ECN_PWAIT 18
+#define ECN_SLEEPNS 19
 
-#define ECN_COUNT 17
+#define ECN_COUNT 20
 
 /* generic system call wrappers */
 extern uint32_t ec_syscall3(uint32_t i, uint32_t a, uint32_t b, uint32_t c);
@@ -92,11 +97,12 @@ extern uint64_t ec_syscall3r2(uint32_t i, uint32_t a, uint32_t b, uint32_t c) {
 #endif /* EC_IMPL */
 
 /*
- * Exit the current task/process. No return value or arguments.
+ * Exit the current task/process. Does not return.
+ *   ebx/code = Exit status code
  */
-static inline void ec_exit(void) {
+static inline void ec_exit(int code) {
 
-	(void)ec_syscall3(ECN_EXIT, 0, 0, 0);
+	(void)ec_syscall3(ECN_EXIT, (uint32_t)code, 0, 0);
 }
 
 /*
@@ -288,6 +294,58 @@ static inline int ec_signal(int sig, void (*handler)()) {
 static inline int ec_panic(const char *msg) {
 
 	return (int)ec_syscall3(ECN_PANIC, (uint32_t)msg, 0, 0);
+}
+
+/*
+ * Execute a process/task.
+ *   ebx/path = Path to executable binary
+ *   ecx/argv = Arguments
+ *   edx/envp = Environment or NULL
+ *   eax (return) = Process/task id of task if successful, negative on error
+ * If envp is NULL, then the current task's environment is used.
+ *
+ * This system call loads a process but does not wait for it to finish executing.
+ * Additionally, unlike the Unix execve family, this does not replace the current process image.
+ */
+static inline int ec_pexec(const char *path, const char **argv, const char **envp) {
+
+	return (int)ec_syscall3(ECN_PEXEC, (uint32_t)path, (uint32_t)argv, (uint32_t)envp);
+}
+
+/*
+ * Wait for a process/task.
+ *   ebx/pid = ID of process/task
+ *   ecx/status = Wait status bitfield
+ *   edx/timeout = Timeout of system call or NULL
+ *   eax (return) = Zero if successful, negative on error
+ *
+ * If timeout is NULL, then this system call will wait until the task changes state.
+ * If the timeout is 0, then it will not wait for a status change.
+ * Otherwise, then it will wait until either the task changes state or the timeout is reached.
+ *
+ * If pid is invalid, the status will be set to ECW_EXITED regardless.
+ */
+#define ECW_EXITCODE 0xff
+#define ECW_EXITED 0x100
+#define ECW_TIMEOUT 0x200
+
+#define ECW_TOEXITCODE(st) ((st) & ECW_EXITCODE)
+#define ECW_ISEXITED(st) ((st) & ECW_EXITED)
+#define ECW_ISTIMEOUT(st) ((st) & ECW_TIMEOUT)
+
+static inline int ec_pwait(int pid, int *status, ec_timeval_t *timeout) {
+
+	return (int)ec_syscall3(ECN_PWAIT, (uint32_t)pid, (uint32_t)status, (uint32_t)timeout);
+}
+
+/*
+ * Sleep with a nanosecond resolution.
+ *   ebx/tv = Time info
+ *   eax (return) = Zero if successful, negative on error
+ */
+static inline int ec_sleepns(ec_timeval_t *tv) {
+
+	return (int)ec_syscall3(ECN_SLEEPNS, (uint32_t)tv, 0, 0);
 }
 
 #endif /* EC_H */

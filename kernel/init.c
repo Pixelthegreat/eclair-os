@@ -27,7 +27,7 @@ extern void init_load(void) {
 		NULL,
 	};
 
-	if (elf_load_task(prog, argv, env) < 0)
+	if (elf_load_task(prog, argv, env, false) < 0)
 		kpanic(PANIC_CODE_NONE, "Failed to load init process", NULL);
 	kprintf(LOG_INFO, "Loaded init process '%s' with profile '%s'", prog, prof);
 }

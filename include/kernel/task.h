@@ -11,8 +11,9 @@
 #define TASK_SLEEPING 3
 #define TASK_TERMINATED 4
 #define TASK_SIGNALED 5
+#define TASK_PWAIT 6
 
-#define TASK_NSTATES 6
+#define TASK_NSTATES 7
 
 #define TASK_STACK_START 8
 #define TASK_STACK_END 40
@@ -91,6 +92,9 @@ typedef struct task {
 	uint32_t entp; /* entry point */
 	const char **argv; /* initial argv */
 	const char **envp; /* initial envp */
+	bool freeargs; /* free argv and envp when done */
+	int pwait; /* waiting on process id */
+	int wstatus; /* wait status */
 } task_t;
 
 extern task_t *ktask; /* base kernel task */
@@ -132,6 +136,7 @@ extern void task_signal(task_t *task, uint32_t sig); /* raise signal on other ta
 extern void task_handle_signal(void); /* routine to handle signal; do not call directly */
 extern task_t *task_get(int id); /* get task from id */
 extern void *task_sbrk(intptr_t inc); /* increment or decrement breakpoint */
+extern int task_pwait(int pid, uint64_t timeout); /* wait for process status change */
 
 extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask); /* open file */
 extern kssize_t task_fs_read(int fd, void *buf, size_t cnt); /* read from file */

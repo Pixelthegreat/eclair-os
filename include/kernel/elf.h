@@ -4,6 +4,6 @@
 #include <kernel/types.h>
 
 /* functions */
-extern int elf_load_task(const char *path, const char **argv, const char **envp); /* load an executable */
+extern int elf_load_task(const char *path, const char **argv, const char **envp, bool freeargs); /* load an executable */
 
 #endif /* ECLAIR_ELF_H */

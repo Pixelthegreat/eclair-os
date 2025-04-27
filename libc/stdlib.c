@@ -51,7 +51,7 @@ extern void __libc_main(int argc, const char **argv) {
 /* environment functions */
 extern void abort(void) {
 
-	ec_exit();
+	ec_exit(1);
 }
 
 extern int atexit(void (*func)(void)) {
@@ -72,7 +72,7 @@ extern void exit(int status) {
 extern void _Exit(int status) {
 
 	__libc_fini();
-	ec_exit();
+	ec_exit(status);
 }
 
 extern char *getenv(const char *name) {

@@ -108,7 +108,7 @@ static void load_entry() {
 }
 
 /* load an executable */
-extern int elf_load_task(const char *path, const char **argv, const char **envp) {
+extern int elf_load_task(const char *path, const char **argv, const char **envp, bool freeargs) {
 
 	task_lockcli();
 	if (!dummy)
@@ -121,17 +121,21 @@ extern int elf_load_task(const char *path, const char **argv, const char **envp)
 	res = 0;
 	task_lockcli();
 	task_t *task = task_new(NULL, load_entry);
+	int pid = task->id;
 	
 	task->load.path = path;
 	task->argv = argv;
 	task->envp = envp;
+	task->freeargs = freeargs;
 	
 	task_unlockcli();
 	while (!res);
+	int pres = res;
+	res = 0;
 
 	/* return result */
 	task_release();
 
-	if (res < 0) return res;
-	return 0;
+	if (pres < 0) return pres;
+	return pid;
 }

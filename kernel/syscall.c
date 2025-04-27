@@ -2,6 +2,8 @@
 #include <kernel/panic.h>
 #include <kernel/string.h>
 #include <kernel/task.h>
+#include <kernel/elf.h>
+#include <kernel/mm/heap.h>
 #include <kernel/driver/rtc.h>
 #include <kernel/syscall.h>
 
@@ -22,6 +24,9 @@ static idt_isr_t sysh[ECN_COUNT] = {
 	[ECN_ISATTY] = sys_isatty,
 	[ECN_SIGNAL] = sys_signal,
 	[ECN_PANIC] = sys_panic,
+	[ECN_PEXEC] = sys_pexec,
+	[ECN_PWAIT] = sys_pwait,
+	[ECN_SLEEPNS] = sys_sleepns,
 };
 
 #define RETURN_ERROR(c) ({\
@@ -55,6 +60,9 @@ extern void sys_handle(idt_regs_t *regs) {
 /* exit task */
 extern void sys_exit(idt_regs_t *regs) {
 
+	int code = (int)regs->ebx;
+
+	task_active->load.res = code;
 	task_terminate();
 }
 
@@ -225,10 +233,137 @@ extern void sys_signal(idt_regs_t *regs) {
 extern void sys_panic(idt_regs_t *regs) {
 
 	const char *msg = (const char *)regs->ebx;
-	
+
+	if (!msg) RETURN_ERROR(-1);
 	if (task_active->id != 1)
 		RETURN_ERROR(-1);
 
 	kpanic(PANIC_CODE_NONE, msg, regs);
+	regs->eax = 0;
+}
+
+/* execute a process */
+extern void sys_pexec(idt_regs_t *regs) {
+
+	const char *path = (const char *)regs->ebx;
+	const char **argv = (const char **)regs->ecx;
+	const char **envp = (const char **)regs->edx;
+
+	if (!path || !argv)
+		RETURN_ERROR(-1);
+	if (!envp) envp = *((const char ***)TASK_STACK_ADDR_ENVP);
+
+	/* reconstruct path */
+	size_t pathlen = strlen(path) + 1;
+	char *npath = (char *)kmalloc(pathlen);
+	memcpy(npath, path, pathlen);
+
+	/* reconstruct argv */
+	size_t size = 0;
+	size_t pos = 0;
+	size_t i = 0;
+	while (argv[i]) {
+
+		size_t len = strlen(argv[i]) + 1;
+
+		size += sizeof(const char *);
+		size += len;
+		i++;
+	}
+	size += sizeof(const char *); i++;
+	pos = i * sizeof(const char *);
+
+	task_lockcli();
+	const char **nargv = kmalloc(size);
+	task_unlockcli();
+
+	for (size_t j = 0; j < i; j++) {
+
+		char *arg = (char *)nargv + pos;
+		nargv[j] = argv[j]? arg: NULL;
+		if (argv[j]) {
+
+			size_t len = strlen(argv[j]) + 1;
+			memcpy(arg, argv[j], len);
+			pos += len;
+		}
+	}
+
+	/* reconstruct envp */
+	size = 0;
+	pos = 0;
+	i = 0;
+	while (envp[i]) {
+
+		size_t len = strlen(envp[i]) + 1;
+
+		size += sizeof(const char *);
+		size += len;
+		i++;
+	}
+	size += sizeof(const char *); i++;
+	pos = i * sizeof(const char *);
+
+	task_lockcli();
+	const char **nenvp = kmalloc(size);
+	task_unlockcli();
+
+	for (size_t j = 0; j < i; j++) {
+
+		char *arg = (char *)nenvp + pos;
+		nenvp[j] = envp[j]? arg: NULL;
+		if (envp[j]) {
+
+			size_t len = strlen(envp[j]) + 1;
+			memcpy(arg, envp[j], len);
+			pos += len;
+		}
+	}
+
+	/* run process */
+	int pid = elf_load_task(npath, nargv, nenvp, true);
+	if (pid < 0) {
+
+		task_lockcli();
+		kfree(npath);
+		kfree(nargv);
+		kfree(nenvp);
+		task_unlockcli();
+
+		RETURN_ERROR(-1);
+	}
+	regs->eax = (uint32_t)pid;
+}
+
+/* wait for a process to change status */
+extern void sys_pwait(idt_regs_t *regs) {
+
+	int pid = (int)regs->ebx;
+	int *wstatus = (int *)regs->ecx;
+	ec_timeval_t *timeout = (ec_timeval_t *)regs->edx;
+
+	if (!wstatus) RETURN_ERROR(-1);
+
+	uint64_t vtimeout = timeout? (timeout->sec * 1000000000) + timeout->nsec: 100000000000000;
+	int res = task_pwait(pid, vtimeout);
+
+	if (res < 0) RETURN_ERROR(-1);
+	*wstatus = res;
+	regs->eax = 0;
+}
+
+/* sleep for fixed amount of time */
+extern void sys_sleepns(idt_regs_t *regs) {
+
+	ec_timeval_t *tv = (ec_timeval_t *)regs->ebx;
+	if (!tv) RETURN_ERROR(-1);
+
+	uint64_t ns = (tv->sec * 1000000000) + tv->nsec;
+
+	task_active->stale = false;
+	task_nano_sleep(ns);
+	if (task_active->stale)
+		RETURN_ERROR(-1);
+
 	regs->eax = 0;
 }

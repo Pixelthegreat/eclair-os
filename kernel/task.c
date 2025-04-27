@@ -6,6 +6,7 @@
 #include <kernel/mm/gdt.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/heap.h>
+#include <ec.h>
 #include <kernel/task.h>
 
 static const char *signames[TASK_NSIG] = {
@@ -39,6 +40,7 @@ static struct task_list *paused = NULL;
 static struct task_list *sleeping = NULL;
 static struct task_list *terminated = NULL;
 static struct task_list *signaled = NULL;
+static struct task_list *pwaiting = NULL;
 
 static uint64_t timens = 0; /* time in nanoseconds */
 
@@ -50,6 +52,7 @@ static struct {
 	page_frame_id_t frame; /* frame */
 	page_id_t page; /* page */
 } pagedirs[NTASKS]; /* per-task memory space */
+static int taskres[NTASKS]; /* task result codes */
 
 /* lock counters */
 static uint32_t nlockcli = 0;
@@ -141,6 +144,30 @@ static void task_irq(idt_regs_t *regs) {
 		cur = next;
 	}
 
+	/* wake up tasks waiting on other tasks */
+	cur = pwaiting->first;
+	while (cur) {
+
+		task_t *next = cur->next;
+
+		if (cur->waketime && timens >= cur->waketime) {
+
+			cur->wstatus = ECW_TIMEOUT;
+			task_unblock(cur);
+		}
+		else {
+
+			task_t *wtask = task_get(cur->pwait);
+			if (!wtask || wtask->state == TASK_TERMINATED) {
+
+				int res = (cur->pwait < 0 || cur->pwait >= NTASKS)? 0: taskres[cur->pwait];
+				cur->wstatus = res | ECW_EXITED;
+				task_unblock(cur);
+			}
+		}
+		cur = next;
+	}
+
 	/* end of time slice */
 	if (task_active->nticks && !--task_active->nticks)
 		task_schedule();
@@ -193,6 +220,7 @@ extern void task_init(void) {
 	sleeping = &lists[TASK_SLEEPING];
 	terminated = &lists[TASK_TERMINATED];
 	signaled = &lists[TASK_SIGNALED];
+	pwaiting = &lists[TASK_PWAIT];
 
 	ktask = task_new(&kernel_stack_top, NULL);
 	ktask->cr3 = page_get_directory();
@@ -267,6 +295,9 @@ extern task_t *task_new(void *esp, void *seteip) {
 	task->brkp = (uint32_t)TASK_PROG_ADDR;
 	task->argv = NULL;
 	task->envp = NULL;
+	task->freeargs = false;
+	task->pwait = 0;
+	task->wstatus = 0;
 
 	task_add_to_list(ready, task);
 	taskmap[id] = task;
@@ -437,6 +468,7 @@ extern void task_free(void) {
 /* terminate current task */
 extern void task_terminate(void) {
 
+	taskres[task_active->id] = task_active->load.res & 0xff;
 	task_free();
 	task_block(TASK_TERMINATED);
 }
@@ -583,6 +615,15 @@ extern void task_entry(void) {
 			str += len;
 		}
 		ptr[i++] = NULL;
+
+		if (task_active->freeargs) {
+
+			task_lockcli();
+			kfree((void *)task_active->load.path);
+			kfree(task_active->argv);
+			kfree(task_active->envp);
+			task_unlockcli();
+		}
 	}
 
 	/* go to user mode */
@@ -691,6 +732,29 @@ extern void *task_sbrk(intptr_t inc) {
 
 	task_unlockcli();
 	return ptr;
+}
+
+/* wait for process status change */
+extern int task_pwait(int pid, uint64_t timeout) {
+
+	task_lockcli();
+	task_t *task = task_get(pid);
+	if (!task || task->state == TASK_TERMINATED) {
+
+		task_unlockcli();
+		int res = (pid < 0 || pid >= NTASKS)? 0: taskres[pid];
+		return res | ECW_EXITED;
+	}
+	task_active->pwait = pid;
+	task_active->wstatus = 0;
+	task_active->waketime = timeout + timens;
+	task_unlockcli();
+	
+	task_active->stale = false;
+	task_block(TASK_PWAIT);
+	if (task_active->stale) return -1;
+
+	return task_active->wstatus;
 }
 
 /* open file */
