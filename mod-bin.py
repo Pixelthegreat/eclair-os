@@ -20,6 +20,7 @@ def module():
         'extra-ld': ('@$(STRIP) -g $@',),
 
         'targets': (
+                gen_bin('hello'),
                 gen_bin('init'),
                 gen_bin('sh'),
             )

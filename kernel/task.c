@@ -844,6 +844,8 @@ extern kssize_t task_fs_read(int fd, void *buf, size_t cnt) {
 	kssize_t nread = fs_read(node, (uint32_t)task_active->files[fd].pos, cnt, (uint8_t *)buf);
 	task_release();
 
+	if (nread >= 0) task_active->files[fd].pos += nread;
+
 	return nread;
 }
 
@@ -864,6 +866,8 @@ extern kssize_t task_fs_write(int fd, void *buf, size_t cnt) {
 
 	kssize_t nwrite = fs_write(node, (uint32_t)task_active->files[fd].pos, cnt, (uint8_t *)buf);
 	task_release();
+
+	if (nwrite >= 0) task_active->files[fd].pos += nwrite;
 
 	return nwrite;
 }

@@ -10,15 +10,14 @@ extern char *strcpy(char *restrict s1, const char *restrict s2) {
 	return p;
 }
 
-/* get string length */
-extern size_t strlen(const char *s) {
+/* compare strings */
+extern int strcmp(const char *s1, const char *s2) {
 
-	size_t n = 0;
-	while (*s++) n++;
-	return n;
+	for (; *s1 == *s2 && *s1; s1++, s2++);
+
+	return *(unsigned char *)s1 - *(unsigned char *)s2;
 }
 
-/* compare strings */
 extern int strncmp(const char *a, const char *b, size_t n) {
 
 	if (!n--) return 0;
@@ -35,4 +34,12 @@ extern char *strchr(const char *str, int ch) {
 		str++;
 	}
 	return NULL;
+}
+
+/* get string length */
+extern size_t strlen(const char *s) {
+
+	size_t n = 0;
+	while (*s++) n++;
+	return n;
 }

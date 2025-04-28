@@ -12,6 +12,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <errno.h>
 
 #define EC_ALIGN(x, sz) (((x) + ((sz)-1)) & ~((sz)-1))
 
@@ -96,6 +97,10 @@ extern uint64_t ec_syscall3r2(uint32_t i, uint32_t a, uint32_t b, uint32_t c) {
 
 #endif /* EC_IMPL */
 
+#define __ec_seterrno(rtype, call) rtype res = (rtype)call;\
+	if (res < 0) { errno = -(int)res; return -1; }\
+	return res
+
 /*
  * Exit the current task/process. Does not return.
  *   ebx/code = Exit status code
@@ -119,7 +124,7 @@ static inline void ec_exit(int code) {
 
 static inline int ec_open(const char *path, int flags, ec_mode_t mode) {
 
-	return (int)ec_syscall3(ECN_OPEN, (uint32_t)path, (uint32_t)flags, (uint32_t)mode);
+	__ec_seterrno(int, ec_syscall3(ECN_OPEN, (uint32_t)path, (uint32_t)flags, (uint32_t)mode));
 }
 
 /*
@@ -131,7 +136,7 @@ static inline int ec_open(const char *path, int flags, ec_mode_t mode) {
  */
 static inline ec_ssize_t ec_read(int fd, const void *buf, size_t cnt) {
 
-	return (ec_ssize_t)ec_syscall3(ECN_READ, (uint32_t)fd, (uint32_t)buf, (uint32_t)cnt);
+	__ec_seterrno(ec_ssize_t, ec_syscall3(ECN_READ, (uint32_t)fd, (uint32_t)buf, (uint32_t)cnt));
 }
 
 /*
@@ -143,7 +148,7 @@ static inline ec_ssize_t ec_read(int fd, const void *buf, size_t cnt) {
  */
 static inline ec_ssize_t ec_write(int fd, const void *buf, size_t cnt) {
 
-	return (ec_ssize_t)ec_syscall3(ECN_WRITE, (uint32_t)fd, (uint32_t)buf, (uint32_t)cnt);
+	__ec_seterrno(ec_ssize_t, ec_syscall3(ECN_WRITE, (uint32_t)fd, (uint32_t)buf, (uint32_t)cnt));
 }
 
 /*
@@ -155,7 +160,7 @@ static inline ec_ssize_t ec_write(int fd, const void *buf, size_t cnt) {
  */
 static inline ec_off_t ec_lseek(int fd, ec_off_t pos, int whence) {
 
-	return (ec_off_t)ec_syscall3(ECN_LSEEK, (uint32_t)fd, (uint32_t)pos, (uint32_t)whence);
+	__ec_seterrno(ec_off_t, ec_syscall3(ECN_LSEEK, (uint32_t)fd, (uint32_t)pos, (uint32_t)whence));
 }
 
 /*
@@ -165,7 +170,7 @@ static inline ec_off_t ec_lseek(int fd, ec_off_t pos, int whence) {
  */
 static inline int ec_close(int fd) {
 
-	return (int)ec_syscall3(ECN_CLOSE, (uint32_t)fd, 0, 0);
+	__ec_seterrno(int, ec_syscall3(ECN_CLOSE, (uint32_t)fd, 0, 0));
 }
 
 /*
@@ -192,7 +197,7 @@ typedef struct {
 
 static inline int ec_stat(const char *path, ec_stat_t *st) {
 
-	return (int)ec_syscall3(ECN_STAT, (uint32_t)path, (uint32_t)st, 0);
+	__ec_seterrno(int, ec_syscall3(ECN_STAT, (uint32_t)path, (uint32_t)st, 0));
 }
 
 /*
@@ -203,7 +208,7 @@ static inline int ec_stat(const char *path, ec_stat_t *st) {
  */
 static inline int ec_fstat(int fd, ec_stat_t *st) {
 
-	return (int)ec_syscall3(ECN_FSTAT, (uint32_t)fd, (uint32_t)st, 0);
+	__ec_seterrno(int, ec_syscall3(ECN_FSTAT, (uint32_t)fd, (uint32_t)st, 0));
 }
 
 /*
@@ -212,7 +217,7 @@ static inline int ec_fstat(int fd, ec_stat_t *st) {
  */
 static inline int ec_getpid(void) {
 
-	return (int)ec_syscall3(ECN_GETPID, 0, 0, 0);
+	__ec_seterrno(int, ec_syscall3(ECN_GETPID, 0, 0, 0));
 }
 
 /*
@@ -223,7 +228,7 @@ static inline int ec_getpid(void) {
  */
 static inline int ec_kill(int pid, int sig) {
 
-	return (int)ec_syscall3(ECN_KILL, (uint32_t)pid, (uint32_t)sig, 0);
+	__ec_seterrno(int, ec_syscall3(ECN_KILL, (uint32_t)pid, (uint32_t)sig, 0));
 }
 
 /*
@@ -250,7 +255,7 @@ typedef struct ec_timeval {
 
 static inline int ec_gettimeofday(ec_timeval_t *tv) {
 
-	return (int)ec_syscall3(ECN_GETTIMEOFDAY, (uint32_t)tv, 0, 0);
+	__ec_seterrno(int, ec_syscall3(ECN_GETTIMEOFDAY, (uint32_t)tv, 0, 0));
 }
 
 /*
@@ -261,7 +266,7 @@ static inline int ec_gettimeofday(ec_timeval_t *tv) {
  */
 static inline int ec_timens(ec_timeval_t *tv) {
 
-	return (int)ec_syscall3(ECN_TIMENS, (uint32_t)tv, 0, 0);
+	__ec_seterrno(int, ec_syscall3(ECN_TIMENS, (uint32_t)tv, 0, 0));
 }
 
 /*
@@ -271,7 +276,7 @@ static inline int ec_timens(ec_timeval_t *tv) {
  */
 static inline int ec_isatty(int fd) {
 
-	return (int)ec_syscall3(ECN_ISATTY, (uint32_t)fd, 0, 0);
+	__ec_seterrno(int, ec_syscall3(ECN_ISATTY, (uint32_t)fd, 0, 0));
 }
 
 /*
@@ -282,7 +287,7 @@ static inline int ec_isatty(int fd) {
  */
 static inline int ec_signal(int sig, void (*handler)()) {
 
-	return (int)ec_syscall3(ECN_SIGNAL, (uint32_t)sig, (uint32_t)handler, 0);
+	__ec_seterrno(int, ec_syscall3(ECN_SIGNAL, (uint32_t)sig, (uint32_t)handler, 0));
 }
 
 /*
@@ -293,7 +298,7 @@ static inline int ec_signal(int sig, void (*handler)()) {
  */
 static inline int ec_panic(const char *msg) {
 
-	return (int)ec_syscall3(ECN_PANIC, (uint32_t)msg, 0, 0);
+	__ec_seterrno(int, ec_syscall3(ECN_PANIC, (uint32_t)msg, 0, 0));
 }
 
 /*
@@ -309,7 +314,7 @@ static inline int ec_panic(const char *msg) {
  */
 static inline int ec_pexec(const char *path, const char **argv, const char **envp) {
 
-	return (int)ec_syscall3(ECN_PEXEC, (uint32_t)path, (uint32_t)argv, (uint32_t)envp);
+	__ec_seterrno(int, ec_syscall3(ECN_PEXEC, (uint32_t)path, (uint32_t)argv, (uint32_t)envp));
 }
 
 /*
@@ -335,7 +340,7 @@ static inline int ec_pexec(const char *path, const char **argv, const char **env
 
 static inline int ec_pwait(int pid, int *status, ec_timeval_t *timeout) {
 
-	return (int)ec_syscall3(ECN_PWAIT, (uint32_t)pid, (uint32_t)status, (uint32_t)timeout);
+	__ec_seterrno(int, ec_syscall3(ECN_PWAIT, (uint32_t)pid, (uint32_t)status, (uint32_t)timeout));
 }
 
 /*
@@ -345,7 +350,7 @@ static inline int ec_pwait(int pid, int *status, ec_timeval_t *timeout) {
  */
 static inline int ec_sleepns(ec_timeval_t *tv) {
 
-	return (int)ec_syscall3(ECN_SLEEPNS, (uint32_t)tv, 0, 0);
+	__ec_seterrno(int, ec_syscall3(ECN_SLEEPNS, (uint32_t)tv, 0, 0));
 }
 
 #endif /* EC_H */

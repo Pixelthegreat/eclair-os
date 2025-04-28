@@ -372,11 +372,8 @@ extern kssize_t fbcon_read(fs_node_t *_dev, uint32_t offset, size_t nbytes, uint
 	}
 
 	fbcon_printc('\n');
-	if (nread <= LINEBUFSZ-2) {
-
+	if (nread <= LINEBUFSZ-2)
 		linebuf[nread++] = '\n';
-		linebuf[nread++] = 0;
-	}
 
 	toread = MIN(nread, nbytes);
 	memcpy(buf, linebuf, toread);

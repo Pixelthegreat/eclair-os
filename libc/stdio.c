@@ -156,13 +156,12 @@ extern FILE *fopen(const char *restrict filename, const char *restrict mode) {
 /* get character from stream */
 extern int fgetc(FILE *stream) {
 
-	if (stream->errno) return EOF;
+	if (stream->errno || stream->eof) return EOF;
 
 	/* read more */
 	if (stream->rpos >= stream->rcnt) {
 
-		if (stream->eof) return EOF;
-
+		stream->rcnt = 0;
 		stream->rpos = 0;
 		ec_ssize_t nread = ec_read(stream->fd, stream->rbuf, BUFSIZ);
 
@@ -178,6 +177,7 @@ extern int fgetc(FILE *stream) {
 			return EOF;
 		}
 		stream->rcnt = (size_t)nread;
+		if (!nread) return EOF;
 	}
 	return (int)stream->rbuf[stream->rpos++];
 }
@@ -194,6 +194,8 @@ extern char *fgets(char *restrict s, int n, FILE *restrict stream) {
 			s[p++] = (char)ch;
 	}
 	s[p] = 0;
+
+	if (ch == EOF) return NULL;
 	return s;
 }
 

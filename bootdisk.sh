@@ -28,8 +28,8 @@ mkdir -pv tmp/boot/grub tmp/dev tmp/bin
 
 cp -v boot/s3b/menu.cfg tmp/boot
 cp -v build/e.clair tmp/boot
-cp -v base/hello.txt tmp
 cp -RTv build/bin tmp/bin
+cp -RTv base tmp
 
 # unmount device #
 umount tmp
