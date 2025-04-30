@@ -26,5 +26,6 @@ extern void sys_panic(idt_regs_t *regs); /* cause a kernel panic */
 extern void sys_pexec(idt_regs_t *regs); /* execute a process */
 extern void sys_pwait(idt_regs_t *regs); /* wait for a process to change status */
 extern void sys_sleepns(idt_regs_t *regs); /* sleep for fixed amount of time */
+extern void sys_readdir(idt_regs_t *regs); /* read directory entries */
 
 #endif /* ECLAIR_SYSCALL_H */

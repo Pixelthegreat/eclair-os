@@ -1,6 +1,4 @@
 #include <stdlib.h>
-
-#define EC_IMPL
 #include <ec.h>
 
 const char **__libc_argv = NULL;
@@ -25,12 +23,14 @@ extern void _start() {
 	int argc = 0;
 	while (__libc_argv[argc]) argc++;
 
+	ec_signal(5, sigsegv);
+
 	/* open stdin, stdout and stderr */
 	ec_open(getenv("EC_STDIN"), ECF_READ, 0);
 	ec_open(getenv("EC_STDOUT"), ECF_WRITE, 0);
 	ec_open(getenv("EC_STDERR"), ECF_WRITE, 0);
 
-	ec_signal(5, sigsegv);
+	ec_chdir(getenv("PWD"));
 
 	__libc_main(argc, __libc_argv);
 }

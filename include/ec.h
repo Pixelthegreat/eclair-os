@@ -1,11 +1,8 @@
 /*
  * == Eclair OS system call declarations and documentation ==
  *
- * To use this header as a library, add this line of code:
- *   #define EC_IMPL
- * To JUST ONE source code file, before the #include statement.
- *
- * This step is not necessary if linked with libc.
+ * For clarity: Tasks are referred to as processes and
+ * tasks interchangeably.
  */
 #ifndef EC_H
 #define EC_H
@@ -41,61 +38,25 @@ typedef int ec_mode_t;
 #define ECN_PEXEC 17
 #define ECN_PWAIT 18
 #define ECN_SLEEPNS 19
+#define ECN_READDIR 20
 
-#define ECN_COUNT 20
+#define ECN_COUNT 21
 
-/* generic system call wrappers */
-extern uint32_t ec_syscall3(uint32_t i, uint32_t a, uint32_t b, uint32_t c);
-extern uint64_t ec_syscall3r2(uint32_t i, uint32_t a, uint32_t b, uint32_t c);
-
-#ifdef EC_IMPL
+#define EC_PATHSZ 256
 
 /*
  * System call with 3 arguments and a uint32_t return value:
  *   eax = i, ebx = a, ecx = b, edx = c
  *   ret = eax
  */
-extern uint32_t ec_syscall3(uint32_t i, uint32_t a, uint32_t b, uint32_t c) {
-
-	uint32_t ret = 0;
-	asm volatile(
-		"push %%ebx\n"
-		"mov %0, %%eax\n"
-		"mov %1, %%ebx\n"
-		"mov %2, %%ecx\n"
-		"mov %3, %%edx\n"
-		"int $0x80\n"
-		"pop %%ebx\n"
-		"mov %%eax, %4\n"
-		: : "m"(i), "m"(a), "m"(b), "m"(c), "m"(ret)
-		);
-	return ret;
-}
+extern uint32_t ec_syscall3(uint32_t i, uint32_t a, uint32_t b, uint32_t c);
 
 /*
  * System call with 3 arguments and a uint64_t return value:
  *   eax = i, ebx = a, ecx = b, edx = c
  *   ret = (ecx << 32) | eax
  */
-extern uint64_t ec_syscall3r2(uint32_t i, uint32_t a, uint32_t b, uint32_t c) {
-
-	uint32_t reta = 0, retb = 0;
-	asm volatile(
-		"push %%ebx\n"
-		"mov %0, %%eax\n"
-		"mov %1, %%ebx\n"
-		"mov %2, %%ecx\n"
-		"mov %3, %%edx\n"
-		"int $0x80\n"
-		"pop %%ebx\n"
-		"mov %%eax, %4\n"
-		"mov %%ecx, %5\n"
-		: : "m"(i), "m"(a), "m"(b), "m"(c), "m"(reta), "m"(retb)
-		);
-	return ((uint64_t)retb << 32) | (uint64_t)reta;
-}
-
-#endif /* EC_IMPL */
+extern uint64_t ec_syscall3r2(uint32_t i, uint32_t a, uint32_t b, uint32_t c);
 
 #define __ec_seterrno(rtype, call) rtype res = (rtype)call;\
 	if (res < 0) { errno = -(int)res; return -1; }\
@@ -105,10 +66,7 @@ extern uint64_t ec_syscall3r2(uint32_t i, uint32_t a, uint32_t b, uint32_t c) {
  * Exit the current task/process. Does not return.
  *   ebx/code = Exit status code
  */
-static inline void ec_exit(int code) {
-
-	(void)ec_syscall3(ECN_EXIT, (uint32_t)code, 0, 0);
-}
+extern void ec_exit(int code);
 
 /*
  * Open a file.
@@ -122,10 +80,7 @@ static inline void ec_exit(int code) {
 #define ECF_TRUNCATE 0x4
 #define ECF_CREATE 0x100
 
-static inline int ec_open(const char *path, int flags, ec_mode_t mode) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_OPEN, (uint32_t)path, (uint32_t)flags, (uint32_t)mode));
-}
+extern int ec_open(const char *path, int flags, ec_mode_t mode);
 
 /*
  * Read from a file.
@@ -134,10 +89,7 @@ static inline int ec_open(const char *path, int flags, ec_mode_t mode) {
  *   edx/cnt = Number of bytes to read
  *   eax (return) = Number of bytes read if successful, negative on error
  */
-static inline ec_ssize_t ec_read(int fd, const void *buf, size_t cnt) {
-
-	__ec_seterrno(ec_ssize_t, ec_syscall3(ECN_READ, (uint32_t)fd, (uint32_t)buf, (uint32_t)cnt));
-}
+extern ec_ssize_t ec_read(int fd, const void *buf, size_t cnt);
 
 /*
  * Write to a file.
@@ -146,10 +98,7 @@ static inline ec_ssize_t ec_read(int fd, const void *buf, size_t cnt) {
  *   edx/cnt = Number of bytes to write
  *   eax (return) = Number of bytes written if successful, negative on error
  */
-static inline ec_ssize_t ec_write(int fd, const void *buf, size_t cnt) {
-
-	__ec_seterrno(ec_ssize_t, ec_syscall3(ECN_WRITE, (uint32_t)fd, (uint32_t)buf, (uint32_t)cnt));
-}
+extern ec_ssize_t ec_write(int fd, const void *buf, size_t cnt);
 
 /*
  * Go to a position in a file.
@@ -158,20 +107,14 @@ static inline ec_ssize_t ec_write(int fd, const void *buf, size_t cnt) {
  *   edx/whence = The relative start position (SEEK_SET, SEEK_CUR, SEEK_END)
  *   eax (return) = The position seeked relative to the beginning of the file
  */
-static inline ec_off_t ec_lseek(int fd, ec_off_t pos, int whence) {
-
-	__ec_seterrno(ec_off_t, ec_syscall3(ECN_LSEEK, (uint32_t)fd, (uint32_t)pos, (uint32_t)whence));
-}
+extern ec_off_t ec_lseek(int fd, ec_off_t pos, int whence);
 
 /*
  * Close a file.
  *   ebx/fd = File descriptor
  *   eax (return) = Zero if successful, negative on error
  */
-static inline int ec_close(int fd) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_CLOSE, (uint32_t)fd, 0, 0));
-}
+extern int ec_close(int fd);
 
 /*
  * Stat a file.
@@ -179,10 +122,16 @@ static inline int ec_close(int fd) {
  *   ecx/st = Stat buffer
  *   eax (return) = Zero if successful, negative on error
  */
+#define ECS_REG 0x1
+#define ECS_DIR 0x2
+#define ECS_CHRDEV 0x4
+#define ECS_BLKDEV 0x8
+
 typedef struct {
 	int dev; /* device id */
 	int ino; /* file serial number */
 	ec_mode_t mode; /* file mode */
+	int flags; /* file flags */
 	int nlink; /* number of hard links */
 	int uid; /* user owner */
 	int gid; /* group owner */
@@ -195,10 +144,7 @@ typedef struct {
 	int blocks; /* number of blocks */
 } ec_stat_t;
 
-static inline int ec_stat(const char *path, ec_stat_t *st) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_STAT, (uint32_t)path, (uint32_t)st, 0));
-}
+extern int ec_stat(const char *path, ec_stat_t *st);
 
 /*
  * Stat an open file.
@@ -206,40 +152,28 @@ static inline int ec_stat(const char *path, ec_stat_t *st) {
  *   ecx = Stat buffer
  *   eax (return) = Zero if successful, negative on error
  */
-static inline int ec_fstat(int fd, ec_stat_t *st) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_FSTAT, (uint32_t)fd, (uint32_t)st, 0));
-}
+extern int ec_fstat(int fd, ec_stat_t *st);
 
 /*
  * Get current process id.
- *   eax (return) = Process/task id
+ *   eax (return) = Process id
  */
-static inline int ec_getpid(void) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_GETPID, 0, 0, 0));
-}
+extern int ec_getpid(void);
 
 /*
  * Raise a signal on a process.
- *   ebx/pid = Process/task id
+ *   ebx/pid = Process id
  *   ecx/sig = Signal number
  *   eax (return) = Zero if successful, negative on error
  */
-static inline int ec_kill(int pid, int sig) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_KILL, (uint32_t)pid, (uint32_t)sig, 0));
-}
+extern int ec_kill(int pid, int sig);
 
 /*
  * Increase or decrease breakpoint.
  *   ebx/inc = Increment
  *   eax (return) = Breakpoint address if successful, NULL on error
  */
-static inline void *ec_sbrk(intptr_t inc) {
-
-	return (void *)ec_syscall3(ECN_SBRK, (uint32_t)inc, 0, 0);
-}
+extern void *ec_sbrk(intptr_t inc);
 
 /*
  * Get epoch time.
@@ -253,10 +187,7 @@ typedef struct ec_timeval {
 	uint64_t nsec; /* nanoseconds */
 } ec_timeval_t;
 
-static inline int ec_gettimeofday(ec_timeval_t *tv) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_GETTIMEOFDAY, (uint32_t)tv, 0, 0));
-}
+extern int ec_gettimeofday(ec_timeval_t *tv);
 
 /*
  * Get arbitrary timestamp in nanosecond resolution.
@@ -264,20 +195,14 @@ static inline int ec_gettimeofday(ec_timeval_t *tv) {
  *   eax (return) = Zero if successful, negative on error
  * The times syscall is not implemented here due to a lack of task time accounting.
  */
-static inline int ec_timens(ec_timeval_t *tv) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_TIMENS, (uint32_t)tv, 0, 0));
-}
+extern int ec_timens(ec_timeval_t *tv);
 
 /*
  * Check if a file is a teletype.
  *   ebx/fd = File descriptor
  *   eax (return) = Zero if not a tty, one if a tty, negative on error
  */
-static inline int ec_isatty(int fd) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_ISATTY, (uint32_t)fd, 0, 0));
-}
+extern int ec_isatty(int fd);
 
 /*
  * Set a signal handler.
@@ -285,10 +210,7 @@ static inline int ec_isatty(int fd) {
  *   ecx/handler = Signal handler
  *   eax (return) = Zero if successful, negative on error
  */
-static inline int ec_signal(int sig, void (*handler)()) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_SIGNAL, (uint32_t)sig, (uint32_t)handler, 0));
-}
+extern int ec_signal(int sig, void (*handler)());
 
 /*
  * Cause a kernel panic.
@@ -296,30 +218,24 @@ static inline int ec_signal(int sig, void (*handler)()) {
  *   eax (return) = Doesn't return if successful, negative on error
  * This system call can only be called by the init process (pid = 1).
  */
-static inline int ec_panic(const char *msg) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_PANIC, (uint32_t)msg, 0, 0));
-}
+extern int ec_panic(const char *msg);
 
 /*
- * Execute a process/task.
+ * Execute a process.
  *   ebx/path = Path to executable binary
  *   ecx/argv = Arguments
  *   edx/envp = Environment or NULL
- *   eax (return) = Process/task id of task if successful, negative on error
+ *   eax (return) = Process id of task if successful, negative on error
  * If envp is NULL, then the current task's environment is used.
  *
  * This system call loads a process but does not wait for it to finish executing.
  * Additionally, unlike the Unix execve family, this does not replace the current process image.
  */
-static inline int ec_pexec(const char *path, const char **argv, const char **envp) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_PEXEC, (uint32_t)path, (uint32_t)argv, (uint32_t)envp));
-}
+extern int ec_pexec(const char *path, const char **argv, const char **envp);
 
 /*
- * Wait for a process/task.
- *   ebx/pid = ID of process/task
+ * Wait for a process.
+ *   ebx/pid = ID of process
  *   ecx/status = Wait status bitfield
  *   edx/timeout = Timeout of system call or NULL
  *   eax (return) = Zero if successful, negative on error
@@ -338,19 +254,44 @@ static inline int ec_pexec(const char *path, const char **argv, const char **env
 #define ECW_ISEXITED(st) ((st) & ECW_EXITED)
 #define ECW_ISTIMEOUT(st) ((st) & ECW_TIMEOUT)
 
-static inline int ec_pwait(int pid, int *status, ec_timeval_t *timeout) {
-
-	__ec_seterrno(int, ec_syscall3(ECN_PWAIT, (uint32_t)pid, (uint32_t)status, (uint32_t)timeout));
-}
+extern int ec_pwait(int pid, int *status, ec_timeval_t *timeout);
 
 /*
  * Sleep with a nanosecond resolution.
  *   ebx/tv = Time info
  *   eax (return) = Zero if successful, negative on error
  */
-static inline int ec_sleepns(ec_timeval_t *tv) {
+extern int ec_sleepns(ec_timeval_t *tv);
 
-	__ec_seterrno(int, ec_syscall3(ECN_SLEEPNS, (uint32_t)tv, 0, 0));
-}
+/*
+ * Read information about directory entries from a directory.
+ *   ebx/path = Directory path or NULL
+ *   ecx/dent = Directory entry structure to fill
+ *   eax (return) = Zero if successful, one if reached the end of the directory, negative on error
+ */
+#define ECD_NAMESZ 128
+
+typedef struct ec_dirent {
+	char name[ECD_NAMESZ]; /* file name */
+	int flags; /* file flags */
+	void *_data;
+} ec_dirent_t;
+
+extern int ec_readdir(const char *path, ec_dirent_t *dent);
+
+/*
+ * Change current process working directory.
+ *   path = Directory path
+ *   return = Zero if successful, negative on error
+ */
+extern int ec_chdir(const char *path);
+
+/*
+ * Get current process working directory.
+ *   buf = Buffer to write
+ *   bufsz = Buffer size
+ *   return = Zero if successful, negative on error
+ */
+extern int ec_getcwd(char *buf, size_t bufsz);
 
 #endif /* EC_H */

@@ -27,6 +27,7 @@ static idt_isr_t sysh[ECN_COUNT] = {
 	[ECN_PEXEC] = sys_pexec,
 	[ECN_PWAIT] = sys_pwait,
 	[ECN_SLEEPNS] = sys_sleepns,
+	[ECN_READDIR] = sys_readdir,
 };
 
 #define RETURN_ERROR(c) ({\
@@ -41,6 +42,7 @@ static void nstat(fs_node_t *node, ec_stat_t *st) {
 
 	st->ino = (int)node->inode;
 	st->mode = (ec_mode_t)node->mask;
+	st->flags = node->flags;
 	st->nlink = 1;
 	st->uid = (int)node->uid;
 	st->gid = (int)node->gid;
@@ -121,6 +123,9 @@ extern void sys_stat(idt_regs_t *regs) {
 
 	const char *path = (const char *)regs->ebx;
 	ec_stat_t *st = (ec_stat_t *)regs->ecx;
+
+	if (!path || !st)
+		RETURN_ERROR(-1);
 
 	fs_node_t *node = fs_resolve(path);
 	if (!node) RETURN_ERROR(-1);
@@ -364,6 +369,50 @@ extern void sys_sleepns(idt_regs_t *regs) {
 	task_nano_sleep(ns);
 	if (task_active->stale)
 		RETURN_ERROR(-1);
+
+	regs->eax = 0;
+}
+
+/* read directory entries */
+extern void sys_readdir(idt_regs_t *regs) {
+
+	const char *path = (const char *)regs->ebx;
+	ec_dirent_t *dent = (ec_dirent_t *)regs->ecx;
+
+	if (!dent) RETURN_ERROR(-1);
+
+	fs_dirent_t *fdent = NULL;
+
+	/* find and acquire resource */
+	if (path) {
+
+		memset(dent, 0, sizeof(ec_dirent_t));
+
+		fs_node_t *node = fs_resolve(path);
+		if (!node) RETURN_ERROR(-1);
+
+		while (node->ptr) node = node->ptr;
+
+		if (!(node->flags & FS_DIRECTORY))
+			RETURN_ERROR(-1);
+
+		fdent = node->first;
+		dent->_data = (void *)fdent;
+	}
+
+	/* get next entry */
+	else {
+
+		fdent = (fs_dirent_t *)dent->_data;
+		fdent = fdent->next;
+		dent->_data = (void *)fdent;
+	}
+
+	/* fill dirent */
+	if (!fdent) RETURN_ERROR(1);
+
+	strncpy(dent->name, fdent->name, ECD_NAMESZ);
+	dent->flags = fdent->node? fdent->node->flags: 0;
 
 	regs->eax = 0;
 }

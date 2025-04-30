@@ -264,7 +264,7 @@ static bool ecfs_isheld(fs_node_t *node) {
 /* get file info */
 static void ecfs_stat(fs_node_t *node, ec_stat_t *st) {
 
-	struct ecfs_fs_info *info = kmalloc(sizeof(struct ecfs_fs_info));
+	struct ecfs_fs_info *info = (struct ecfs_fs_info *)node->data;
 	info->held = true;
 
 	read_block(info, node->inode, (uint8_t *)info->block);

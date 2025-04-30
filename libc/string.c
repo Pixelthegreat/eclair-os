@@ -1,4 +1,13 @@
+#include <stdint.h>
 #include <string.h>
+
+/* copy data */
+extern void *memcpy(void *restrict s1, const void *restrict s2, size_t n) {
+
+	void *p = s1;
+	while (n--) *(uint8_t *)s1++ = *(uint8_t *)s2++;
+	return p;
+}
 
 /* copy string */
 extern char *strcpy(char *restrict s1, const char *restrict s2) {
@@ -6,6 +15,15 @@ extern char *strcpy(char *restrict s1, const char *restrict s2) {
 	char *p = s1;
 
 	while (*s2) *s1++ = *s2++;
+	*s1++ = 0;
+	return p;
+}
+
+extern char *strncpy(char *restrict s1, const char *restrict s2, size_t n) {
+
+	char *p = s1;
+
+	while (*s2 && --n) *s1++ = *s2++;
 	*s1++ = 0;
 	return p;
 }

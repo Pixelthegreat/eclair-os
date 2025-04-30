@@ -22,6 +22,7 @@ def module():
         'targets': (
                 gen_bin('hello'),
                 gen_bin('init'),
+                gen_bin('ls'),
                 gen_bin('sh'),
             )
         }

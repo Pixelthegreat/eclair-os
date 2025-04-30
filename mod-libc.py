@@ -18,6 +18,7 @@ def module():
                     # files #
                     'c-files': (
                             ('crt0.c'),
+                            ('ec.c', 'ec.h'),
                             ('errno.c', 'errno.h'),
                             ('printf.c', 'stdio.h'),
                             ('stdio.c', 'stdio.h'),

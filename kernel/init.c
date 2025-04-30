@@ -24,6 +24,7 @@ extern void init_load(void) {
 		"EC_STDIN=/dev/tty0",
 		"EC_STDOUT=/dev/tty0",
 		"EC_STDERR=/dev/tty0",
+		"PWD=/",
 		NULL,
 	};
 

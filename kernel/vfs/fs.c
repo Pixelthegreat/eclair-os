@@ -1,4 +1,5 @@
 #include <kernel/types.h>
+#include <kernel/panic.h>
 #include <kernel/string.h>
 #include <kernel/tty.h>
 #include <kernel/mm/heap.h>
