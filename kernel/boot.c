@@ -1,5 +1,6 @@
 #include <kernel/types.h>
 #include <kernel/string.h>
+#include <kernel/panic.h>
 #include <kernel/multiboot.h>
 #include <kernel/mm/paging.h>
 #include <kernel/driver/fb.h>
@@ -9,6 +10,8 @@ static boot_info_t *info = NULL;
 
 static boot_saved_info_t saved;
 static boot_cmdline_t cmdline;
+
+static uint32_t memmap_reserved_frames = 0;
 
 boot_protocol_t boot_protocol;
 
@@ -98,6 +101,28 @@ extern void boot_init(void) {
 			saved.cmdline = (const char *)((void *)info + info->offsets[BOOT_STRUCT_CMDLINE]);
 		}
 
+		/* memory map */
+		if (info->offsets[BOOT_STRUCT_MEMMAP]) {
+
+			boot_memmap_entry_t *entry = (boot_memmap_entry_t *)((void *)info + info->offsets[BOOT_STRUCT_MEMMAP]);
+			while (entry->type != BOOT_MEMMAP_ENTRY_NULL) {
+
+				/* mark entries as used */
+				if (entry->type == BOOT_MEMMAP_ENTRY_UNUSABLE) {
+
+					uint32_t startf = entry->start >> 12;
+					uint32_t endf = ALIGN(entry->end, 0x1000) >> 12;
+
+					for (uint32_t f = startf; f < endf; f++) {
+
+						page_frame_use(f);
+						memmap_reserved_frames++;
+					}
+				}
+				entry++;
+			}
+		}
+
 		/* framebuffer */
 		if (info->offsets[BOOT_STRUCT_FRAMEBUF]) {
 
@@ -126,6 +151,19 @@ extern void boot_init(void) {
 		}
 	}
 	parse_cmdline();
+}
+
+/* log boot info */
+extern void boot_log(void) {
+
+	kprintf(LOG_INFO, "[boot] Reserved frames: 0x%x", memmap_reserved_frames);
+	
+	boot_memmap_entry_t *entry = (boot_memmap_entry_t *)((void *)info + info->offsets[BOOT_STRUCT_MEMMAP]);
+	/*while (entry->type != BOOT_MEMMAP_ENTRY_NULL) {
+
+		kprintf(LOG_INFO, "[boot] type=0x%x, start=0x%x, end=0x%x", entry->type, entry->start, entry->end);
+		entry++;
+	}*/
 }
 
 /* get page mapped info */

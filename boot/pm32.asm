@@ -27,6 +27,25 @@ struc pm32_boot
 	.offsets resd PM32_BOOT_STRUCT_COUNT
 endstruc
 
+; memory map entry ;
+%define PM32_MEMMAP_NULL 0
+%define PM32_MEMMAP_USABLE 1
+%define PM32_MEMMAP_UNUSABLE 2
+
+struc pm32_memmap_entry
+	.base_low resd 1
+	.base_high resd 1
+	.length_low resd 1
+	.length_high resd 1
+	.type resd 1
+endstruc
+
+struc pm32_boot_memmap_entry
+	.type resd 1
+	.start resd 1
+	.end resd 1
+endstruc
+
 ; framebuffer info ;
 %define PM32_FRAMEBUF_RGB 1
 
@@ -107,6 +126,56 @@ pm32_load_boot_cmdline:
 	
 	pop esi
 	add dword[esi+pm32_boot.size], eax
+	
+	popa
+	ret
+
+; load memory map data ;
+; esi = main structure ;
+pm32_load_boot_memmap:
+	pusha
+	
+	mov eax, dword[esi+pm32_boot.size]
+	mov dword[esi+pm32_boot.offsets+PM32_BOOT_STRUCT_MEMMAP*4], eax
+	mov edx, esi
+	add esi, eax
+
+	mov edi, 0
+	mov di, word[memory_map_area]
+	mov cx, word[memory_map_count]
+.loop:
+	mov eax, dword[edi+pm32_memmap_entry.base_low]
+	mov dword[esi+pm32_boot_memmap_entry.start], eax
+	mov dword[esi+pm32_boot_memmap_entry.end], eax
+	
+	mov eax, dword[edi+pm32_memmap_entry.length_low]
+	add dword[esi+pm32_boot_memmap_entry.end], eax
+	
+	mov dword[esi+pm32_boot_memmap_entry.type], PM32_MEMMAP_USABLE
+	cmp dword[di+pm32_memmap_entry.type], 1
+	je .next
+	
+	mov dword[esi+pm32_boot_memmap_entry.type], PM32_MEMMAP_UNUSABLE
+.next:
+	push esi
+	mov esi, edx
+	add dword[esi+pm32_boot.size], pm32_boot_memmap_entry_size
+	pop esi
+	
+	add esi, pm32_boot_memmap_entry_size
+.iter:
+	dec cx
+	jz .done
+	
+	add di, 24
+	jmp .loop
+.done:
+	mov dword[esi+pm32_boot_memmap_entry.type], PM32_MEMMAP_NULL
+	mov dword[esi+pm32_boot_memmap_entry.start], 0
+	mov dword[esi+pm32_boot_memmap_entry.end], 0
+	
+	mov esi, edx
+	add dword[esi+pm32_boot.size], pm32_boot_memmap_entry_size
 	
 	popa
 	ret
@@ -213,6 +282,7 @@ pm32_load_boot:
 	mov dword[esi+pm32_boot.size], pm32_boot_size
 	
 	call pm32_load_boot_cmdline
+	call pm32_load_boot_memmap
 	call pm32_load_boot_framebuf
 	call pm32_load_boot_checksum
 	

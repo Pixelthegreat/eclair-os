@@ -27,6 +27,7 @@ extern void kernel_main() {
 	fs_init();
 	tty_init();
 	device_init();
+	boot_log();
 	mbr_fs_mount_root();
 	devfs_init();
 	task_init();

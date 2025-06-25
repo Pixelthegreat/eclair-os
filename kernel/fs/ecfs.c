@@ -228,6 +228,11 @@ static bool ecfs_filldir(fs_node_t *node) {
 	uint32_t nblk = file->nblk;
 	uint32_t ablki = 0;
 
+	fs_dirent_t *dent = fs_dirent_new(".");
+	fs_node_add_dirent(node, dent);
+	dent = fs_dirent_new("..");
+	fs_node_add_dirent(node, dent);
+
 	/* read file entries */
 	uint8_t *dentbuf = (uint8_t *)kmalloc(info->hb.blksz);
 
@@ -237,7 +242,7 @@ static bool ecfs_filldir(fs_node_t *node) {
 		if (!blk) continue;
 
 		/* create node */
-		fs_dirent_t *dent = fs_dirent_new(NULL);
+		dent = fs_dirent_new(NULL);
 
 		fs_node_t *child = node_new(node, 0);
 		child->inode = blk;

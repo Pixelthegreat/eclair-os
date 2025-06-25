@@ -5,6 +5,7 @@
 #include <kernel/elf.h>
 #include <kernel/mm/heap.h>
 #include <kernel/driver/rtc.h>
+#include <errno.h>
 #include <kernel/syscall.h>
 
 static idt_isr_t sysh[ECN_COUNT] = {
@@ -56,7 +57,7 @@ extern void sys_handle(idt_regs_t *regs) {
 
 	uint32_t idx = regs->eax;
 	if (idx < ECN_COUNT && sysh[idx]) sysh[idx](regs);
-	else regs->eax = (uint32_t)-1;
+	else regs->eax = (uint32_t)-ENOSYS;
 }
 
 /* exit task */
@@ -74,8 +75,6 @@ extern void sys_open(idt_regs_t *regs) {
 	const char *path = (const char *)regs->ebx;
 	uint32_t flags = regs->ecx;
 	uint32_t mask = regs->edx;
-
-	/* TODO: convert from fcntl flags to vfs flags */
 
 	regs->eax = (uint32_t)task_fs_open(path, flags, mask);
 }
@@ -125,10 +124,10 @@ extern void sys_stat(idt_regs_t *regs) {
 	ec_stat_t *st = (ec_stat_t *)regs->ecx;
 
 	if (!path || !st)
-		RETURN_ERROR(-1);
+		RETURN_ERROR(-EINVAL);
 
 	fs_node_t *node = fs_resolve(path);
-	if (!node) RETURN_ERROR(-1);
+	if (!node) RETURN_ERROR(-ENOENT);
 
 	nstat(node, st);
 	regs->eax = 0;
@@ -141,10 +140,10 @@ extern void sys_fstat(idt_regs_t *regs) {
 	ec_stat_t *st = (ec_stat_t *)regs->ecx;
 
 	if (fd < 0 || fd >= TASK_MAXFILES)
-		RETURN_ERROR(-1);
+		RETURN_ERROR(-EBADF);
 
 	fs_node_t *node = task_active->files[fd].file;
-	if (!node) RETURN_ERROR(-1);
+	if (!node) RETURN_ERROR(-EBADF);
 
 	nstat(node, st);
 	regs->eax = 0;
@@ -163,7 +162,7 @@ extern void sys_kill(idt_regs_t *regs) {
 	int sig = (int)regs->ecx;
 
 	task_t *task = task_get(pid);
-	if (!task) RETURN_ERROR(-1);
+	if (!task) RETURN_ERROR(-ESRCH);
 
 	task_signal(task, (uint32_t)sig);
 
@@ -213,10 +212,10 @@ extern void sys_isatty(idt_regs_t *regs) {
 
 	int fd = (int)regs->ebx;
 	if (fd < 0 || fd >= TASK_MAXFILES)
-		RETURN_ERROR(-1);
+		RETURN_ERROR(-EBADF);
 
 	fs_node_t *node = task_active->files[fd].file;
-	if (!node) RETURN_ERROR(-1);
+	if (!node) RETURN_ERROR(-EBADF);
 
 	regs->eax = (uint32_t)fs_isatty(node);
 }
@@ -228,7 +227,7 @@ extern void sys_signal(idt_regs_t *regs) {
 	task_sig_t sigh = (task_sig_t)regs->ecx;
 
 	if (sig < 0 || sig >= TASK_NSIG)
-		RETURN_ERROR(-1);
+		RETURN_ERROR(-EINVAL);
 
 	task_active->sigh[sig] = sigh;
 	regs->eax = 0;
@@ -239,9 +238,9 @@ extern void sys_panic(idt_regs_t *regs) {
 
 	const char *msg = (const char *)regs->ebx;
 
-	if (!msg) RETURN_ERROR(-1);
+	if (!msg) RETURN_ERROR(-EINVAL);
 	if (task_active->id != 1)
-		RETURN_ERROR(-1);
+		RETURN_ERROR(-EPERM);
 
 	kpanic(PANIC_CODE_NONE, msg, regs);
 	regs->eax = 0;
@@ -255,7 +254,7 @@ extern void sys_pexec(idt_regs_t *regs) {
 	const char **envp = (const char **)regs->edx;
 
 	if (!path || !argv)
-		RETURN_ERROR(-1);
+		RETURN_ERROR(-EINVAL);
 	if (!envp) envp = *((const char ***)TASK_STACK_ADDR_ENVP);
 
 	/* reconstruct path */
@@ -335,7 +334,7 @@ extern void sys_pexec(idt_regs_t *regs) {
 		kfree(nenvp);
 		task_unlockcli();
 
-		RETURN_ERROR(-1);
+		RETURN_ERROR(pid);
 	}
 	regs->eax = (uint32_t)pid;
 }
@@ -347,12 +346,12 @@ extern void sys_pwait(idt_regs_t *regs) {
 	int *wstatus = (int *)regs->ecx;
 	ec_timeval_t *timeout = (ec_timeval_t *)regs->edx;
 
-	if (!wstatus) RETURN_ERROR(-1);
+	if (!wstatus) RETURN_ERROR(-EINVAL);
 
 	uint64_t vtimeout = timeout? (timeout->sec * 1000000000) + timeout->nsec: 100000000000000;
 	int res = task_pwait(pid, vtimeout);
 
-	if (res < 0) RETURN_ERROR(-1);
+	if (res < 0) RETURN_ERROR(res);
 	*wstatus = res;
 	regs->eax = 0;
 }
@@ -361,14 +360,14 @@ extern void sys_pwait(idt_regs_t *regs) {
 extern void sys_sleepns(idt_regs_t *regs) {
 
 	ec_timeval_t *tv = (ec_timeval_t *)regs->ebx;
-	if (!tv) RETURN_ERROR(-1);
+	if (!tv) RETURN_ERROR(-EINVAL);
 
 	uint64_t ns = (tv->sec * 1000000000) + tv->nsec;
 
 	task_active->stale = false;
 	task_nano_sleep(ns);
 	if (task_active->stale)
-		RETURN_ERROR(-1);
+		RETURN_ERROR(-EINTR);
 
 	regs->eax = 0;
 }
@@ -379,7 +378,7 @@ extern void sys_readdir(idt_regs_t *regs) {
 	const char *path = (const char *)regs->ebx;
 	ec_dirent_t *dent = (ec_dirent_t *)regs->ecx;
 
-	if (!dent) RETURN_ERROR(-1);
+	if (!dent) RETURN_ERROR(-EINVAL);
 
 	fs_dirent_t *fdent = NULL;
 
@@ -389,14 +388,25 @@ extern void sys_readdir(idt_regs_t *regs) {
 		memset(dent, 0, sizeof(ec_dirent_t));
 
 		fs_node_t *node = fs_resolve(path);
-		if (!node) RETURN_ERROR(-1);
+		if (!node) RETURN_ERROR(-ENOENT);
 
 		while (node->ptr) node = node->ptr;
 
 		if (!(node->flags & FS_DIRECTORY))
-			RETURN_ERROR(-1);
+			RETURN_ERROR(-ENOTDIR);
 
-		fdent = node->first;
+		/* update directory */
+		if (!node->first) {
+
+			task_active->stale = false;
+			task_acquire(node);
+			if (task_active->stale)
+				RETURN_ERROR(-EINTR);
+
+			fdent = fs_readdir(node, 0);
+			task_release();
+		}
+		else fdent = node->first;
 		dent->_data = (void *)fdent;
 	}
 

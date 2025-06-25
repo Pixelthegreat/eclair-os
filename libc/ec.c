@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <ec.h>
@@ -10,16 +11,45 @@ static const char *fixpath(const char *path) {
 
 	if (!path) return NULL;
 
-	if (path[0] == '/') strncpy(tempbuf, path, EC_PATHSZ);
-	else {
+	size_t len = 0;
+	if (path[0] != '/') {
 
-		size_t len = strlen(pathbuf);
-		size_t plen = len;
-		if (!len) tempbuf[len++] = '/';
-
-		memcpy(tempbuf, pathbuf, plen);
-		strncpy(tempbuf+len, path, EC_PATHSZ-len);
+		len = strlen(pathbuf);
+		memcpy(tempbuf, pathbuf, len < EC_PATHSZ-2? len: EC_PATHSZ-2);
 	}
+
+	/* add each path component */
+	const char *next = NULL;
+	const char *opath = path;
+	for (; path; path = next) {
+
+		const char *end = strchr(path, '/');
+		next = end? end+1: NULL;
+		size_t plen = end? (size_t)end - (size_t)path: strlen(path);
+
+		if (!plen) continue;
+
+		/* go back one directory */
+		if (!strncmp(path, "..", plen)) {
+
+			tempbuf[len] = 0;
+			char *prev = strrchr(tempbuf, '/');
+			if (prev) len = (size_t)prev - (size_t)tempbuf;
+		}
+
+		/* add directory */
+		else {
+			if (len != 1) tempbuf[len++] = '/';
+
+			size_t rem = EC_PATHSZ-len-2;
+			plen = plen < rem? plen: rem;
+
+			memcpy(tempbuf+len, path, plen);
+			len += plen;
+		}
+	}
+	if (!len) tempbuf[len++] = '/';
+	tempbuf[len++] = 0;
 	return tempbuf;
 }
 

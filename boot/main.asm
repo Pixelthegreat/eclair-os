@@ -23,6 +23,8 @@ main:
 	mov si, stage1_msg
 	call print
 	
+	call memory_load_map
+	
 	call disk_init
 	call mbr_load_fs
 	

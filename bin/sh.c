@@ -25,7 +25,7 @@ static char argbuf[ARGBUFSZ];
 static char argbuf2[ARGBUFSZ];
 
 #define PROMPTBUFSZ 128
-static char promptbuf[PROMPTBUFSZ] = "[\"$PWD\"] '$ '";
+static char promptbuf[PROMPTBUFSZ] = "[\e[1;32m\"$PWD\"\e[0m] '$ '";
 
 /* raw getenv */
 extern const char **environ;
@@ -247,6 +247,7 @@ static void cmd_exec(int argc, const char **argv) {
 			raw_getenv("EC_STDOUT"),
 			raw_getenv("EC_STDERR"),
 			argbuf2,
+			NULL,
 		};
 		int pid = ec_pexec(argbuf, argv, envp);
 

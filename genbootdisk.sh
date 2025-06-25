@@ -35,6 +35,7 @@ cp -v boot/s3b/menu.cfg tmp/boot
 # unmount #
 echo Unmounting...
 umount tmp
+sleep 1
 
 # install bootloader #
 stat build/boot/stage0.bin 1>/dev/null 2>/dev/null

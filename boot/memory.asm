@@ -263,6 +263,49 @@ strcpynl:
 	pop si
 	ret
 
+; load memory map ;
+memory_load_map:
+	pushad
+	
+	mov ebx, 0
+.loop:
+	mov eax, 0xe820
+	mov edx, 0x534d4150
+	
+	push si
+	push ax
+	mov ax, 24
+	call allocate
+	pop ax
+	mov di, si
+	pop si
+	
+	cmp word[memory_map_area], 0
+	jne .cont
+	
+	mov word[memory_map_area], di
+.cont:
+	mov ecx, 24
+	int 0x15
+	jc .done
+	
+	cmp ebx, 0
+	je .done
+	
+	inc word[memory_map_count]
+	jmp .loop
+.done:
+	popad
+	ret
+.error:
+	mov si, memory_map_error_msg
+	call print_error
+
+; data ;
 memory_error_msg db "Failed to allocate enough memory!", 10, 0
+memory_map_error_msg db "Failed to load memory map!", 10, 0
+
+memory_map_area dw 0
+memory_map_count dw 0
 
 %endif ; MEMORY_ASM ;

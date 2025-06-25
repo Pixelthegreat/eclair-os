@@ -28,6 +28,29 @@ extern char *strncpy(char *restrict s1, const char *restrict s2, size_t n) {
 	return p;
 }
 
+/* concatenate strings */
+extern char *strcat(char *restrict s1, const char *restrict s2) {
+
+	char *p = s1;
+
+	s1 += strlen(s1);
+	while (*s2) *s1++ = *s2++;
+	*s1++ = 0;
+	return p;
+}
+
+extern char *strncat(char *restrict s1, const char *restrict s2, size_t n) {
+
+	char *p = s1;
+	size_t len = strlen(s1);
+
+	s1 += len;
+	n -= len;
+	while (*s2 && --n) *s1++ = *s2++;
+	*s1++ = 0;
+	return p;
+}
+
 /* compare strings */
 extern int strcmp(const char *s1, const char *s2) {
 
@@ -52,6 +75,18 @@ extern char *strchr(const char *str, int ch) {
 		str++;
 	}
 	return NULL;
+}
+
+extern char *strrchr(const char *s, int c) {
+
+	const char *stop = NULL;
+	while (*s) {
+
+		if (*s == (char)c)
+			stop = s;
+		s++;
+	}
+	return (char *)stop;
 }
 
 /* get string length */

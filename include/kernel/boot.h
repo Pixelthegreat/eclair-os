@@ -68,6 +68,17 @@ typedef struct boot_framebuf_info {
 	uint8_t bmask_pos; /* position of blue mask */
 } __attribute__((packed)) boot_framebuf_t;
 
+/* memory map info */
+#define BOOT_MEMMAP_ENTRY_NULL 0
+#define BOOT_MEMMAP_ENTRY_USABLE 1
+#define BOOT_MEMMAP_ENTRY_UNUSABLE 2
+
+typedef struct boot_memmap_entry {
+	uint32_t type; /* entry type */
+	uint32_t start; /* base address */
+	uint32_t end; /* end address */
+} __attribute__((packed)) boot_memmap_entry_t;
+
 /* command line info */
 #define BOOT_CMDLINE_PARAM_MAX_CHARS 32
 
@@ -83,6 +94,7 @@ extern boot_info_t *boot_data_info;
 
 /* functions */
 extern void boot_init(void); /* initialize */
+extern void boot_log(void); /* log boot info */
 extern boot_info_t *boot_get_info(void); /* get page mapped info */
 extern boot_saved_info_t *boot_get_saved_info(void); /* get useful saved info */
 extern boot_cmdline_t *boot_get_cmdline(void); /* get command line info */
