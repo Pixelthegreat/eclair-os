@@ -3,6 +3,8 @@
 
 ![screenshot](res/screenshot.png)
 
+[_more screenshots_](res/screenshots)
+
 Éclair OS is a hobby unix-like OS project. It is currently very early in its development, and as such, it is not yet capable of a lot. My primary inspiration comes from other hobby projects like [ToaruOS](https://github.com/klange/toaruos) and QuafiOS (which mysteriously disappeared some time ago), as well as educational resources like the [xv6 project](https://github.com/mit-pdos/xv6-public).
 
 I am considering Éclair OS to be in the first stage of development. This is the stage where most (if not all) development happens within the kernel. By the end of this stage, I am hoping to have basic userspace support completed (i.e. multitasking, static executable loading, rudimentary syscall support, etc). Here is a roadmap that I have come up with for said stage:
