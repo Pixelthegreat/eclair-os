@@ -250,11 +250,9 @@ ecfs_load_file:
 	pop di
 	pop si
 	
-	call print
 	call ecfs_search_directory
 	
 	mov si, di
-	call print
 	call ecfs_search_directory
 	mov si, word[ecfs_file_area]
 	mov di, bx
@@ -274,6 +272,70 @@ ecfs_load_file:
 	inc eax
 	jmp .loop
 .end:
+	popad
+	ret
+
+; load file metadata into contiguous memory ;
+; si = root directory name ;
+; di = file path ;
+; bx = initial segment ;
+ecfs_load_metadata:
+	pushad
+	push gs
+	
+	push si
+	mov si, word[ecfs_hblk_area]
+	mov eax, dword[si+ecfs_hblk.blk_root]
+	
+	call ecfs_read_block
+	
+	push di
+	mov ax, word[ecfs_block_size]
+	mov si, word[ecfs_block_area]
+	mov di, word[ecfs_file_area]
+	call memcpy
+	pop di
+	pop si
+	
+	call ecfs_search_directory
+	
+	mov si, di
+	call ecfs_search_directory
+	
+	mov si, word[ecfs_file_area]
+	
+	mov gs, bx
+	mov bx, 0
+	mov di, bx
+	call memcpy
+	add bx, word[ecfs_block_size]
+.loop:
+	mov di, si
+	add di, word[ecfs_block_size]
+	sub di, 4
+	
+	mov eax, dword[di]
+	cmp eax, 0
+	je .end
+	
+	call ecfs_read_block
+	mov eax, 0
+	
+	mov ax, word[ecfs_block_size]
+	mov si, word[ecfs_block_area]
+	mov di, bx
+	call memcpy
+	
+	add bx, word[ecfs_block_size]
+	cmp bx, 0
+	jne .loop
+	mov ax, gs
+	add ax, 0x1000
+	mov gs, ax
+	
+	jmp .loop
+.end:
+	pop gs
 	popad
 	ret
 

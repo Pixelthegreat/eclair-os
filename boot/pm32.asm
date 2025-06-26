@@ -18,8 +18,9 @@ endstruc
 %define PM32_BOOT_STRUCT_CMDLINE 0
 %define PM32_BOOT_STRUCT_MEMMAP 1
 %define PM32_BOOT_STRUCT_FRAMEBUF 2
+%define PM32_BOOT_STRUCT_INITRD 3
 
-%define PM32_BOOT_STRUCT_COUNT 3
+%define PM32_BOOT_STRUCT_COUNT 4
 
 struc pm32_boot
 	.checksum resd 1
@@ -62,6 +63,12 @@ struc pm32_boot_framebuf
 	.gmask_pos resb 1
 	.bmask_sz resb 1
 	.bmask_pos resb 1
+endstruc
+
+; initrd info ;
+struc pm32_boot_initrd
+	.addr resd 1
+	.size resd 1
 endstruc
 
 ; align value ;
@@ -151,6 +158,13 @@ pm32_load_boot_memmap:
 	mov eax, dword[edi+pm32_memmap_entry.length_low]
 	add dword[esi+pm32_boot_memmap_entry.end], eax
 	
+	cmp eax, dword[pm32_region_length]
+	jl .type
+	
+	mov dword[pm32_region_length], eax
+	mov eax, dword[edi+pm32_memmap_entry.base_low]
+	mov dword[pm32_initrd_area], eax
+.type:
 	mov dword[esi+pm32_boot_memmap_entry.type], PM32_MEMMAP_USABLE
 	cmp dword[di+pm32_memmap_entry.type], 1
 	je .next
@@ -176,6 +190,17 @@ pm32_load_boot_memmap:
 	
 	mov esi, edx
 	add dword[esi+pm32_boot.size], pm32_boot_memmap_entry_size
+	
+	mov eax, dword[pm32_initrd_area]
+	mov ebx, dword[elf32_kernel_end]
+	cmp eax, ebx
+	jge .end
+	
+	mov dword[pm32_initrd_area], ebx
+.end:
+	add dword[pm32_initrd_area], 0x2000 ; so as to not override boot structs ;
+	mov eax, dword[pm32_initrd_area]
+	mov dword[pm32_initrd_base], eax
 	
 	popa
 	ret
@@ -235,6 +260,75 @@ pm32_load_boot_framebuf:
 	popa
 	ret
 
+; load initial ramdisk ;
+; esi = location of boot structure ;
+pm32_load_boot_initrd:
+	pusha
+	mov edx, esi
+	
+	cmp byte[config_initrd], 0
+	je .end
+	
+	mov eax, FS32_FUNCTION_PRINTS
+	mov ebx, pm32_initrd_msg
+	call fs32_call_bios
+	
+	mov edi, 0
+	mov di, word[config_initrd_segment]
+	shl edi, 4
+	add edi, ecfs_file_s.blk
+	
+	mov cx, 0
+.loop:
+	mov ebx, dword[edi]
+	cmp ebx, 0
+	je .done
+	
+	mov eax, FS32_FUNCTION_READ_BLOCK
+	call fs32_call_bios
+	
+	mov eax, 0
+	mov ax, word[ecfs_block_size]
+	mov esi, 0
+	mov si, word[ecfs_block_area]
+	push edi
+	mov edi, dword[pm32_initrd_area]
+	call elf32_memcpy
+	pop edi
+	add dword[pm32_initrd_area], eax
+	
+	add edi, 4
+	add cx, 4
+	sub ax, 4
+	cmp cx, ax
+	jl .loop
+	
+	add edi, 4
+	mov cx, 0
+	jmp .loop
+.done:
+	; load structure ;
+	mov esi, edx
+	
+	mov eax, dword[esi+pm32_boot.size]
+	mov dword[esi+pm32_boot.offsets+PM32_BOOT_STRUCT_INITRD*4], eax
+	
+	mov edi, esi
+	add edi, eax
+	
+	mov eax, dword[pm32_initrd_base]
+	mov dword[edi+pm32_boot_initrd.addr], eax
+	
+	mov ebx, eax
+	mov eax, dword[pm32_initrd_area]
+	sub eax, ebx
+	mov dword[edi+pm32_boot_initrd.size], eax
+	
+	add dword[esi+pm32_boot.size], pm32_boot_initrd_size
+.end:
+	popa
+	ret
+
 ; calculate checksum value ;
 ; esi = location of boot structure ;
 pm32_load_boot_checksum:
@@ -284,6 +378,7 @@ pm32_load_boot:
 	call pm32_load_boot_cmdline
 	call pm32_load_boot_memmap
 	call pm32_load_boot_framebuf
+	call pm32_load_boot_initrd
 	call pm32_load_boot_checksum
 	
 	popa
@@ -300,6 +395,11 @@ pm32_main:
 	jmp .end
 
 ; data ;
+pm32_initrd_msg db "Loading ramdisk...", 0
+
 pm32_boot_struct dd 0
+pm32_initrd_base dd 0
+pm32_initrd_area dd 0
+pm32_region_length dd 0
 
 %endif ; PM32_ASM ;

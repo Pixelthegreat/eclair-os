@@ -48,6 +48,7 @@ stage1_msg db "Loaded second stage!", 10, 0
 	[bits 32]
 
 %include "elf32.asm"
+%include "fs32.asm"
 %include "pm32.asm"
 
 stage1_end equ $

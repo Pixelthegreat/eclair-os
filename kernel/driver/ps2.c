@@ -207,7 +207,7 @@ extern void ps2_init(void) {
 	ps2_wait_read();
 	if (port_inb(PS2_PORT_DATA) != 0x55) {
 
-		kprintf(LOG_WARNING, "[ps/2 8042] self test failed");
+		kprintf(LOG_WARNING, "[ps/2 8042] Self test failed");
 		return;
 	}
 
@@ -217,7 +217,7 @@ extern void ps2_init(void) {
 	ps2_wait_read();
 	if (port_inb(PS2_PORT_DATA) != 0) {
 
-		kprintf(LOG_WARNING, "[ps/2 8042] port 1 test failed");
+		kprintf(LOG_WARNING, "[ps/2 8042] Port 1 test failed");
 		return;
 	}
 
@@ -229,7 +229,7 @@ extern void ps2_init(void) {
 		ps2_wait_read();
 		if (port_inb(PS2_PORT_DATA) != 0) {
 
-			kprintf(LOG_WARNING, "[ps/2 8042] port 2 test failed");
+			kprintf(LOG_WARNING, "[ps/2 8042] Port 2 test failed");
 			return;
 		}
 	}
@@ -246,13 +246,13 @@ extern void ps2_init(void) {
 	/* reset devices */
 	if (ps2_reset_device(0) < 0) {
 
-		kprintf(LOG_WARNING, "[ps/2 8042] failed to reset device on port 1");
+		kprintf(LOG_WARNING, "[ps/2 8042] Failed to reset device on port 1");
 		return;
 	}
 
 	if (p2_pres && ps2_reset_device(1) < 0) {
 
-		kprintf(LOG_WARNING, "[ps/2 8042] failed to reset device on port 2");
+		kprintf(LOG_WARNING, "[ps/2 8042] Failed to reset device on port 2");
 		p2_pres = 0;
 	}
 
@@ -330,6 +330,16 @@ extern void ps2_wait_write(void) {
 	for (int i = 0; ((stat = port_inb(PS2_PORT_CMD_STAT)) & PS2_STATUS_IN_BUF) && i < PS2_TIMEOUT; i++);
 }
 
+/* flush input buffer */
+extern void ps2_flush(void) {
+
+	for (int i = 0; i < 4; i++) {
+
+		ps2_wait_read();
+		(void)port_inb(PS2_PORT_DATA);
+	}
+}
+
 /* send ps2 command */
 static uint8_t ps2_send_command(uint8_t cmd) {
 
@@ -358,11 +368,19 @@ extern int ps2_reset_device(int d) {
 	uint8_t res = ps2_send_command(PS2_DEV_CMD_RESET);
 
 	/* expects ack (acknowledged) followed by success */
-	if (res != PS2_DEV_CMD_RES_ACK) return -1;
+	if (res != PS2_DEV_CMD_RES_ACK) {
+
+		ps2_flush();
+		return -1;
+	}
 
 	ps2_wait_read();
 	res = port_inb(PS2_PORT_DATA);
-	if (res != PS2_DEV_CMD_RES_PASS) return -1;
+	if (res != PS2_DEV_CMD_RES_PASS) {
+
+		ps2_flush();
+		return -1;
+	}
 
 	ps2_wait_read();
 	(void)port_inb(PS2_PORT_DATA);

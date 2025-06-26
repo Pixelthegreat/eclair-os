@@ -92,6 +92,7 @@ extern void ps2_init(void); /* initialize */
 extern void ps2_init_devfs(void); /* add devices */
 extern void ps2_wait_read(void); /* wait for read */
 extern void ps2_wait_write(void); /* wait for write */
+extern void ps2_flush(void); /* flush input buffer */
 extern int ps2_reset_device(int d); /* reset device */
 extern int ps2_get_device_type(int d); /* get device type */
 extern void ps2_irq1(idt_regs_t *regs); /* irq1 for first ps/2 device */

@@ -4,6 +4,7 @@
 #include <kernel/boot.h>
 #include <kernel/mm/heap.h>
 #include <kernel/driver/device.h>
+#include <kernel/fs/tarfs.h>
 #include <kernel/fs/mbr.h>
 
 /* bootloader id info */
@@ -87,9 +88,16 @@ extern fs_node_t *mbr_fs_probe(device_t *dev, mbr_t *mbr) {
 /* search for root filesystem */
 extern void mbr_fs_mount_root(void) {
 
+	fs_node_t *node = NULL;
+	boot_saved_info_t *info = boot_get_saved_info();
+	if (info->initrd_addr) {
+
+		if ((node = tarfs_mount(fs_root, info->initrd_addr)))
+			kprintf(LOG_INFO, "[mbr] Mounted root filesystem as tarfs ramdisk");
+	}
+
 	device_t *dev = devclass_storage.first;
 	int i = 0;
-	fs_node_t *node = NULL;
 	
 	for (; dev && !node; dev = dev->clsnext) {
 

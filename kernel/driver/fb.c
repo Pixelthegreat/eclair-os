@@ -51,6 +51,14 @@ extern void fb_map(boot_saved_info_t *info, fb_format_t format) {
 	fb_pitch = info->fb_pitch;
 	fb_bpp = info->fb_bpp;
 	fb_format = format;
+
+	/* clear screen */
+	fb_color_t black = {0, 0, 0};
+	for (uint32_t y = 0; y < fb_height; y++) {
+		for (uint32_t x = 0; x < fb_width; x++) {
+			fb_set_pixel(x, y, black);
+		}
+	}
 }
 
 /* set pixel to color */
@@ -165,7 +173,7 @@ static void *memcpy32(void *dst, void *src, size_t cnt) {
 
 static void *memset32(void *dst, int ch, size_t cnt) {
 
-	uint32_t val = ch * 0x1010101;
+	uint32_t val = (uint32_t)ch * 0x1010101;
 	while (cnt) {
 
 		if (cnt > 4) {
@@ -176,7 +184,7 @@ static void *memset32(void *dst, int ch, size_t cnt) {
 		}
 		else {
 
-			*(uint32_t *)dst++ = val;
+			*(uint8_t *)dst++ = (uint8_t)ch;
 			cnt--;
 		}
 	}

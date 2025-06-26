@@ -85,6 +85,7 @@ def module():
                             # partition and file systems #
                             ('fs/ecfs.c', 'fs/ecfs.h'),
                             ('fs/mbr.c', 'fs/mbr.h'),
+                            ('fs/tarfs.c', 'fs/tarfs.h'),
 
                             # architecture io #
                             ('io/port.c', 'io/port.h'),

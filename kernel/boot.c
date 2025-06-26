@@ -149,6 +149,23 @@ extern void boot_init(void) {
 				fb_map(&saved, format);
 			}
 		}
+
+		/* initial ramdisk */
+		if (info->offsets[BOOT_STRUCT_INITRD]) {
+
+			boot_initrd_t *initrd = (boot_initrd_t *)((void *)info + info->offsets[BOOT_STRUCT_INITRD]);
+
+			page_frame_id_t start = initrd->addr >> 12;
+			page_frame_id_t end = start + (initrd->size >> 12) + 1;
+
+			page_id_t page = page_breakp;
+			for (page_frame_id_t i = start; i < end; i++) {
+
+				page_frame_use(i);
+				page_map(page_breakp++, i);
+			}
+			saved.initrd_addr = (void *)((page << 12) + (initrd->addr - (start << 12)));
+		}
 	}
 	parse_cmdline();
 }
@@ -157,13 +174,6 @@ extern void boot_init(void) {
 extern void boot_log(void) {
 
 	kprintf(LOG_INFO, "[boot] Reserved frames: 0x%x", memmap_reserved_frames);
-	
-	boot_memmap_entry_t *entry = (boot_memmap_entry_t *)((void *)info + info->offsets[BOOT_STRUCT_MEMMAP]);
-	/*while (entry->type != BOOT_MEMMAP_ENTRY_NULL) {
-
-		kprintf(LOG_INFO, "[boot] type=0x%x, start=0x%x, end=0x%x", entry->type, entry->start, entry->end);
-		entry++;
-	}*/
 }
 
 /* get page mapped info */

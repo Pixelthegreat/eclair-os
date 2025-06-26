@@ -566,6 +566,7 @@ menu_load:
 	
 	mov ax, word[menu_option]
 	call config_load_kernel
+	call config_load_initrd
 	
 	mov ax, word[menu_video_mode]
 	cmp ax, 0

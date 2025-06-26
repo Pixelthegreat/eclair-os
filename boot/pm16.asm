@@ -213,6 +213,20 @@ pm16_gdt_datadesc:
 	db 0b10010010
 	db 0b11001111
 	db 0x00
+pm16_gdt_int_codedesc:
+	dw 0xffff
+	dw 0x0000
+	db 0x00
+	db 0b10011110
+	db 0b00000000
+	db 0x00
+pm16_gdt_int_datadesc:
+	dw 0xffff
+	dw 0x0000
+	db 0x00
+	db 0b10010010
+	db 0b00000000
+	db 0x00
 pm16_gdt_end:
 pm16_gdt_descriptor:
 	.size dw pm16_gdt_end - pm16_gdt - 1

@@ -19,6 +19,7 @@ struc config_entry
 	.type: resb 1
 	.name: resb CONFIG_STRING_SZ
 	.kernel: resb CONFIG_STRING_SZ
+	.initrd: resb CONFIG_STRING_SZ
 	.cmdline: resb CONFIG_STRING_SZ
 endstruc
 
@@ -225,13 +226,29 @@ config_parse:
 	call strlen
 	cmp ax, bx
 	pop ax
-	jne .param_error
+	jne .param_next4
 	
 	push ax
 	call memcmp
 	cmp ax, 0
 	pop ax
 	je .param_type
+	
+	jmp .param_next4
+.param_next4:
+	mov si, config_initrd_param
+	mov bx, ax
+	push ax
+	call strlen
+	cmp ax, bx
+	pop ax
+	jne .param_error
+	
+	push ax
+	call memcmp
+	cmp ax, 0
+	pop ax
+	je .param_initrd
 	
 	jmp .param_error
 .param_timeout:
@@ -297,6 +314,31 @@ config_parse:
 	je .end
 	
 	jmp .loop
+.param_initrd:
+	push di
+	mov di, word[config_entry_area]
+	cmp di, 0
+	pop di
+	je .unexp_param_error
+	
+	cmp byte[mbr_part_fs], MBR_TYPE_ECLAIR
+	jne .initrd_unsup_error
+	
+	pop si
+	pop di
+	
+	push di
+	add di, config_entry.initrd
+	mov ax, CONFIG_STRING_SZ
+	call strcpynl
+	pop di
+	
+	mov ah, 10
+	call strchrnl
+	cmp si, 0
+	je .end
+	
+	jmp .loop
 .param_type:
 	push di
 	mov di, word[config_entry_area]
@@ -316,6 +358,9 @@ config_parse:
 	je .end
 	
 	jmp .loop
+.end:
+	popa
+	ret
 .char_error:
 	mov si, config_char_error_msg1
 	call print
@@ -351,9 +396,9 @@ config_parse:
 	call printnl
 	mov si, config_error_msg2
 	call print_error
-.end:
-	popa
-	ret
+.initrd_unsup_error:
+	mov si, config_initrd_unsup_error_msg
+	call print_error
 
 ; copy kernel blocks ;
 ; ax = index ;
@@ -467,12 +512,44 @@ config_load_kernel:
 	popa
 	ret
 
+; load initial ramdisk blocks ;
+; ax = index of entry ;
+config_load_initrd:
+	pusha
+	
+	add word[config_kernel_segment], 0x1000
+	
+	push ax
+	mov ax, word[config_kernel_segment]
+	mov word[config_initrd_segment], ax
+	pop ax
+	
+	mov si, boot_path
+	
+	mov di, word[config_entry_area]
+	mov bx, config_entry_size
+	mul bx
+	add di, ax
+	add di, config_entry.initrd
+	
+	cmp byte[di], 0
+	je .end
+	mov byte[config_initrd], 1
+	
+	mov bx, word[config_initrd_segment]
+	call ecfs_load_metadata
+.end:
+	popa
+	ret
+
 ; data ;
 config_area dw 0
 config_data_area dw 0
 config_entry_area dw 0
 config_kernel_segment dw 0
 config_kernel_size dw 0
+config_initrd db 0
+config_initrd_segment dw 0
 
 boot_path db "boot", 0
 config_path db "menu.cfg", 0
@@ -483,10 +560,12 @@ config_expchar_error_msg1 db "Config: Expected '", 0
 config_expchar_error_msg2 db "' but got '", 0
 config_param_error_msg1 db "Config: Unrecognized parameter '", 0
 config_unexp_param_error_msg1 db "Config: Unexpected parameter '", 0
+config_initrd_unsup_error_msg db "Config: Initial ramdisks only supported for EcFS", 0
 
 ; config parameters ;
 config_timeout_param db "timeout", 0
 config_kernel_param db "kernel", 0
+config_initrd_param db "initrd", 0
 config_cmdline_param db "cmdline", 0
 config_type_param db "type", 0
 

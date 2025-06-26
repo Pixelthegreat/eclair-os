@@ -4,8 +4,9 @@ include common.mk
 .PHONY: bootdisk setup_common setup_init_common setup setup_init
 .PHONY: clean install_boot run run_uart_stdout run_debug help
 
-QEMUARGS_ALL=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw -usb -device piix3-usb-uhci,id=uhci -vga cirrus $(QEMUARGS)
-PYBUILDARGS_ALL=-arg mk-outdir=build $(PYBUILDARGS)
+QEMUARGS_ALL=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw -vga cirrus $(QEMUARGS)
+PYBUILDARGS_ALL=-arg mk-outdir=build kernel-drivers=bga,ext2 $(PYBUILDARGS)
+BOOTDISKARGS_ALL=initrd $(BOOTDISKARGS)
 
 # primary targets #
 all: kernel boot libc bin tools bootdisk
@@ -38,7 +39,7 @@ tools:
 # bootdisk setup #
 bootdisk: kernel bin
 	$(BUILD_TARGETNAME)
-	@./bootdisk.sh
+	@./bootdisk.sh $(BOOTDISKARGS_ALL)
 
 # setup routines #
 setup_common:

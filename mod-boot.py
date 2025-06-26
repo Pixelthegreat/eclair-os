@@ -29,6 +29,7 @@ def module():
                              'elf16.asm',
                              'elf32.asm',
                              'ext2.asm',
+                             'fs32.asm',
                              'mbr.asm',
                              'memory.asm',
                              'menu.asm',

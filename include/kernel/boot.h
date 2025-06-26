@@ -31,6 +31,7 @@ typedef struct boot_saved_info {
 	uint32_t fb_bpp; /* bits per pixel */
 	uint32_t mm_nentries; /* number of memory map entries */
 	uint32_t mm_entsize; /* entry size */
+	void *initrd_addr; /* address of initial ramdisk */
 } boot_saved_info_t;
 
 /* boot structure */
@@ -40,6 +41,7 @@ typedef enum boot_struct_type {
 	BOOT_STRUCT_CMDLINE = 0,
 	BOOT_STRUCT_MEMMAP,
 	BOOT_STRUCT_FRAMEBUF,
+	BOOT_STRUCT_INITRD,
 
 	BOOT_STRUCT_COUNT,
 } boot_struct_type_t;
@@ -78,6 +80,12 @@ typedef struct boot_memmap_entry {
 	uint32_t start; /* base address */
 	uint32_t end; /* end address */
 } __attribute__((packed)) boot_memmap_entry_t;
+
+/* initial ramdisk info */
+typedef struct boot_initrd {
+	uint32_t addr; /* address */
+	uint32_t size; /* size */
+} __attribute__((packed)) boot_initrd_t;
 
 /* command line info */
 #define BOOT_CMDLINE_PARAM_MAX_CHARS 32
