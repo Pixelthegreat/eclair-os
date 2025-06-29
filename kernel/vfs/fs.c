@@ -211,6 +211,14 @@ extern bool fs_isatty(fs_node_t *node) {
 	return node->isatty(node);
 }
 
+/* send command to io device */
+extern int fs_ioctl(fs_node_t *node, int op, uintptr_t arg) {
+
+	if (!node || !node->ioctl) return -EBADF;
+
+	return node->ioctl(node, op, arg);
+}
+
 /* resolve a path to a node */
 extern fs_node_t *fs_resolve_full(const char *path, bool *create, const char **fname) {
 

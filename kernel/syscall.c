@@ -29,6 +29,7 @@ static idt_isr_t sysh[ECN_COUNT] = {
 	[ECN_PWAIT] = sys_pwait,
 	[ECN_SLEEPNS] = sys_sleepns,
 	[ECN_READDIR] = sys_readdir,
+	[ECN_IOCTL] = sys_ioctl,
 };
 
 #define RETURN_ERROR(c) ({\
@@ -425,4 +426,14 @@ extern void sys_readdir(idt_regs_t *regs) {
 	dent->flags = fdent->node? fdent->node->flags: 0;
 
 	regs->eax = 0;
+}
+
+/* send command to io device */
+extern void sys_ioctl(idt_regs_t *regs) {
+
+	int fd = (int)regs->ebx;
+	int op = (int)regs->ecx;
+	uintptr_t arg = (uintptr_t)regs->edx;
+
+	regs->eax = (uint32_t)task_fs_ioctl(fd, op, arg);
 }

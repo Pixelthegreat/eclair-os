@@ -39,8 +39,9 @@ typedef int ec_mode_t;
 #define ECN_PWAIT 18
 #define ECN_SLEEPNS 19
 #define ECN_READDIR 20
+#define ECN_IOCTL 21
 
-#define ECN_COUNT 21
+#define ECN_COUNT 22
 
 #define EC_PATHSZ 256
 
@@ -278,6 +279,15 @@ typedef struct ec_dirent {
 } ec_dirent_t;
 
 extern int ec_readdir(const char *path, ec_dirent_t *dent);
+
+/*
+ * Send command to io device.
+ *   ebx/fd = File descriptor
+ *   ecx/op = Operation code
+ *   edx/arg = Argument
+ *   eax (return) = Zero if successful, negative on error
+ */
+extern int ec_ioctl(int fd, int op, uintptr_t arg);
 
 /*
  * Change current process working directory.

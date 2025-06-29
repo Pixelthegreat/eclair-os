@@ -35,6 +35,7 @@ typedef struct fs_node *(*fs_create_t)(struct fs_node *, const char *, uint32_t,
 typedef struct fs_node *(*fs_mount_t)(struct fs_node *, struct fs_node *);
 typedef void (*fs_stat_t)(struct fs_node *, ec_stat_t *);
 typedef bool (*fs_isatty_t)(struct fs_node *);
+typedef int (*fs_ioctl_t)(struct fs_node *, int, uintptr_t);
 
 #define FS_NAMESZ 128
 
@@ -74,6 +75,7 @@ typedef struct fs_node {
 	fs_mount_t mount; /* mount device node */
 	fs_stat_t stat; /* get file info */
 	fs_isatty_t isatty; /* check if file is a teletype */
+	fs_ioctl_t ioctl; /* send command to io device */
 } fs_node_t;
 
 extern fs_node_t *fs_root; /* root node */
@@ -100,6 +102,7 @@ extern fs_node_t *fs_create(fs_node_t *node, const char *name, uint32_t flags, u
 extern fs_node_t *fs_mount(fs_node_t *node, fs_node_t *device); /* mount device node */
 extern void fs_stat(fs_node_t *node, ec_stat_t *st); /* get file info */
 extern bool fs_isatty(fs_node_t *node); /* check if file is a teletype */
+extern int fs_ioctl(fs_node_t *node, int op, uintptr_t arg); /* send command to io device */
 
 extern fs_node_t *fs_resolve_full(const char *path, bool *create, const char **fname); /* resolve a path to a node */
 extern fs_node_t *fs_resolve(const char *path); /* resolve a path to a node strictly */

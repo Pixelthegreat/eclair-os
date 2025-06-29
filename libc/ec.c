@@ -192,6 +192,11 @@ extern int ec_readdir(const char *path, ec_dirent_t *dent) {
 	__ec_seterrno(int, ec_syscall3(ECN_READDIR, (uint32_t)path, (uint32_t)dent, 0));
 }
 
+extern int ec_ioctl(int fd, int op, uintptr_t arg) {
+
+	__ec_seterrno(int, ec_syscall3(ECN_IOCTL, (uint32_t)fd, (uint32_t)op, (uint32_t)arg));
+}
+
 extern int ec_chdir(const char *path) {
 
 	if (!path) {

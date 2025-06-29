@@ -5,6 +5,7 @@
 #include <kernel/vfs/fs.h>
 #include <kernel/vfs/devfs.h>
 #include <kernel/driver/uart.h>
+#include <ec/device.h>
 #include <kernel/tty.h>
 
 #define MAX_DEVS 8
@@ -26,6 +27,22 @@ static bool isatty_fs(fs_node_t *node) {
 	return true;
 }
 
+/* io control */
+static int ioctl_fs(fs_node_t *node, int op, uintptr_t arg) {
+
+	switch (op) {
+		case ECIO_TTY_CURSOR:
+			int res = 0;
+			for (int i = 0; i < nttydev; i++) {
+				if ((res = fs_ioctl(ttydev[i], op, arg)) < 0)
+					break;
+			}
+			return res;
+		default:
+			return -ENOSYS;
+	}
+}
+
 /* initialize */
 extern void tty_init(void) {
 }
@@ -39,6 +56,7 @@ extern void tty_init_devfs(void) {
 	if (nttydev) node->read = ttydev[0]->read;
 	node->write = write_fs;
 	node->isatty = isatty_fs;
+	node->ioctl = ioctl_fs;
 
 	devfs_add_node("tty", node);
 }

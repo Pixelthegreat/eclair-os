@@ -144,5 +144,6 @@ extern kssize_t task_fs_write(int fd, void *buf, size_t cnt); /* write to file *
 extern koff_t task_fs_seek(int fd, koff_t pos, int whence); /* seek to position */
 extern koff_t task_fs_tell(int fd); /* get file position */
 extern int task_fs_close(int fd); /* close file */
+extern int task_fs_ioctl(int fd, int op, uintptr_t arg); /* send command to io device */
 
 #endif /* ECLAIR_TASK_H */

@@ -27,5 +27,6 @@ extern void sys_pexec(idt_regs_t *regs); /* execute a process */
 extern void sys_pwait(idt_regs_t *regs); /* wait for a process to change status */
 extern void sys_sleepns(idt_regs_t *regs); /* sleep for fixed amount of time */
 extern void sys_readdir(idt_regs_t *regs); /* read directory entries */
+extern void sys_ioctl(idt_regs_t *regs); /* send command to io device */
 
 #endif /* ECLAIR_SYSCALL_H */

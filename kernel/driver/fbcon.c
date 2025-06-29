@@ -5,6 +5,7 @@
 #include <kernel/vfs/fs.h>
 #include <kernel/driver/device.h>
 #include <kernel/driver/fb.h>
+#include <ec/device.h>
 #include <kernel/driver/fbcon.h>
 
 static fs_node_t *dev = NULL;
@@ -22,7 +23,7 @@ static char escbuf[32]; /* escape code buffer */
 static size_t nescbuf = 0; /* number of chars in buffer */
 static bool escready = false; /* ready to interpret sequence */
 
-static const char *endstr = "mM"; /* escape code endings */
+static const char *endstr = "mMHJ"; /* escape code endings */
 
 /* translations */
 static const char ascii[ECK_COUNT+1] = "?0123456789abcdefghijklmnopqrstuvwxyz`;\'()[]/\\,.=- ????????????????????????0123456789/*-+.?????????????";
@@ -72,6 +73,7 @@ static uint8_t cursor[CURSOR_WIDTH * CURSOR_HEIGHT] = {
 };
 static fb_color_t cursor_area_old[CURSOR_WIDTH * CURSOR_HEIGHT];
 static bool cursor_show = false; /* cursor is shown */
+static bool cursor_update = true; /* update cursor */
 
 #define CURSOR_UPDATE 500000000
 static uint64_t timens = 0; /* current time */
@@ -282,6 +284,27 @@ static void fbcon_printc(char c) {
 				}
 			}
 		}
+
+		/* set cursor position */
+		else if (cmd == 'H') {
+
+			uint32_t old = idx;
+			idx = 0;
+			fbcon_set_cursor(old, idx);
+		}
+
+		/* clear screen */
+		else if (cmd == 'J') {
+
+			int num = 0;
+			read_esc_int(2, &num);
+
+			if (num == 2) {
+
+				for (uint32_t i = 0; i < width * height; i++)
+					fbcon_drawc(i, ' ');
+			}
+		}
 	}
 
 	/* update scrolling */
@@ -300,6 +323,7 @@ extern void fbcon_init(void) {
 	dev = fs_node_new(NULL, FS_CHARDEVICE);
 	dev->read = fbcon_read;
 	dev->write = fbcon_write;
+	dev->ioctl = fbcon_ioctl;
 }
 
 /* initialize tty device */
@@ -395,8 +419,26 @@ extern kssize_t fbcon_write(fs_node_t *_dev, uint32_t offset, size_t nbytes, uin
 	return (kssize_t)nbytes;
 }
 
+/* io control */
+extern int fbcon_ioctl(fs_node_t *_dev, int op, uintptr_t arg) {
+
+	int res = 0;
+	switch (op) {
+		case ECIO_TTY_CURSOR:
+			if (arg == 1) cursor_update = !cursor_update;
+			else if (arg == 0) res = (int)cursor_update;
+			else res = -EINVAL;
+			break;
+		default:
+			res = -ENOSYS;
+	}
+	return res;
+}
+
 /* show/hide cursor */
 extern void fbcon_flip_cursor(void) {
+
+	if (!cursor_update) return;
 
 	if (cursor_show) fbcon_clear_cursor(idx);
 	else fbcon_draw_cursor(idx);

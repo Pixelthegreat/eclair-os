@@ -913,3 +913,20 @@ extern int task_fs_close(int fd) {
 	task_active->files[fd].file = NULL;
 	return 0;
 }
+
+/* send command to io device */
+extern int task_fs_ioctl(int fd, int op, uintptr_t arg) {
+
+	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
+		return -EBADF;
+	fs_node_t *node = task_active->files[fd].file;
+
+	task_active->stale = false;
+	task_acquire(node);
+	if (task_active->stale) return -EAGAIN;
+
+	int res = fs_ioctl(node, op, arg);
+	task_release();
+
+	return res;
+}
