@@ -278,7 +278,7 @@ pm32_load_boot_initrd:
 	shl edi, 4
 	add edi, ecfs_file_s.blk
 	
-	mov cx, 0
+	mov cx, ecfs_file_s.blk
 .loop:
 	mov ebx, dword[edi]
 	cmp ebx, 0

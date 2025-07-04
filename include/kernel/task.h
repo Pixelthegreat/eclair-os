@@ -61,6 +61,7 @@ typedef void (*task_sig_t)();
 
 /* task control block */
 #define TASK_MAXFILES 32
+#define TASK_MAXMAPPINGS 32
 
 typedef struct task {
 	void *esp0; /* kernel stack top */
@@ -95,6 +96,11 @@ typedef struct task {
 	bool freeargs; /* free argv and envp when done */
 	int pwait; /* waiting on process id */
 	int wstatus; /* wait status */
+	struct {
+		bool used; /* free or used */
+		page_id_t start; /* start page */
+		page_id_t end; /* end page */
+	} mappings[TASK_MAXMAPPINGS]; /* special mapped region table */
 } task_t;
 
 extern task_t *ktask; /* base kernel task */
@@ -137,6 +143,7 @@ extern void task_handle_signal(void); /* routine to handle signal; do not call d
 extern task_t *task_get(int id); /* get task from id */
 extern void *task_sbrk(intptr_t inc); /* increment or decrement breakpoint */
 extern int task_pwait(int pid, uint64_t timeout); /* wait for process status change */
+extern int task_mmap(page_id_t area, page_frame_id_t start, page_frame_id_t count); /* make special memory mapping for task */
 
 extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask); /* open file */
 extern kssize_t task_fs_read(int fd, void *buf, size_t cnt); /* read from file */

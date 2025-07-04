@@ -298,6 +298,11 @@ extern task_t *task_new(void *esp, void *seteip) {
 	task->freeargs = false;
 	task->pwait = 0;
 	task->wstatus = 0;
+	for (uint32_t i = 0; i < TASK_MAXMAPPINGS; i++) {
+		task->mappings[i].used = false;
+		task->mappings[i].start = 0;
+		task->mappings[i].end = 0;
+	}
 
 	task_add_to_list(ready, task);
 	taskmap[id] = task;
@@ -448,6 +453,15 @@ extern void task_free(void) {
 
 	task_lockcli();
 
+	/* unmap mappings */
+	for (uint32_t i = 0; i < TASK_MAXMAPPINGS; i++) {
+		if (task_active->mappings[i].used) {
+			for (uint32_t j = task_active->mappings[i].start; j < task_active->mappings[i].end; j++)
+				page_unmap(j);
+		}
+	}
+
+	/* free frames */
 	uint32_t brkp = ALIGN(task_active->brkp, 4096) >> 12;
 	for (uint32_t i = 0; i < brkp; i++) {
 
@@ -755,6 +769,51 @@ extern int task_pwait(int pid, uint64_t timeout) {
 	if (task_active->stale) return -1;
 
 	return task_active->wstatus;
+}
+
+/* make special memory mapping for task */
+extern int task_mmap(page_id_t area, page_frame_id_t start, page_frame_id_t count) {
+
+	task_lockcli();
+	int mapping = -1;
+
+	/* determine mapping to use */
+	for (int i = 0; i < TASK_MAXMAPPINGS; i++) {
+		if (task_active->mappings[i].used) {
+
+			/* check if area overlaps */
+			if ((area >= task_active->mappings[i].start && area < task_active->mappings[i].end) ||
+			    (area+count >= task_active->mappings[i].start && area+count < task_active->mappings[i].end)) {
+
+				task_unlockcli();
+				return -EINVAL;
+			}
+		}
+		else if (mapping < 0) mapping = i;
+	}
+	if (mapping < 0) {
+
+		task_unlockcli();
+		return -ENOBUFS;
+	}
+
+	/* map memory */
+	task_active->mappings[mapping].used = true;
+	task_active->mappings[mapping].start = area;
+	task_active->mappings[mapping].end = area+count;
+
+	for (page_frame_id_t i = 0; i < count; i++) {
+
+		page_frame_id_t active = page_get_frame(area+i);
+		if (active) {
+
+			page_frame_free(active);
+			page_map_flags(area+i, start+i, PAGE_FLAG_US);
+		}
+	}
+
+	task_unlockcli();
+	return 0;
 }
 
 /* open file */

@@ -1,8 +1,11 @@
 #include <kernel/types.h>
 #include <kernel/string.h>
 #include <kernel/boot.h>
+#include <kernel/task.h>
 #include <kernel/mm/paging.h>
+#include <kernel/vfs/devfs.h>
 #include <kernel/driver/fbfont.h>
+#include <ec/device.h>
 #include <kernel/driver/fb.h>
 
 void *fb_addr = NULL;
@@ -27,10 +30,56 @@ fb_format_t FB_GRAY = {
 	.bytes = 1,
 };
 
+static boot_saved_info_t *saved = NULL;
+
+/* io control */
+static int ioctl_fs(fs_node_t *node, int op, uintptr_t arg) {
+
+	switch (op) {
+
+		/* get framebuffer info */
+		case ECIO_FB_GETINFO:
+			ecio_fbinfo_t *fbinfo = (ecio_fbinfo_t *)arg;
+
+			fbinfo->rmask.size = fb_format.r.masksz;
+			fbinfo->rmask.pos = fb_format.r.pos;
+			fbinfo->gmask.size = fb_format.g.masksz;
+			fbinfo->gmask.pos = fb_format.g.pos;
+			fbinfo->bmask.size = fb_format.b.masksz;
+			fbinfo->bmask.pos = fb_format.b.pos;
+
+			fbinfo->depth_bits = fb_bpp;
+			fbinfo->depth_bytes = fb_format.bytes;
+			fbinfo->width = fb_width;
+			fbinfo->height = fb_height;
+			fbinfo->pitch = fb_pitch;
+			fbinfo->size = fb_pitch * fb_height;
+			return 0;
+
+		/* map framebuffer */
+		case ECIO_FB_MAP:
+			void **set = (void **)arg;
+			uintptr_t addr = (uintptr_t)*set;
+
+			if (addr % 4 != 0) return -EINVAL;
+
+			page_id_t page = (uint32_t)addr >> 12;
+			page_frame_id_t start = (uint32_t)saved->fb_addr >> 12;
+			uint32_t offset = (uint32_t)saved->fb_addr & 0xfff;
+			uint32_t count = ALIGN(offset + (fb_height * fb_pitch), 0x1000) >> 12;
+
+			*set = (void *)(addr + offset);
+			return task_mmap(page, start, count);
+		default:
+			return -ENOSYS;
+	}
+}
+
 /* map framebuffer into memory */
 extern void fb_map(boot_saved_info_t *info, fb_format_t format) {
 
 	if (!info->f_framebuf) return;
+	saved = info;
 
 	/* allocate pages */
 	page_frame_id_t fr = (uint32_t)info->fb_addr / 4096;
@@ -207,4 +256,15 @@ extern void fb_scroll(uint32_t y) {
 	}
 	for (uint32_t py = 0; py < y; py++)
 		memset32(fb_addr+(fb_height-y+py)*fb_pitch, 0, fb_width*fb_format.bytes);
+}
+
+/* initialize file system node */
+extern void fb_init_devfs(void) {
+
+	fs_node_t *node = fs_node_new(NULL, FS_BLOCKDEVICE);
+	fs_open(node, FS_READ | FS_WRITE);
+
+	node->ioctl = ioctl_fs;
+
+	devfs_add_node("fb", node);
 }

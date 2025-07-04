@@ -22,6 +22,7 @@ def module():
         'targets': (
                 gen_bin('cat'),
                 gen_bin('clear'),
+                gen_bin('gfx'),
                 gen_bin('hello'),
                 gen_bin('hexd'),
                 gen_bin('init'),

@@ -5,6 +5,7 @@
 #include <kernel/driver/ps2.h>
 #include <kernel/driver/uart.h>
 #include <kernel/driver/ata.h>
+#include <kernel/driver/fb.h>
 #include <kernel/vfs/devfs.h>
 
 static fs_node_t *dev = NULL;
@@ -53,6 +54,7 @@ extern void devfs_init(void) {
 	ps2_init_devfs();
 	ata_init_devfs();
 	tty_init_devfs();
+	if (fb_addr) fb_init_devfs();
 }
 
 /* add node to /dev */
