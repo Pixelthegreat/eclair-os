@@ -51,6 +51,19 @@ extern char *strncat(char *restrict s1, const char *restrict s2, size_t n) {
 	return p;
 }
 
+/* compare areas of memory to nth byte */
+extern int memcmp(const void *a, const void *b, size_t n) {
+
+	for (size_t i = 0; i < n; i++) {
+
+		uint8_t ia = *(uint8_t *)a++;
+		uint8_t ib = *(uint8_t *)b++;
+
+		if (ia != ib) return (int)ia - (int)ib;
+	}
+	return 0;
+}
+
 /* compare strings */
 extern int strcmp(const char *s1, const char *s2) {
 

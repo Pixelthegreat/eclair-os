@@ -3,6 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include <ec/device.h>
+#include <ec/image.h>
 #include <ec.h>
 
 static int fd = -1; /* framebuffer file descriptor */
@@ -24,7 +25,7 @@ static int flipcursor(void) {
 /* set pixel in framebuffer (same code as in kernel/driver/fb.c) */
 struct color {
 	uint8_t r, g, b;
-};
+} __attribute__((packed));
 
 static void setpixel(ecio_fbinfo_t *fbinfo, uint32_t x, uint32_t y, struct color c) {
 
@@ -33,12 +34,22 @@ static void setpixel(ecio_fbinfo_t *fbinfo, uint32_t x, uint32_t y, struct color
 	uint8_t *addr = (uint8_t *)(fb_addr + y * fbinfo->pitch + x * fbinfo->depth_bytes);
 	uint32_t pixel = 0;
 
-	pixel |= ((uint32_t)c.r * fbinfo->rmask.size / 8) << fbinfo->rmask.pos;
-	pixel |= ((uint32_t)c.g * fbinfo->gmask.size / 8) << fbinfo->gmask.pos;
-	pixel |= ((uint32_t)c.b * fbinfo->bmask.size / 8) << fbinfo->bmask.pos;
+	pixel |= ((uint32_t)c.r << fbinfo->rmask.size >> 8) << fbinfo->rmask.pos;
+	pixel |= ((uint32_t)c.g << fbinfo->gmask.size >> 8) << fbinfo->gmask.pos;
+	pixel |= ((uint32_t)c.b << fbinfo->bmask.size >> 8) << fbinfo->bmask.pos;
 
 	for (uint32_t i = 0; i < fbinfo->depth_bytes; i++)
 		addr[i] = (uint8_t)((pixel >> (i * 8)) & 0xff);
+}
+
+/* clear screen */
+static void clearscreen(ecio_fbinfo_t *fbinfo) {
+
+	struct color clear = {0, 0, 0};
+	for (uint32_t y = 0; y < fbinfo->height; y++) {
+		for (uint32_t x = 0; x < fbinfo->width; x++)
+			setpixel(fbinfo, x, y, clear);
+	}
 }
 
 /* run application */
@@ -79,22 +90,41 @@ static int run(void) {
 	/* map framebuffer */
 	if (ec_ioctl(fd, ECIO_FB_MAP, (uintptr_t)&fb_addr) < 0) {
 
-		fprintf(stderr, "Failed to map framebuffer; %s\n", strerror(errno));
+		fprintf(stderr, "Failed to map framebuffer: %s\n", strerror(errno));
 		return 1;
 	}
 
-	/* draw picture */
-	for (uint32_t y = 0; y < fbinfo.height; y++) {
-		for (uint32_t x = 0; x < fbinfo.width * fbinfo.depth_bytes; x++) {
+	/* load image */
+	ec_image_t image = EC_IMAGE_INIT;
+	if (ec_image_open(&image, "/usr/share/logo1.rbn", EC_IMAGE_FORMAT_RBN)) {
 
-			struct color color = {
-				x & 0xff,
-				0xff - (x & 0xff),
-				y & 0xff,
-			};
-			setpixel(&fbinfo, x, y, color);
+		fprintf(stderr, "Failed to load image: %s\n", strerror(errno));
+		return 1;
+	}
+	uint32_t xoff, yoff;
+	if (fbinfo.width < image.width || fbinfo.height < image.height) {
+
+		xoff = 0;
+		yoff = 0;
+	}
+	else {
+		xoff = (fbinfo.width - image.width) / 2;
+		yoff = (fbinfo.height - image.height) / 2;
+	}
+
+	clearscreen(&fbinfo);
+
+	/* draw image */
+	for (uint32_t y = 0; y < image.height; y++) {
+		for (uint32_t x = 0; x < image.width; x++) {
+
+			struct color color;
+
+			ec_image_read_colors(&image, (uint8_t *)&color, 1, EC_IMAGE_DATA_RGB8);
+			setpixel(&fbinfo, x + xoff, y + yoff, color);
 		}
 	}
+	ec_image_close(&image);
 
 	/* wait and clear screen */
 	ec_timeval_t tv = {
@@ -103,12 +133,7 @@ static int run(void) {
 	};
 	ec_sleepns(&tv);
 
-	struct color clear = {0, 0, 0};
-	for (uint32_t y = 0; y < fbinfo.height; y++) {
-		for (uint32_t x = 0; x < fbinfo.width * fbinfo.depth_bytes; x++)
-			setpixel(&fbinfo, x, y, clear);
-	}
-
+	clearscreen(&fbinfo);
 	return 0;
 }
 

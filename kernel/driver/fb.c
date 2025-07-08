@@ -120,9 +120,9 @@ extern void fb_set_pixel(uint32_t x, uint32_t y, fb_color_t color) {
 	uint32_t pixel = 0;
 
 	/* converts an r8g8b8 format color to a pixel value */
-	pixel |= ((uint32_t)color.r * fb_format.r.masksz / 8) << fb_format.r.pos;
-	pixel |= ((uint32_t)color.g * fb_format.g.masksz / 8) << fb_format.g.pos;
-	pixel |= ((uint32_t)color.b * fb_format.b.masksz / 8) << fb_format.b.pos;
+	pixel |= ((uint32_t)color.r << fb_format.r.masksz >> 8) << fb_format.r.pos;
+	pixel |= ((uint32_t)color.g << fb_format.g.masksz >> 8) << fb_format.g.pos;
+	pixel |= ((uint32_t)color.b << fb_format.b.masksz >> 8) << fb_format.b.pos;
 	
 	for (uint32_t i = 0; i < fb_format.bytes; i++)
 		addr[i] = (uint8_t)((pixel >> (i * 8)) & 0xff);
@@ -141,9 +141,9 @@ extern fb_color_t fb_get_pixel(uint32_t x, uint32_t y) {
 
 	/* convert a pixel to r8g8b8 format */
 	fb_color_t color;
-	color.r = (uint8_t)(((pixel >> fb_format.r.pos) & (0xffffffff >> (32-fb_format.r.pos))) * 8 / fb_format.r.masksz);
-	color.g = (uint8_t)(((pixel >> fb_format.g.pos) & (0xffffffff >> (32-fb_format.g.pos))) * 8 / fb_format.g.masksz);
-	color.b = (uint8_t)(((pixel >> fb_format.b.pos) & (0xffffffff >> (32-fb_format.b.pos))) * 8 / fb_format.b.masksz);
+	color.r = (uint8_t)(((pixel >> fb_format.r.pos) & (0xffffffff >> (32-fb_format.r.pos))) << 8 >> fb_format.r.masksz);
+	color.g = (uint8_t)(((pixel >> fb_format.g.pos) & (0xffffffff >> (32-fb_format.g.pos))) << 8 >> fb_format.g.masksz);
+	color.b = (uint8_t)(((pixel >> fb_format.b.pos) & (0xffffffff >> (32-fb_format.b.pos))) << 8 >> fb_format.b.masksz);
 
 	return color;
 }

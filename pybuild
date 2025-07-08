@@ -2,6 +2,8 @@
 # a simple build system
 import sys
 import os
+import importlib
+import importlib.util
 
 # constants #
 START_MAKEFILE = """include common.mk
@@ -120,7 +122,7 @@ class TargetObject:
         self.depsdir = target.get('depsdir', module.depsdir)
         self.cflags = module.cflags + target.get('cflags', '')
         self.asmflags = module.asmflags + target.get('asmflags', '')
-        self.ldflags = module.ldflags + target.get('ldflags', '')
+        self.ldflags = module.ldflags + ' ' + target.get('ldflags', '')
         self.cfiles = target.get('c-files', ())
         self.asmfiles = target.get('asm-files', ())
         self.extrac = module.extrac + target.get('extra-c', ())
@@ -294,11 +296,20 @@ class MakefileGenerator:
             for cmd in (target.extraasm if ext == 'asm' else target.extrac):
                 self.string += f'\n\t{cmd}'
 
+# self explanatory #
+def load_module_from_path(path):
+    name = os.path.basename(os.path.splitext(path)[0])
+    spec = importlib.util.spec_from_file_location(name, path)
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 # main #
 def main():
     from modules import modules
-    for name in modules:
-        mod_imps.append(__import__(name))
+    for path in modules:
+        mod_imps.append(load_module_from_path(path))
 
     # parse arguments #
     argparse = ArgumentParser(sys.argv)
