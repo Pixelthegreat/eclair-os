@@ -1,3 +1,8 @@
+;
+; Copyright 2025, Elliot Kohlmyer
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
 %ifndef PM32_ASM
 %define PM32_ASM
 

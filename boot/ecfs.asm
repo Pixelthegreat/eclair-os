@@ -1,4 +1,8 @@
 ;
+; Copyright 2025, Elliot Kohlmyer
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
 ; For more information on EcFS, see include/ec/ecfs.h
 ;
 %ifndef ECFS_ASM

@@ -1,4 +1,8 @@
 /*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Common definitions for simple image formats and interface for image loading
  */
 #ifndef EC_IMAGE_H

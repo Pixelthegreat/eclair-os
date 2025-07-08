@@ -1,4 +1,8 @@
 /*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Common key codes (and mouse button codes) to be used between the kernel and libraries
  */
 #ifndef EC_KEYCODE_H

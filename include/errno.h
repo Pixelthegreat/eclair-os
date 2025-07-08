@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 #ifndef _ERRNO_H
 #define _ERRNO_H 1
 

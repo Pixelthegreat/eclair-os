@@ -1,3 +1,8 @@
+;
+; Copyright 2025, Elliot Kohlmyer
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
 %define SYSINT 0x80
 	; be prepared ;
 	global isr0

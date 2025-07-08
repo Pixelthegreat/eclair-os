@@ -1,4 +1,8 @@
-; TODO: change page flags from 0x007 to 0x003 to disable user mode access ;
+;
+; Copyright 2025, Elliot Kohlmyer
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
 %define ADDR_START 0xC0000000
 %define WIDTH 640
 %define HEIGHT 480

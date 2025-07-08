@@ -1,3 +1,8 @@
+;
+; Copyright 2025, Elliot Kohlmyer
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
 %ifndef EXT2_ASM
 %define EXT2_ASM
 

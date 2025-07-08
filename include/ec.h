@@ -1,4 +1,8 @@
 /*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * == Eclair OS system call declarations and documentation ==
  *
  * For clarity: Tasks are referred to as processes and

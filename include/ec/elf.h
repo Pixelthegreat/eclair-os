@@ -1,4 +1,8 @@
 /*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Common data structures, types and macros for the ELF file format
  */
 #ifndef EC_ELF_H

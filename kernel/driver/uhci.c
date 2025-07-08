@@ -1,9 +1,16 @@
 /*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * NOTE: This UHCI driver is not intended to be a fully
  * featured UHCI driver. I will probably not implement
  * a full USB stack ever; However, I do wish to be able
  * to roll out basic support for USB mass storage
  * devices, hence this driver.
+ *
+ * July 8th, 2025: UHCI support is no longer planned
+ * for Eclair OS.
  */
 #include <kernel/types.h>
 #include <kernel/panic.h>

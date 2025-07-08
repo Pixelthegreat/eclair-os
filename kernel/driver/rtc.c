@@ -1,4 +1,8 @@
 /*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * The code of ytosec, mtosec and rtc_get_time along
  * with the values in msec are largely derived from
  * musl libc (https://musl.libc.org).
