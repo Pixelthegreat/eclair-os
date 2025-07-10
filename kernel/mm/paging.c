@@ -28,6 +28,7 @@ static page_id_t page_table_id = 0;
 page_id_t page_breakp = 0;
 page_dir_entry_t *page_dir_wrap = NULL;
 page_tab_entry_t *page_table = NULL;
+uint32_t page_frame_max_count = 0;
 
 /* get an address to a page table from the page directory */
 #define PAGE_TAB(p) ((page_tab_entry_t *)(page_dir_wrap[(p)] & 0xfffff000))
@@ -45,7 +46,6 @@ extern void page_frame_init(void) {
 
 		if (i < LOWMEM_START || i >= LOWMEM_START+LOWMEM_SIZE)
 			page_frame_use(i);
-		//	bitmap[i / 8] |= 1 << (i % 8);
 	}
 }
 
@@ -203,7 +203,13 @@ extern bool page_is_mapped(page_id_t p) {
 extern page_frame_id_t page_get_frame(page_id_t p) {
 
 	if (!page_dir_wrap[p/1024]) return 0;
-	return (page_table[p] & 0xfffff000) / 4096;
+	return page_table[p] >> 12;
+}
+
+/* get frame from page table */
+extern page_frame_id_t page_get_table_frame(page_id_t p) {
+
+	return page_dir_wrap[p] >> 12;
 }
 
 /* unmap page */
@@ -225,6 +231,7 @@ extern void *page_get_directory(void) {
 extern void *page_clone_directory(page_frame_id_t frame, page_id_t page) {
 
 	void *dir = (void *)(page * 4096);
+
 	memcpy(dir, page_dir, 4096);
 
 	/* map page directory as a page table */

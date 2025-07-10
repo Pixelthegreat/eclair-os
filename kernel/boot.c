@@ -113,10 +113,10 @@ extern void boot_init(void) {
 			while (entry->type != BOOT_MEMMAP_ENTRY_NULL) {
 
 				/* mark entries as used */
-				if (entry->type == BOOT_MEMMAP_ENTRY_UNUSABLE) {
+				uint32_t startf = entry->start >> 12;
+				uint32_t endf = ALIGN(entry->end, 0x1000) >> 12;
 
-					uint32_t startf = entry->start >> 12;
-					uint32_t endf = ALIGN(entry->end, 0x1000) >> 12;
+				if (entry->type == BOOT_MEMMAP_ENTRY_UNUSABLE) {
 
 					for (uint32_t f = startf; f < endf; f++) {
 
@@ -124,6 +124,7 @@ extern void boot_init(void) {
 						memmap_reserved_frames++;
 					}
 				}
+				page_frame_max_count += (endf - startf);
 				entry++;
 			}
 		}
@@ -179,6 +180,7 @@ extern void boot_init(void) {
 extern void boot_log(void) {
 
 	kprintf(LOG_INFO, "[boot] Reserved frames: 0x%x", memmap_reserved_frames);
+	kprintf(LOG_INFO, "[boot] Total frames: 0x%x", page_frame_max_count);
 }
 
 /* get page mapped info */

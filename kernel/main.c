@@ -17,7 +17,7 @@
 #include <kernel/fs/mbr.h>
 #include <kernel/task.h>
 
-extern void _kernel_end();
+uint8_t os_version[3] = {0, 0, 1};
 
 extern void kernel_main() {
 

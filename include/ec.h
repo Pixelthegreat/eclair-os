@@ -44,8 +44,9 @@ typedef int ec_mode_t;
 #define ECN_SLEEPNS 19
 #define ECN_READDIR 20
 #define ECN_IOCTL 21
+#define ECN_KINFO 22
 
-#define ECN_COUNT 22
+#define ECN_COUNT 23
 
 #define EC_PATHSZ 256
 
@@ -292,6 +293,21 @@ extern int ec_readdir(const char *path, ec_dirent_t *dent);
  *   eax (return) = Zero if successful, negative on error
  */
 extern int ec_ioctl(int fd, int op, uintptr_t arg);
+
+/*
+ * Get information about the system.
+ *   ebx/info = System information to fill out
+ */
+#define EC_KINFO_NAMESZ 24
+
+typedef struct ec_kinfo {
+	char name[EC_KINFO_NAMESZ]; /* operating system name */
+	uint8_t version[3]; /* operating system version */
+	uintptr_t mem_free; /* amount of free system memory */
+	uintptr_t mem_total; /* amount of total system memory */
+} ec_kinfo_t;
+
+extern void ec_kinfo(ec_kinfo_t *info);
 
 /*
  * Change current process working directory.

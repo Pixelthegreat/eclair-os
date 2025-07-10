@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -13,8 +18,8 @@
 #include <fuse.h>
 
 #define ECFS_IMPL
-#include <ec/ecfs.h>
-#include <ec/mbr.h>
+#include "../include/ec/ecfs.h"
+#include "../include/ec/mbr.h"
 
 #define MIN(x, y) ((x) < (y)? (x): (y))
 

@@ -72,9 +72,29 @@ typedef struct ec_image {
 
 #define EC_IMAGE_INIT ((ec_image_t){.fp = NULL})
 
-/* functions */
-extern int ec_image_open(ec_image_t *image, const char *path, ec_image_format_t format); /* open image to read */
-extern int ec_image_read_colors(ec_image_t *image, uint8_t *buffer, size_t count, ec_image_data_t format); /* read colors from file */
-extern int ec_image_close(ec_image_t *image); /* close image */
+/*
+ * Open an image to read.
+ *
+ * 'format' is the file format, not the data format.
+ *
+ * Returns zero if successful, negative on error.
+ */
+extern int ec_image_open(ec_image_t *image, const char *path, ec_image_format_t format);
+
+/*
+ * Read one or more colors from an image file.
+ *
+ * 'format' is the data format to read (rgb8, rgba8, ...).
+ *
+ * Returns zero if successful, negative on error.
+ */
+extern int ec_image_read_colors(ec_image_t *image, uint8_t *buffer, size_t count, ec_image_data_t format);
+
+/*
+ * Close an image.
+ *
+ * Returns zero if successful, negative on error.
+ */
+extern int ec_image_close(ec_image_t *image);
 
 #endif /* EC_IMAGE_H */

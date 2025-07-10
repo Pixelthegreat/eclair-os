@@ -202,6 +202,11 @@ extern int ec_ioctl(int fd, int op, uintptr_t arg) {
 	__ec_seterrno(int, ec_syscall3(ECN_IOCTL, (uint32_t)fd, (uint32_t)op, (uint32_t)arg));
 }
 
+extern void ec_kinfo(ec_kinfo_t *info) {
+
+	(void)ec_syscall3(ECN_KINFO, (uint32_t)info, 0, 0);
+}
+
 extern int ec_chdir(const char *path) {
 
 	if (!path) {

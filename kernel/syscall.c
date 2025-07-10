@@ -13,6 +13,8 @@
 #include <errno.h>
 #include <kernel/syscall.h>
 
+extern uint8_t os_version[3];
+
 static idt_isr_t sysh[ECN_COUNT] = {
 	[ECN_EXIT] = sys_exit,
 	[ECN_OPEN] = sys_open,
@@ -35,6 +37,7 @@ static idt_isr_t sysh[ECN_COUNT] = {
 	[ECN_SLEEPNS] = sys_sleepns,
 	[ECN_READDIR] = sys_readdir,
 	[ECN_IOCTL] = sys_ioctl,
+	[ECN_KINFO] = sys_kinfo,
 };
 
 #define RETURN_ERROR(c) ({\
@@ -441,4 +444,15 @@ extern void sys_ioctl(idt_regs_t *regs) {
 	uintptr_t arg = (uintptr_t)regs->edx;
 
 	regs->eax = (uint32_t)task_fs_ioctl(fd, op, arg);
+}
+
+/* get system info */
+extern void sys_kinfo(idt_regs_t *regs) {
+
+	ec_kinfo_t *info = (ec_kinfo_t *)regs->ebx;
+
+	strcpy(info->name, "eclair-os");
+	memcpy(info->version, os_version, sizeof(uint8_t) * 3);
+	info->mem_total = (uintptr_t)page_frame_max_count * 0x1000;
+	info->mem_free = info->mem_total - ((uintptr_t)page_frame_get_used_count() * 0x1000);
 }

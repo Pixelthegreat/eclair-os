@@ -2,9 +2,6 @@ def gentool(name, cflags=None, ldflags=None):
     cflags = cflags if cflags is not None else ''
     ldflags = ldflags if ldflags is not None else ''
 
-    if cflags: cflags += ' '
-    cflags += '-Iinclude'
-
     return {
             'name': name,
             'out': f'build/{name}',

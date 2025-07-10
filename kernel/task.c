@@ -474,6 +474,14 @@ extern void task_free(void) {
 		if (f) page_frame_free(f);
 	}
 
+	/* fun fact: the lack of this block of code was the cause of a memory leak */
+	brkp = ALIGN(brkp, 1024) >> 10;
+	for (uint32_t i = 0; i < brkp; i++) {
+
+		page_frame_id_t f = page_get_table_frame(i);
+		if (f) page_frame_free(f);
+	}
+
 	/* close files */
 	for (int i = 0; i < TASK_MAXFILES; i++) {
 

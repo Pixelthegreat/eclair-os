@@ -1,3 +1,13 @@
+/*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * Fun fact: Adding -Iinclude to cflags allows for
+ * including <ec/ecfs.h> and <ec/mbr.h> directly, but
+ * breaks things in other ways that don't immediately
+ * reveal themselves!
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -6,8 +16,8 @@
 #include <time.h>
 
 #define ECFS_IMPL
-#include <ec/ecfs.h>
-#include <ec/mbr.h>
+#include "../include/ec/ecfs.h"
+#include "../include/ec/mbr.h"
 
 #define DEF_BLKSZ 1024
 
