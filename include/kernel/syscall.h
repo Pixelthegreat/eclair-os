@@ -29,5 +29,7 @@ extern void sys_sleepns(idt_regs_t *regs); /* sleep for fixed amount of time */
 extern void sys_readdir(idt_regs_t *regs); /* read directory entries */
 extern void sys_ioctl(idt_regs_t *regs); /* send command to io device */
 extern void sys_kinfo(idt_regs_t *regs); /* get system info */
+extern void sys_getuser(idt_regs_t *regs); /* get user info */
+extern void sys_setuser(idt_regs_t *regs); /* set user */
 
 #endif /* ECLAIR_SYSCALL_H */

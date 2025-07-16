@@ -246,6 +246,16 @@ extern int device_keyboard_getkey_block(device_t *dev) {
 	return key;
 }
 
+/* flush keys */
+extern void device_keyboard_flushkeys(device_t *dev) {
+
+	if (!dev || dev->cls != &devclass_keyboard) return;
+	device_keyboard_t *kbdev = (device_keyboard_t *)dev;
+
+	kbdev->kstart = 0;
+	kbdev->kend = 0;
+}
+
 /* write event to ringbuffer */
 extern void device_mouse_putev(device_t *dev, device_mouse_event_t *ev) {
 
@@ -270,4 +280,14 @@ extern device_mouse_event_t *device_mouse_getev(device_t *dev) {
 	device_mouse_event_t *ev = &msdev->ev[msdev->evstart];
 	msdev->evstart = (msdev->evstart + 1) % DEVICE_KEYBOARD_MAX_KEYS;
 	return ev;
+}
+
+/* flush events */
+extern void device_mouse_flushevs(device_t *dev) {
+
+	if (!dev || dev->cls != &devclass_mouse) return;
+	device_mouse_t *msdev = (device_mouse_t *)dev;
+
+	msdev->evstart = 0;
+	msdev->evend = 0;
 }

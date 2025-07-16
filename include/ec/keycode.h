@@ -8,6 +8,8 @@
 #ifndef EC_KEYCODE_H
 #define EC_KEYCODE_H
 
+#include <stdbool.h>
+
 /* key codes */
 typedef enum ec_keycode {
 	ECK_NONE = 0,
@@ -140,5 +142,11 @@ typedef enum ec_buttoncode {
 	ECB_MIDDLE = ECB_2,
 	ECB_RIGHT = ECB_3,
 } ec_buttoncode_t;
+
+/* mouse event */
+typedef struct ec_msevent {
+	int x, y; /* x and y motion */
+	bool state[ECB_COUNT]; /* button state */
+} ec_msevent_t;
 
 #endif /* EC_KEYCODE_H */

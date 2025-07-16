@@ -132,6 +132,7 @@ extern int elf_load_task(const char *path, const char **argv, const char **envp,
 	task->argv = argv;
 	task->envp = envp;
 	task->freeargs = freeargs;
+	task->uid = task_active->uid;
 	
 	task_unlockcli();
 	while (!res);

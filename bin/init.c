@@ -9,8 +9,6 @@
 #include <errno.h>
 #include <ec.h>
 
-#define RC_PATH "/etc/ecrc.sh"
-
 #define LINEBUFSZ 128
 static char linebuf[LINEBUFSZ];
 
@@ -42,7 +40,7 @@ extern int main(int argc, const char **argv) {
 
 	printf("Staring %s...\n", linebuf);
 
-	const char *pargv[] = {linebuf, RC_PATH, NULL};
+	const char *pargv[] = {linebuf, NULL};
 	int pid = ec_pexec(linebuf, pargv, NULL);
 	if (pid < 0) {
 

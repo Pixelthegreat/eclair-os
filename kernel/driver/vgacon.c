@@ -264,6 +264,7 @@ extern void vgacon_init(void) {
 	if (dev) return;
 
 	dev = fs_node_new(NULL, FS_CHARDEVICE);
+	dev->mask = 0666;
 	dev->read = vgacon_read;
 	dev->write = vgacon_write;
 

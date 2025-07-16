@@ -33,6 +33,7 @@ def get_opt_drivers():
     # add files #
     cfiles = []
     cflags = []
+    names = []
 
     for flag in Driver:
         if flag != Driver.ALL and bits & flag.value:
@@ -41,12 +42,14 @@ def get_opt_drivers():
 
             cfiles.append((f'{directory}/{name}.c', f'{directory}/{name}.h'))
             cflags.append(f'-DDRIVER_{name.upper()}')
+            names.append(name)
 
-    return cfiles, cflags
+    return cfiles, cflags, names
 
 # get main module info #
 def module():
-    driver_cfiles, driver_cflags = get_opt_drivers()
+    driver_cfiles, driver_cflags, driver_names = get_opt_drivers()
+    print(f'Selected drivers: {", ".join(driver_names)}')
 
     return {
         'name': 'kernel',
@@ -113,6 +116,7 @@ def module():
                             ('syscall.c', 'syscall.h'),
                             ('task.c', 'task.h'),
                             ('tty.c', 'tty.h'),
+                            ('users.c', 'users.h'),
 
                             # optional drivers #
                             *driver_cfiles,

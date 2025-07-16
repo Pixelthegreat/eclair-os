@@ -267,6 +267,7 @@ extern void fb_scroll(uint32_t y) {
 extern void fb_init_devfs(void) {
 
 	fs_node_t *node = fs_node_new(NULL, FS_BLOCKDEVICE);
+	node->mask = 0644;
 	fs_open(node, FS_READ | FS_WRITE);
 
 	node->ioctl = ioctl_fs;

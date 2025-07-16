@@ -5,7 +5,7 @@ include common.mk
 .PHONY: clean install_boot run run_uart_stdout run_debug help
 
 QEMUARGS_ALL=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw -vga cirrus $(QEMUARGS)
-PYBUILDARGS_ALL=-arg mk-outdir=build -arg kernel-drivers=bga,ext2 $(PYBUILDARGS)
+PYBUILDARGS_ALL= mk-outdir=build kernel-drivers=bga,ext2 $(PYBUILDARGS)
 BOOTDISKARGS_ALL=initrd $(BOOTDISKARGS)
 
 # primary targets #
@@ -79,7 +79,7 @@ run:
 	qemu-system-i386 $(QEMUARGS_ALL)
 
 run_uart_stdout:
-	qemu-system-i386 $(QEMUARGS_ALL) -serial /dev/stdout
+	qemu-system-i386 $(QEMUARGS_ALL) -serial stdio
 
 run_debug:
 	qemu-system-i386 $(QEMUARGS_ALL) -d int

@@ -45,8 +45,10 @@ typedef int ec_mode_t;
 #define ECN_READDIR 20
 #define ECN_IOCTL 21
 #define ECN_KINFO 22
+#define ECN_GETUSER 23
+#define ECN_SETUSER 24
 
-#define ECN_COUNT 23
+#define ECN_COUNT 25
 
 #define EC_PATHSZ 256
 
@@ -280,7 +282,8 @@ extern int ec_sleepns(ec_timeval_t *tv);
 typedef struct ec_dirent {
 	char name[ECD_NAMESZ]; /* file name */
 	int flags; /* file flags */
-	void *_data;
+	uint32_t mask; /* file mode mask */
+	void *_data; /* internal data */
 } ec_dirent_t;
 
 extern int ec_readdir(const char *path, ec_dirent_t *dent);
@@ -308,6 +311,30 @@ typedef struct ec_kinfo {
 } ec_kinfo_t;
 
 extern void ec_kinfo(ec_kinfo_t *info);
+
+/*
+ * Get user info.
+ *   ebx/info = User info to fill out
+ *   eax (return) = Zero if successful, negative on error
+ */
+#define EC_UINFO_NAMESZ 32
+
+typedef struct ec_uinfo {
+	char uname[EC_UINFO_NAMESZ]; /* user name */
+	char gname[EC_UINFO_NAMESZ]; /* group name */
+	int uid; /* user id */
+	int gid; /* group id */
+} ec_uinfo_t;
+
+extern int ec_getuser(ec_uinfo_t *info);
+
+/*
+ * Set active user for process.
+ *   ebx/name = Username
+ *   ecx/pswd = Password
+ *   eax (return) = Zero if successful, negative on error
+ */
+extern int ec_setuser(const char *name, const char *pswd);
 
 /*
  * Change current process working directory.

@@ -25,12 +25,14 @@ def module():
         'targets': (
                 gen_bin('cat'),
                 gen_bin('clear'),
+                gen_bin('gfx-mouse'),
                 gen_bin('gfx', ldflags='-limage'),
                 gen_bin('hello'),
                 gen_bin('hexd'),
                 gen_bin('init'),
                 gen_bin('ls'),
                 gen_bin('sh'),
+                gen_bin('su'),
                 gen_bin('sysinfo'),
             )
         }

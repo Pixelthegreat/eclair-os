@@ -40,14 +40,17 @@ extern void devfs_init(void) {
 	devdir->flags |= FS_MOUNTPOINT;
 
 	dev = fs_node_new(NULL, FS_DIRECTORY);
+	dev->mask = 0755;
 	dev->parent = devdir;
 
 	devdir->ptr = dev;
 
 	/* create proxy devices */
 	null = fs_node_new(NULL, FS_CHARDEVICE);
+	null->mask = 0444;
 
 	zero = fs_node_new(NULL, FS_CHARDEVICE);
+	zero->mask = 0444;
 	zero->read = zero_read;
 	zero->write = zero_write;
 

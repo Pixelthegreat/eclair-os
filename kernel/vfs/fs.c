@@ -19,6 +19,7 @@ fs_node_t *fs_root; /* root node */
 extern void fs_init(void) {
 
 	fs_root = fs_node_new(NULL, FS_MOUNTPOINT);
+	fs_root->mask = 0755;
 }
 
 /* create new directory entry */

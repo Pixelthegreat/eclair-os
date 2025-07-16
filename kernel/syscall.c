@@ -8,6 +8,7 @@
 #include <kernel/string.h>
 #include <kernel/task.h>
 #include <kernel/elf.h>
+#include <kernel/users.h>
 #include <kernel/mm/heap.h>
 #include <kernel/driver/rtc.h>
 #include <errno.h>
@@ -38,6 +39,8 @@ static idt_isr_t sysh[ECN_COUNT] = {
 	[ECN_READDIR] = sys_readdir,
 	[ECN_IOCTL] = sys_ioctl,
 	[ECN_KINFO] = sys_kinfo,
+	[ECN_GETUSER] = sys_getuser,
+	[ECN_SETUSER] = sys_setuser,
 };
 
 #define RETURN_ERROR(c) ({\
@@ -432,6 +435,7 @@ extern void sys_readdir(idt_regs_t *regs) {
 
 	strncpy(dent->name, fdent->name, ECD_NAMESZ);
 	dent->flags = fdent->node? fdent->node->flags: 0;
+	dent->mask = fdent->node? fdent->node->mask: 0;
 
 	regs->eax = 0;
 }
@@ -455,4 +459,36 @@ extern void sys_kinfo(idt_regs_t *regs) {
 	memcpy(info->version, os_version, sizeof(uint8_t) * 3);
 	info->mem_total = (uintptr_t)page_frame_max_count * 0x1000;
 	info->mem_free = info->mem_total - ((uintptr_t)page_frame_get_used_count() * 0x1000);
+}
+
+/* get user info */
+extern void sys_getuser(idt_regs_t *regs) {
+
+	ec_uinfo_t *info = (ec_uinfo_t *)regs->ebx;
+	if (!info) RETURN_ERROR(-EINVAL);
+
+	user_t *user = user_get(task_active->uid);
+	if (!user) RETURN_ERROR(-EINVAL);
+
+	group_t *group = user_get_group(user->uid);
+	if (!group) RETURN_ERROR(-EINVAL);
+
+	strncpy(info->uname, user->name, EC_UINFO_NAMESZ);
+	strncpy(info->gname, group->name, EC_UINFO_NAMESZ);
+
+	info->uid = task_active->uid;
+	info->gid = user->gid;
+
+	regs->eax = 0;
+}
+
+/* set user */
+extern void sys_setuser(idt_regs_t *regs) {
+
+	const char *name = (const char *)regs->ebx;
+	const char *pswd = (const char *)regs->ecx;
+
+	if (!name || !pswd) RETURN_ERROR(-EINVAL);
+
+	regs->eax = (uint32_t)task_setuser(name, pswd);
 }

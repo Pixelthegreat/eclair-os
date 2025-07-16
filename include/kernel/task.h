@@ -101,6 +101,7 @@ typedef struct task {
 		page_id_t start; /* start page */
 		page_id_t end; /* end page */
 	} mappings[TASK_MAXMAPPINGS]; /* special mapped region table */
+	int uid; /* user id */
 } task_t;
 
 extern task_t *ktask; /* base kernel task */
@@ -144,6 +145,7 @@ extern task_t *task_get(int id); /* get task from id */
 extern void *task_sbrk(intptr_t inc); /* increment or decrement breakpoint */
 extern int task_pwait(int pid, uint64_t timeout); /* wait for process status change */
 extern int task_mmap(page_id_t area, page_frame_id_t start, page_frame_id_t count); /* make special memory mapping for task */
+extern int task_setuser(const char *name, const char *pswd); /* set user for task */
 
 extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask); /* open file */
 extern kssize_t task_fs_read(int fd, void *buf, size_t cnt); /* read from file */

@@ -326,6 +326,7 @@ extern void fbcon_init(void) {
 
 	/* create device */
 	dev = fs_node_new(NULL, FS_CHARDEVICE);
+	dev->mask = 0666;
 	dev->read = fbcon_read;
 	dev->write = fbcon_write;
 	dev->ioctl = fbcon_ioctl;

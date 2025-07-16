@@ -65,7 +65,7 @@ static int run(void) {
 	fd = ec_open("/dev/fb0", ECF_READ, 0);
 	if (fd < 0) {
 
-		fprintf(stderr, "Failed to open 'dev/fb0': %s\n", strerror(errno));
+		fprintf(stderr, "Failed to open '/dev/fb0': %s\n", strerror(errno));
 		return 1;
 	}
 

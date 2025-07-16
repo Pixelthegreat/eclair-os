@@ -6,6 +6,7 @@
 #include <kernel/types.h>
 #include <kernel/panic.h>
 #include <kernel/string.h>
+#include <kernel/users.h>
 #include <kernel/mm/gdt.h>
 #include <kernel/driver/pit.h>
 #include <kernel/mm/gdt.h>
@@ -308,6 +309,7 @@ extern task_t *task_new(void *esp, void *seteip) {
 		task->mappings[i].start = 0;
 		task->mappings[i].end = 0;
 	}
+	task->uid = 0;
 
 	task_add_to_list(ready, task);
 	taskmap[id] = task;
@@ -829,13 +831,66 @@ extern int task_mmap(page_id_t area, page_frame_id_t start, page_frame_id_t coun
 	return 0;
 }
 
+/* set user for task */
+extern int task_setuser(const char *name, const char *pswd) {
+
+	user_t *user = user_get(0);
+	while (user) {
+
+		if (!strcmp(user->name, name))
+			break;
+		user = user->next;
+	}
+	if (!user) return -EINVAL;
+
+	/* compare password hashes */
+	if (user->pswd != strhash(pswd))
+		return -EACCES;
+
+	task_active->uid = user->uid;
+	return 0;
+}
+
+/* compare user id and permissions */
+static int check_perm(int uid, int gid, uint32_t flags, uint32_t mask) {
+
+	uint32_t r = 0, w = 0;
+
+	user_t *user = user_get(uid);
+	user_t *muser = user_get(task_active->uid);
+	if (!user || !muser) return -1;
+
+	/* owner, group or other */
+	if (uid == task_active->uid) {
+
+		r = mask & 0400;
+		w = mask & 0200;
+	}
+	else if (gid == muser->gid) {
+
+		r = mask & 040;
+		w = mask & 020;
+	}
+	else {
+
+		r = mask & 04;
+		w = mask & 02;
+	}
+
+	/* file flags */
+	if ((flags & FS_READ) && !r) return -1;
+	if ((flags & FS_WRITE) && !w) return -1;
+
+	return 0;
+}
+
 /* open file */
 extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask) {
 
 	/* find usable file descriptor */
 	int fd = 0;
 	for (; fd < TASK_MAXFILES && task_active->files[fd].file; fd++);
-	if (fd >= TASK_MAXFILES) return -1; /* should be -EMFILE */
+	if (fd >= TASK_MAXFILES) return -EMFILE;
 
 	/* locate file */
 	task_lockcli();
@@ -846,11 +901,11 @@ extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask) {
 
 	task_unlockcli();
 	if ((create && !(flags & FS_CREATE)) || !node)
-		return -1; /* should be -ENOENT */
+		return -ENOENT;
 
 	task_active->stale = false;
 	task_acquire(node);
-	if (task_active->stale) return -1; /* should be -EAGAIN */
+	if (task_active->stale) return -EAGAIN;
 
 	/* create file */
 	if (create && (flags & FS_CREATE)) {
@@ -858,12 +913,22 @@ extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask) {
 		fs_node_t *next = fs_create(node, fname, FS_FILE, mask);
 		task_release();
 
-		if (!next) return -1; /* should be either -EACCES or -ENOTDIR */
+		if (!next) return -EACCES;
 		node = next;
+
+		node->uid = (uint32_t)task_active->uid;
+		node->gid = node->uid; /* FIXME: This is not correct */
 
 		task_active->stale = false;
 		task_acquire(node);
-		if (task_active->stale) return -1; /* should be -EAGAIN */
+		if (task_active->stale) return -EAGAIN;
+	}
+
+	/* check file permissions */
+	if (check_perm((int)node->uid, (int)node->gid, flags, node->mask) < 0) {
+
+		task_release();
+		return -EACCES;
 	}
 
 	/* determine compatible open flags */
@@ -881,7 +946,7 @@ extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask) {
 		if (invflags) {
 
 			task_release();
-			return -1; /* should be -EINVAL */
+			return -EINVAL;
 		}
 		oflags = node->oflags;
 	}

@@ -132,8 +132,10 @@ extern void device_bus_add(device_t *dev, device_t *child); /* add device to bus
 extern void device_keyboard_putkey(device_t *dev, int key); /* write key to ringbuffer */
 extern int device_keyboard_getkey(device_t *dev); /* read key from ringbuffer */
 extern int device_keyboard_getkey_block(device_t *dev); /* wait and read key from ringbuffer */
+extern void device_keyboard_flushkeys(device_t *dev); /* flush keys */
 
 extern void device_mouse_putev(device_t *dev, device_mouse_event_t *ev); /* write event to ringbuffer */
 extern device_mouse_event_t *device_mouse_getev(device_t *dev); /* read event from ringbuffer */
+extern void device_mouse_flushevs(device_t *dev); /* flush events */
 
 #endif /* DEVICE_H */

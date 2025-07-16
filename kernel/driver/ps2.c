@@ -9,6 +9,7 @@
 #include <kernel/io/port.h>
 #include <kernel/vfs/devfs.h>
 #include <kernel/driver/device.h>
+#include <ec/device.h>
 #include <kernel/driver/ps2.h>
 
 enum  {
@@ -65,6 +66,44 @@ static uint32_t translate_code(uint8_t b) {
 	rel = false;
 	other = false;
 	return key;
+}
+
+/* keyboard ioctl */
+static int ioctl_kbd(fs_node_t *node, int op, uintptr_t arg) {
+
+	switch (op) {
+		case ECIO_INP_GETEVENT:
+			return device_keyboard_getkey(node->impl? dev_p1: dev_p0);
+		case ECIO_INP_FLUSH:
+			device_keyboard_flushkeys(node->impl? dev_p1: dev_p0);
+			return 0;
+		default:
+			return -ENOSYS;
+	}
+}
+
+/* mouse ioctl */
+static int ioctl_mus(fs_node_t *node, int op, uintptr_t arg) {
+
+	switch (op) {
+		case ECIO_INP_GETEVENT:
+			ec_msevent_t *event = (ec_msevent_t *)arg;
+			if (!event) return -EINVAL;
+
+			device_mouse_event_t *dmev = device_mouse_getev(node->impl? dev_p1: dev_p0);
+			if (!dmev) return 1;
+
+			event->x = dmev->x;
+			event->y = dmev->y;
+			for (int i = 0; i < ECB_COUNT; i++)
+				event->state[i] = dmev->st[i];
+			return 0;
+		case ECIO_INP_FLUSH:
+			device_mouse_flushevs(node->impl? dev_p1: dev_p0);
+			return 0;
+		default:
+			return -ENOSYS;
+	}
 }
 
 /* fill scancode sets with appropriate translations */
@@ -311,11 +350,17 @@ extern void ps2_init_devfs(void) {
 	if (dev_p0_type) {
 
 		node_p0 = fs_node_new(NULL, FS_CHARDEVICE);
+		node_p0->mask = 0644;
+		node_p0->impl = 0;
+		node_p0->ioctl = (dev_p0_type == DEV_KEYBOARD)? ioctl_kbd: ioctl_mus;
 		devfs_add_node(dev_p0_type == DEV_KEYBOARD? "kbd": "mus", node_p0);
 	}
 	if (dev_p1_type) {
 
 		node_p1 = fs_node_new(NULL, FS_CHARDEVICE);
+		node_p1->mask = 0644;
+		node_p1->impl = 1;
+		node_p1->ioctl = (dev_p1_type == DEV_KEYBOARD)? ioctl_kbd: ioctl_mus;
 		devfs_add_node(dev_p1_type == DEV_KEYBOARD? "kbd": "mus", node_p1);
 	}
 }
@@ -465,15 +510,27 @@ static void ps2_irqmouse(idt_regs_t *regs, int d) {
 
 	/* get mouse data packet */
 	uint8_t b = port_inb(PS2_PORT_DATA);
-
 	uint8_t rx = port_inb(PS2_PORT_DATA);
 	uint8_t ry = port_inb(PS2_PORT_DATA);
 
-	int x = (uint8_t)rx;
-	int y = (uint8_t)ry;
+	int x = (int)rx;
+	int y = (int)ry;
 
-	if (b & PS2_MOUSE_FLAG_XS) x = -x;
-	if (b & PS2_MOUSE_FLAG_YS) y = -y;
+	x |= (b & PS2_MOUSE_FLAG_XS)? ~0xff: 0;
+	y |= (b & PS2_MOUSE_FLAG_YS)? ~0xff: 0;
+
+	y = -y;
+
+	/* push event */
+	device_mouse_event_t ev = {
+		.x = x, .y = y,
+		.st = {false, false, false},
+	};
+	if (!x && !y && (b & PS2_MOUSE_FLAG_BL)) ev.st[ECB_LEFT] = true;
+	if (!x && !y && (b & PS2_MOUSE_FLAG_BM)) ev.st[ECB_MIDDLE] = true;
+	if (!x && !y && (b & PS2_MOUSE_FLAG_BR)) ev.st[ECB_RIGHT] = true;
+
+	device_mouse_putev(dev, &ev);
 }
 
 /* other irq function */

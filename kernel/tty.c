@@ -56,6 +56,7 @@ extern void tty_init(void) {
 extern void tty_init_devfs(void) {
 
 	fs_node_t *node = fs_node_new(NULL, FS_CHARDEVICE);
+	node->mask = 0666;
 	fs_open(node, FS_READ | FS_WRITE);
 	
 	if (nttydev) node->read = ttydev[0]->read;

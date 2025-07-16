@@ -16,6 +16,8 @@ static bool running = true;
 
 static const char *progname = "sh";
 
+static ec_uinfo_t uinfo; /* user info */
+
 /* miscellaneous buffers */
 #define LASTRETSZ 4
 static char lastret[LASTRETSZ] = "0";
@@ -30,7 +32,7 @@ static char argbuf[ARGBUFSZ];
 static char argbuf2[ARGBUFSZ];
 
 #define PROMPTBUFSZ 128
-static char promptbuf[PROMPTBUFSZ] = "[\e[1;32m\"$PWD\"\e[0m] '$ '";
+static char promptbuf[PROMPTBUFSZ] = "[\e[1;32m\"$USER@$PWD\"\e[0m] '$ '";
 
 /* raw getenv */
 extern const char **environ;
@@ -100,6 +102,14 @@ static const char *getvar(const char *name) {
 	/* current working directory */
 	else if (!strcmp(name, "PWD"))
 		return cwdbuf;
+
+	/* user */
+	else if (!strcmp(name, "USER"))
+		return uinfo.uname;
+
+	/* group */
+	else if (!strcmp(name, "GROUP"))
+		return uinfo.gname;
 
 	/* other */
 	else return getenv(name);
@@ -329,6 +339,7 @@ static void print_prompt(void) {
 /* main repl */
 int main(int argc, const char **argv) {
 
+	ec_getuser(&uinfo);
 	ec_getcwd(cwdbuf, EC_PATHSZ);
 
 	if (argc) progname = argv[0];

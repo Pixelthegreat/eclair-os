@@ -151,6 +151,7 @@ static device_t *ata_detect_device(int c, int d) {
 static void ata_add_node(device_t *dev) {
 
 	fs_node_t *node = fs_node_new(NULL, FS_BLOCKDEVICE);
+	node->mask = 0644;
 	node->impl = dev->impl;
 
 	devfs_add_node("hd", node);

@@ -18,7 +18,7 @@ USAGE_STRING = """Usage: {0} [options]
 Options:
     -help                    Display this help message
     -arg <argument[=value]>  Pass an argument to the modules; Examples (not actual valid arguments for most software):
-                               build-on-host, target-override=x86_64-linux-gnu
+     argument[=value]          build-on-host, target-override=x86_64-linux-gnu
 
 Builtin Arguments:
     mk-outdir=<directory>    Set the output directory for the generated Makefiles"""
@@ -78,6 +78,7 @@ class ArgumentParser:
                         self.print_usage()
                         flags |= ArgumentParser.HELP
 
+                    # pass argument #
                     elif arg == '-arg':
                         val = next_alt(it)
                         if '=' in val:
@@ -85,10 +86,19 @@ class ArgumentParser:
                         else:
                             mod_args.append(val)
 
+                    # unrecognized option #
                     else:
                         print(f'Unrecognized option: \'{arg}\'')
                         self.print_usage()
                         flags |= ArgumentParser.HELP
+                        return flags
+
+                # pass argument #
+                else:
+                    if '=' in arg:
+                        mod_args.append(arg.split('='))
+                    else:
+                        mod_args.append(arg)
 
         except StopIteration:
             pass

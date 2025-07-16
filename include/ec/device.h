@@ -50,4 +50,23 @@ typedef struct ecio_fbinfo {
 	uint32_t size; /* total size of framebuffer */
 } ecio_fbinfo_t;
 
+/*
+ * == Input devices ==
+ */
+
+/*
+ * Get next event.
+ *   For keyboards:
+ *     return: Keycode value or zero if there is no event
+ *   For mice:
+ *     arg: Mouse event (see keycode.h)
+ *     return: Zero if successful or one if there is no event
+ */
+#define ECIO_INP_GETEVENT 0x02
+
+/*
+ * Flush input events.
+ */
+#define ECIO_INP_FLUSH 0x03
+
 #endif /* EC_DEVICE_H */

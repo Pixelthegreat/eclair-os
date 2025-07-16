@@ -79,6 +79,7 @@ extern void uart_init(uart_com_t bits, uint32_t rate) {
 			device_bus_add(bus, devs[i]);
 
 			nodes[i] = fs_node_new(NULL, FS_CHARDEVICE);
+			nodes[i]->mask = 0666;
 			nodes[i]->write = write_fs;
 			nodes[i]->impl = (uint32_t)i;
 

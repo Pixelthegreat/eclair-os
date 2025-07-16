@@ -8,6 +8,7 @@
 #include <kernel/tty.h>
 #include <kernel/boot.h>
 #include <kernel/init.h>
+#include <kernel/users.h>
 #include <kernel/mm/gdt.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/heap.h>
@@ -35,6 +36,7 @@ extern void kernel_main() {
 	boot_log();
 	mbr_fs_mount_root();
 	devfs_init();
+	user_init();
 	task_init();
 	init_load();
 

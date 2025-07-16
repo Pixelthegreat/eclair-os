@@ -207,6 +207,16 @@ extern void ec_kinfo(ec_kinfo_t *info) {
 	(void)ec_syscall3(ECN_KINFO, (uint32_t)info, 0, 0);
 }
 
+extern int ec_getuser(ec_uinfo_t *info) {
+
+	__ec_seterrno(int, ec_syscall3(ECN_GETUSER, (uint32_t)info, 0, 0));
+}
+
+extern int ec_setuser(const char *name, const char *pswd) {
+
+	__ec_seterrno(int, ec_syscall3(ECN_SETUSER, (uint32_t)name, (uint32_t)pswd, 0));
+}
+
 extern int ec_chdir(const char *path) {
 
 	if (!path) {

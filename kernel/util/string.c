@@ -68,6 +68,17 @@ extern char *strchr(const char *str, int ch) {
 	return NULL;
 }
 
+/* find characters in string */
+extern char *strchrs(const char *str, const char *chrs) {
+
+	while (*str) {
+		if (strchr(chrs, (int)*str))
+			return (char *)str;
+		str++;
+	}
+	return NULL;
+}
+
 /* fill a buffer with specified character */
 extern void *memset(void *dst, int ch, size_t cnt) {
 
@@ -95,4 +106,26 @@ extern int memcmp(const void *a, const void *b, size_t n) {
 		if (ia != ib) return (int)ia - (int)ib;
 	}
 	return 0;
+}
+
+/* get string hash */
+static uint32_t powu32(uint32_t x, uint32_t y) {
+
+	uint32_t res = 1;
+	for (uint32_t i = 0; i < y; i++)
+		res *= x;
+	return res;
+}
+
+extern uint32_t strhash(const char *s) {
+
+	uint32_t res = 0;
+	if (!*s) return 0;
+	uint32_t len = (uint32_t)strlen(s);
+
+	for (uint32_t i = 0; i < len-1; i++)
+		res += (uint32_t)s[i] * powu32(31, len-i-1);
+	res += (uint32_t)s[len-1];
+
+	return res;
 }
