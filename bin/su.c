@@ -19,9 +19,7 @@ static char pswdbuf[BUFSZ];
 /* execute shell */
 static int exec_shell(const char *progname) {
 
-	const char *argv[] = {SH_PATH, NULL, NULL};
-	if (ec_getpid() == 2) argv[1] = RC_PATH;
-
+	const char *argv[] = {SH_PATH, RC_PATH, NULL};
 	int pid = ec_pexec(SH_PATH, argv, NULL);
 	if (pid < 0) {
 

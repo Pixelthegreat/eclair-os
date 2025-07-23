@@ -2,7 +2,8 @@ import enum
 
 USAGE_STRING="""Kernel Arguments:
     kernel-drivers=<drivers>  Specify a (comma separated) list of optional drivers to include in build:
-                                all (default), bga, uhci, ext2"""
+                                all (default), bga, uhci, ext2
+    kernel-debug              Build the kernel with debug symbols"""
 
 class Driver(enum.Enum):
     BGA = 0x1
@@ -51,6 +52,9 @@ def module():
     driver_cfiles, driver_cflags, driver_names = get_opt_drivers()
     print(f'Selected drivers: {", ".join(driver_names)}')
 
+    debug = pybuild.get_arg('kernel-debug')
+    if debug: print('Kernel debug symbols enabled')
+
     return {
         'name': 'kernel',
         'targets': (
@@ -62,12 +66,12 @@ def module():
                     'depsdir': 'include/kernel',
 
                     # flags #
-                    'cflags': f'-ffreestanding -Iinclude {" ".join(driver_cflags)}',
+                    'cflags': f'-ffreestanding -Iinclude {" ".join(driver_cflags)}' + (' -g' if debug else ''),
                     'asmflags': '-f$(ASMARCH)',
-                    'ldflags': '-T kernel/linker.ld -ffreestanding -nostdlib -lgcc',
+                    'ldflags': '-T kernel/linker.ld -ffreestanding -nostdlib -lgcc' + (' -g' if debug else ''),
 
                     # extra make commands #
-                    'extra-ld': ('@$(STRIP) -g $@',),
+                    'extra-ld': ('@$(STRIP) -g $@',) if not debug else (),
 
                     # files #
                     'c-files': (

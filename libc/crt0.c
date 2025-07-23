@@ -8,6 +8,7 @@
 
 const char **__libc_argv = NULL;
 const char **__libc_envp = NULL;
+const char ***__libc_base = (const char ***)0x8008;
 
 const char **environ = NULL;
 
@@ -21,8 +22,8 @@ static void sigsegv() {
 
 extern void _start() {
 
-	__libc_argv = *((const char ***)0x8008);
-	__libc_envp = *((const char ***)0x800C);
+	__libc_argv = *__libc_base;
+	__libc_envp = *(__libc_base+1);
 	environ = __libc_envp;
 
 	int argc = 0;

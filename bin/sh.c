@@ -213,7 +213,9 @@ static void parse_line(const char *line, const char *file, int nline) {
 }
 
 /* execute command */
-static void cmd_exec(int argc, const char **argv) {
+#define FLAG_BG 0x1
+
+static void cmd_exec(int argc, const char **argv, int flags) {
 
 	const char *bin = argv[0];
 	
@@ -272,11 +274,15 @@ static void cmd_exec(int argc, const char **argv) {
 			return;
 		}
 
-		int status = 0;
-		while (!ECW_ISEXITED(status))
-			ec_pwait(pid, &status, NULL);
+		/* wait for process */
+		if (!(flags & FLAG_BG)) {
 
-		snprintf(lastret, LASTRETSZ, "%d", ECW_TOEXITCODE(status));
+			int status = 0;
+			while (!ECW_ISEXITED(status))
+				ec_pwait(pid, &status, NULL);
+
+			snprintf(lastret, LASTRETSZ, "%d", ECW_TOEXITCODE(status));
+		}
 	}
 }
 
@@ -295,7 +301,13 @@ static void eval_line(const char *line, const char *file, int nline) {
 		}
 		argv[argc] = NULL;
 
-		cmd_exec(argc, argv);
+		int flags = 0;
+		if (argc && !strcmp(argv[argc-1], "&")) {
+
+			argv[--argc] = NULL;
+			flags |= FLAG_BG;
+		}
+		cmd_exec(argc, argv, flags);
 	}
 }
 

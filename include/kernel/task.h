@@ -120,6 +120,7 @@ extern void task_switch(task_t *task); /* switch to next task */
 extern void task_schedule(void); /* schedule next task */
 extern void task_lockcli(void); /* lock interrupts */
 extern void task_unlockcli(void); /* unlock interrupts */
+extern uint32_t task_getlockcli(void); /* get number of locks */
 extern void task_lockpost(void); /* lock task switches */
 extern void task_unlockpost(void); /* unlock task switches */
 extern void task_block(uint32_t reason); /* block current task */

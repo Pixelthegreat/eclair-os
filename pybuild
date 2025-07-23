@@ -56,12 +56,14 @@ class ArgumentParser:
     HELP = 0x1 # display help #
     ARG = 0x2 # module argument #
 
+    HELP_NO_PROLOGUE = 0x100 # display help without prologue #
+
     def __init__(self, argv):
         self.argv = argv
 
     # print usage #
-    def print_usage(self):
-        print(USAGE_STRING.format(self.argv[0]))
+    def print_usage(self, prologue=True):
+        print(USAGE_STRING.format(self.argv[0]) if prologue else USAGE_STRING[22:])
 
     # parse arguments #
     def parse(self):
@@ -74,7 +76,7 @@ class ArgumentParser:
                 arg = next(it)
 
                 if arg[0] == '-':
-                    if arg == '-help':
+                    if arg == '-help' and not (flags & ArgumentParser.HELP):
                         self.print_usage()
                         flags |= ArgumentParser.HELP
 
@@ -85,6 +87,12 @@ class ArgumentParser:
                             mod_args.append(val.split('='))
                         else:
                             mod_args.append(val)
+
+                    # print help without prologue #
+                    elif arg == '-help-no-prologue' and not (flags & ArgumentParser.HELP):
+                        flags |= ArgumentParser.HELP
+                        flags |= ArgumentParser.HELP_NO_PROLOGUE
+                        self.print_usage(False)
 
                     # unrecognized option #
                     else:

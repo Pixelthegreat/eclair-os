@@ -104,4 +104,6 @@ help:
 	"    run_uart_stdout - Run the OS in QEMU with the UART terminal promoted to /dev/stdout\n"\
 	"Common arguments:\n"\
 	"    PYBUILDARGS     - Pass arguments to ./pybuild (setup_init, setup)\n"\
-	"    QEMUARGS        - Pass arguments to QEMU (run, run_debug, run_uart_stdout)"
+	"    QEMUARGS        - Pass arguments to QEMU (run, run_debug, run_uart_stdout)\n\n"\
+	"  == pybuild (controllable through PYBUILDARGS make variable) =="
+	@./pybuild -help-no-prologue

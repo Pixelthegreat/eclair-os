@@ -115,10 +115,12 @@ static void load_entry() {
 /* load an executable */
 extern int elf_load_task(const char *path, const char **argv, const char **envp, bool freeargs) {
 
-	task_lockcli();
-	if (!dummy)
+	if (!dummy) {
+
+		task_lockcli();
 		dummy = fs_node_new(NULL, 0);
-	task_unlockcli();
+		task_unlockcli();
+	}
 
 	task_acquire(dummy);
 

@@ -32,6 +32,7 @@ def module():
                 gen_bin('init'),
                 gen_bin('ls'),
                 gen_bin('sh'),
+                gen_bin('sleep'),
                 gen_bin('su'),
                 gen_bin('sysinfo'),
             )

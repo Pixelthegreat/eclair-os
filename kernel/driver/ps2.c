@@ -36,6 +36,8 @@ static device_t *bus = NULL; /* device bus */
 static device_t *dev_p0 = NULL, *dev_p1 = NULL; /* devices */
 static bool rel = false; /* key was released */
 static bool other = false; /* key was pressed */
+static uint8_t mbytes[3]; /* mouse bytes */
+static size_t nmbytes; /* number of mouse bytes */
 static fs_node_t *node_p0 = NULL, *node_p1 = NULL; /* fs nodes */
 
 static int dev_p0_type, dev_p1_type; /* device types */
@@ -508,16 +510,23 @@ static void ps2_irqmouse(idt_regs_t *regs, int d) {
 
 	device_t *dev = d? dev_p1: dev_p0;
 
-	/* get mouse data packet */
-	uint8_t b = port_inb(PS2_PORT_DATA);
-	uint8_t rx = port_inb(PS2_PORT_DATA);
-	uint8_t ry = port_inb(PS2_PORT_DATA);
+	mbytes[nmbytes++] = port_inb(PS2_PORT_DATA);
+	if (nmbytes < 3) return;
+	nmbytes = 0;
 
+	uint8_t b = mbytes[0];
+	uint8_t rx = mbytes[1];
+	uint8_t ry = mbytes[2];
+
+	if (b & (PS2_MOUSE_FLAG_XO | PS2_MOUSE_FLAG_YO))
+		return;
+
+	/* fix x and y motion vector */
 	int x = (int)rx;
 	int y = (int)ry;
 
-	x |= (b & PS2_MOUSE_FLAG_XS)? ~0xff: 0;
-	y |= (b & PS2_MOUSE_FLAG_YS)? ~0xff: 0;
+	if (x) x |= (b & PS2_MOUSE_FLAG_XS)? ~0xff: 0;
+	if (y) y |= (b & PS2_MOUSE_FLAG_YS)? ~0xff: 0;
 
 	y = -y;
 
@@ -526,9 +535,9 @@ static void ps2_irqmouse(idt_regs_t *regs, int d) {
 		.x = x, .y = y,
 		.st = {false, false, false},
 	};
-	if (!x && !y && (b & PS2_MOUSE_FLAG_BL)) ev.st[ECB_LEFT] = true;
-	if (!x && !y && (b & PS2_MOUSE_FLAG_BM)) ev.st[ECB_MIDDLE] = true;
-	if (!x && !y && (b & PS2_MOUSE_FLAG_BR)) ev.st[ECB_RIGHT] = true;
+	if (b & PS2_MOUSE_FLAG_BL) ev.st[ECB_LEFT] = true;
+	if (b & PS2_MOUSE_FLAG_BM) ev.st[ECB_MIDDLE] = true;
+	if (b & PS2_MOUSE_FLAG_BR) ev.st[ECB_RIGHT] = true;
 
 	device_mouse_putev(dev, &ev);
 }

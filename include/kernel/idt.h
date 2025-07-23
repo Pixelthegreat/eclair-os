@@ -5,11 +5,7 @@
 
 typedef struct idt_descriptor {
 	uint16_t size; /* size of descriptor */
-#ifdef ECLAIR64
-	uint64_t addr;
-#else
-	uint32_t addr;
-#endif
+	uint32_t addr; /* address */
 } __attribute__((packed)) idt_descriptor_t;
 
 /* gate descriptor */
@@ -17,13 +13,8 @@ typedef struct idt_gate_descriptor {
 	uint16_t off0; /* low offset bytes */
 	uint16_t segsel; /* segment selector in gdt */
 	uint8_t rsvd; /* reserved */
-	uint8_t type:4; /* gate type */
-	uint8_t flags:4; /* flags */
+	uint8_t flags; /* flags */
 	uint16_t off1; /* high offset bytes */
-#ifdef ECLAIR64
-	uint32_t off2; /* remainder of offset for 64-bit gates */
-	uint32_t rsvd2; /* padding */
-#endif
 } __attribute__((packed)) idt_gate_descriptor_t;
 
 #define IDT_GATE_TYPE_TASK 0x5
@@ -32,8 +23,8 @@ typedef struct idt_gate_descriptor {
 #define IDT_GATE_TYPE_INT 0xe
 #define IDT_GATE_TYPE_TRAP 0xf
 
-#define IDT_GATE_FLAG_DPLU 0b110
-#define IDT_GATE_FLAG_P 0b1000
+#define IDT_GATE_FLAG_DPLU 0b01100000
+#define IDT_GATE_FLAG_P 0b10000000
 
 /* register info */
 typedef struct idt_regs {

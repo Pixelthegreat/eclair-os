@@ -241,10 +241,8 @@ static void fbcon_printc(char c) {
 	/* normal character */
 	else {
 
-		fbcon_drawc(idx, c);
-
-		uint32_t old = idx++;
-		fbcon_set_cursor(old, idx);
+		fbcon_set_cursor(idx, idx+1);
+		fbcon_drawc(idx++, c);
 	}
 
 	/* interpret escape code */

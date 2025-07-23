@@ -41,12 +41,12 @@ struct task_list {
 	task_t *last; /* last item in list */
 } lists[TASK_NSTATES];
 
-static struct task_list *ready = NULL;
-static struct task_list *paused = NULL;
-static struct task_list *sleeping = NULL;
-static struct task_list *terminated = NULL;
-static struct task_list *signaled = NULL;
-static struct task_list *pwaiting = NULL;
+static struct task_list *ready = &lists[TASK_READY];
+static struct task_list *paused = &lists[TASK_PAUSED];
+static struct task_list *sleeping = &lists[TASK_SLEEPING];
+static struct task_list *terminated = &lists[TASK_TERMINATED];
+static struct task_list *signaled = &lists[TASK_SIGNALED];
+static struct task_list *pwaiting = &lists[TASK_PWAIT];
 
 static uint64_t timens = 0; /* time in nanoseconds */
 
@@ -119,8 +119,11 @@ static void task_irq(idt_regs_t *regs) {
 
 		task_t *next = cur->next;
 
-		if (timens >= cur->waketime)
+		if (timens >= cur->waketime) {
+
+			cur->waketime = 0;
 			task_unblock(cur);
+		}
 
 		cur = next;
 	}
@@ -158,6 +161,7 @@ static void task_irq(idt_regs_t *regs) {
 
 		if (cur->waketime && timens >= cur->waketime) {
 
+			cur->waketime = 0;
 			cur->wstatus = ECW_TIMEOUT;
 			task_unblock(cur);
 		}
@@ -175,7 +179,7 @@ static void task_irq(idt_regs_t *regs) {
 	}
 
 	/* end of time slice */
-	if (task_active->nticks && !--task_active->nticks)
+	if (!task_active->nticks || !--task_active->nticks)
 		task_schedule();
 
 	task_unlockpost();
@@ -220,13 +224,6 @@ extern void task_init_memory(void) {
 
 /* initialize multitasking */
 extern void task_init(void) {
-
-	ready = &lists[TASK_READY];
-	paused = &lists[TASK_PAUSED];
-	sleeping = &lists[TASK_SLEEPING];
-	terminated = &lists[TASK_TERMINATED];
-	signaled = &lists[TASK_SIGNALED];
-	pwaiting = &lists[TASK_PWAIT];
 
 	ktask = task_new(&kernel_stack_top, NULL);
 	ktask->cr3 = page_get_directory();
@@ -354,6 +351,7 @@ extern void task_schedule(void) {
 
 			task_add_to_list(ready, task_active);
 			task_active->state = TASK_READY;
+			task_active->nticks = NTICKS;
 		}
 
 		task_switch(next);
@@ -372,6 +370,12 @@ extern void task_unlockcli(void) {
 
 	if (!(--nlockcli))
 		asm volatile("sti");
+}
+
+/* get number of locks */
+extern uint32_t task_getlockcli(void) {
+
+	return nlockcli;
 }
 
 /* lock task switches */
@@ -429,18 +433,11 @@ extern void task_unblock(task_t *task) {
 /* sleep in nanoseconds until */
 extern void task_nano_sleep_until(uint64_t waketime) {
 
-	task_lockpost();
-
-	if (waketime < timens) {
-
-		task_unlockpost();
+	if (waketime < timens)
 		return;
-	}
 
 	task_active->waketime = waketime;
 	task_block(TASK_SLEEPING);
-
-	task_unlockpost();
 }
 
 /* sleep in nanoseconds */
@@ -547,13 +544,10 @@ extern void task_acquire(fs_node_t *node) {
 /* release held resource */
 extern void task_release(void) {
 
-	task_lockcli();
-	if (!task_active->res) {
-
-		task_unlockcli();
+	if (!task_active->res)
 		return;
-	}
 
+	task_lockcli();
 	task_active->res->held = false;
 	task_active->res = NULL;
 	task_unlockcli();
@@ -781,7 +775,7 @@ extern int task_pwait(int pid, uint64_t timeout) {
 	
 	task_active->stale = false;
 	task_block(TASK_PWAIT);
-	if (task_active->stale) return -1;
+	if (task_active->stale) return -EINTR;
 
 	return task_active->wstatus;
 }
@@ -967,16 +961,16 @@ extern int task_fs_open(const char *path, uint32_t flags, uint32_t mask) {
 extern kssize_t task_fs_read(int fd, void *buf, size_t cnt) {
 
 	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
-		return -1; /* should be -EBADF */
-	if (!buf) return -1; /* should be -EINVAL */
+		return -EBADF;
+	if (!buf) return -EINVAL;
 	fs_node_t *node = task_active->files[fd].file;
 
 	if (!(task_active->files[fd].flags & FS_READ))
-		return -1; /* should be -EBADF */
+		return -EBADF;
 
 	task_active->stale = false;
 	task_acquire(node);
-	if (task_active->stale) return -1; /* should be -EAGAIN */
+	if (task_active->stale) return -EAGAIN;
 
 	kssize_t nread = fs_read(node, (uint32_t)task_active->files[fd].pos, cnt, (uint8_t *)buf);
 	task_release();
@@ -990,16 +984,16 @@ extern kssize_t task_fs_read(int fd, void *buf, size_t cnt) {
 extern kssize_t task_fs_write(int fd, void *buf, size_t cnt) {
 
 	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
-		return -1; /* should be -EBADF */
-	if (!buf) return -1; /* should be -EINVAL */
+		return -EBADF;
+	if (!buf) return -EINVAL;
 	fs_node_t *node = task_active->files[fd].file;
 
 	if (!(task_active->files[fd].flags & FS_WRITE))
-		return -1; /* should be -EBADF */
+		return -EBADF;
 
 	task_active->stale = false;
 	task_acquire(node);
-	if (task_active->stale) return -1; /* should be -EAGAIN */
+	if (task_active->stale) return -EAGAIN;
 
 	kssize_t nwrite = fs_write(node, (uint32_t)task_active->files[fd].pos, cnt, (uint8_t *)buf);
 	task_release();
@@ -1013,9 +1007,9 @@ extern kssize_t task_fs_write(int fd, void *buf, size_t cnt) {
 extern koff_t task_fs_seek(int fd, koff_t pos, int whence) {
 
 	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
-		return -1; /* should be -EBADF */
+		return -EBADF;
 	if (whence < 0 || whence >= TASK_NWHENCE)
-		return -1; /* should be -EINVAL */
+		return -EINVAL;
 
 	if (whence == TASK_SEEK_SET) task_active->files[fd].pos = pos;
 	else if (whence == TASK_SEEK_CUR) task_active->files[fd].pos += pos;
@@ -1029,7 +1023,7 @@ extern koff_t task_fs_seek(int fd, koff_t pos, int whence) {
 extern koff_t task_fs_tell(int fd) {
 
 	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
-		return -1; /* should be -EBADF */
+		return -EBADF;
 	return task_active->files[fd].pos;
 }
 
@@ -1037,15 +1031,15 @@ extern koff_t task_fs_tell(int fd) {
 extern int task_fs_close(int fd) {
 
 	if (fd < 0 || fd >= TASK_MAXFILES || !task_active->files[fd].file)
-		return -1; /* should be -EBADF */
+		return -EBADF;
 	fs_node_t *node = task_active->files[fd].file;
 
 	task_active->stale = false;
-	task_acquire(node);
-	if (task_active->stale) return -1; /* should be -EAGAIN */
+	if (!nlockcli) task_acquire(node);
+	if (task_active->stale) return -EAGAIN;
 
 	fs_close(node);
-	task_release();
+	if (!nlockcli) task_release();
 
 	task_active->files[fd].file = NULL;
 	return 0;

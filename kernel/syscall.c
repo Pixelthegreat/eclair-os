@@ -271,7 +271,9 @@ extern void sys_pexec(idt_regs_t *regs) {
 
 	/* reconstruct path */
 	size_t pathlen = strlen(path) + 1;
+	task_lockcli();
 	char *npath = (char *)kmalloc(pathlen);
+	task_unlockcli();
 	memcpy(npath, path, pathlen);
 
 	/* reconstruct argv */
@@ -371,16 +373,22 @@ extern void sys_pwait(idt_regs_t *regs) {
 /* sleep for fixed amount of time */
 extern void sys_sleepns(idt_regs_t *regs) {
 
+	task_lockcli();
+
 	ec_timeval_t *tv = (ec_timeval_t *)regs->ebx;
-	if (!tv) RETURN_ERROR(-EINVAL);
+	if (!tv) {
+
+		task_unlockcli();
+		RETURN_ERROR(-EINVAL);
+	}
 
 	uint64_t ns = (tv->sec * 1000000000) + tv->nsec;
 
 	task_active->stale = false;
+	task_unlockcli();
 	task_nano_sleep(ns);
 	if (task_active->stale)
 		RETURN_ERROR(-EINTR);
-
 	regs->eax = 0;
 }
 
