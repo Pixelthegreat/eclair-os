@@ -10,7 +10,18 @@
 extern void *memcpy(void *restrict s1, const void *restrict s2, size_t n) {
 
 	void *p = s1;
-	while (n--) *(uint8_t *)s1++ = *(uint8_t *)s2++;
+	while (n) {
+		if (n > 4) {
+			*(uint32_t *)s1 = *(uint32_t *)s2;
+			s1 += 4;
+			s2 += 4;
+			n -= 4;
+		}
+		else {
+			*(uint8_t *)s1++ = *(uint8_t *)s2++;
+			n--;
+		}
+	}
 	return p;
 }
 

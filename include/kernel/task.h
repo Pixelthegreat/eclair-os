@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 #ifndef ECLAIR_TASK_H
 #define ECLAIR_TASK_H
 

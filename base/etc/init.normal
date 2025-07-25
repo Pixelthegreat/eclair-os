@@ -1,0 +1,6 @@
+#!/bin/sh
+echo Starting /bin/gfx...
+gfx
+clear
+echo Starting /bin/wm...
+wm

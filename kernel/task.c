@@ -27,7 +27,7 @@ static const char *signames[TASK_NSIG] = {
 
 #define KSTACKSZ 32768 /* process kernel stack size */
 
-#define NTICKS 10
+#define NTICKS 5
 
 #define FREQ 1193
 static const uint64_t FREQ_HZ = PIT_FREQ(FREQ);

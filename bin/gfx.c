@@ -133,7 +133,7 @@ static int run(void) {
 
 	/* wait and clear screen */
 	ec_timeval_t tv = {
-		.sec = 3,
+		.sec = 1,
 		.nsec = 0,
 	};
 	ec_sleepns(&tv);

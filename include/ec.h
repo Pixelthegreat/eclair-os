@@ -180,6 +180,7 @@ extern int ec_kill(int pid, int sig);
  * Increase or decrease breakpoint.
  *   ebx/inc = Increment
  *   eax (return) = Breakpoint address if successful, NULL on error
+ * Unlike other implementations of sbrk, this function returns the breakpoint before it was increased.
  */
 extern void *ec_sbrk(intptr_t inc);
 

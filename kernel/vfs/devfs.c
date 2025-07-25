@@ -11,11 +11,13 @@
 #include <kernel/driver/uart.h>
 #include <kernel/driver/ata.h>
 #include <kernel/driver/fb.h>
+#include <kernel/vfs/chnlfs.h>
 #include <kernel/vfs/devfs.h>
 
 static fs_node_t *dev = NULL;
 static fs_node_t *null = NULL;
 static fs_node_t *zero = NULL;
+static fs_node_t *chnl = NULL;
 
 /* read from zero */
 static kssize_t zero_read(fs_node_t *node, uint32_t offset, size_t nbytes, uint8_t *buf) {
@@ -63,6 +65,13 @@ extern void devfs_init(void) {
 	ata_init_devfs();
 	tty_init_devfs();
 	if (fb_addr) fb_init_devfs();
+
+	/* initialize channel filesystem */
+	chnl = fs_node_new(NULL, FS_DIRECTORY);
+	devfs_add_unique("chnl", chnl);
+	chnlfs_init(chnl);
+
+	kprintf(LOG_INFO, "[devfs] Initialized device filesystem");
 }
 
 /* add node to /dev */

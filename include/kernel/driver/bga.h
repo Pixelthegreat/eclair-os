@@ -1,4 +1,8 @@
 /*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
  * Bochs Graphics Adapter stub driver for testing PCI
  */
 #ifndef ECLAIR_DRIVER_BGA_H

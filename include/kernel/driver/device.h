@@ -1,4 +1,10 @@
-/* simple device manager */
+/*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * Simple device manager
+ */
 #ifndef DEVICE_H
 #define DEVICE_H
 

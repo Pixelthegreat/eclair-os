@@ -9,6 +9,8 @@
 #include <errno.h>
 #include <ec.h>
 
+#define SH_PATH "/bin/sh"
+
 #define LINEBUFSZ 128
 static char linebuf[LINEBUFSZ];
 
@@ -23,28 +25,13 @@ extern int main(int argc, const char **argv) {
 	const char *prof = argv[1];
 	snprintf(linebuf, LINEBUFSZ, "/etc/init.%s", prof);
 
-	FILE *fp = fopen(linebuf, "r");
-	if (!fp) {
+	printf("Starting /bin/sh...\n");
 
-		fprintf(stderr, "%s: fopen('%s'): %s\n", argv[0], linebuf, strerror(errno));
-		return 1;
-	}
-
-	/* load shell process */
-	fgets(linebuf, LINEBUFSZ, fp);
-	fclose(fp);
-
-	size_t len = strlen(linebuf);
-	if (linebuf[len-1] == '\n')
-		linebuf[--len] = 0;
-
-	printf("Staring %s...\n", linebuf);
-
-	const char *pargv[] = {linebuf, NULL};
-	int pid = ec_pexec(linebuf, pargv, NULL);
+	const char *pargv[] = {SH_PATH, linebuf, NULL};
+	int pid = ec_pexec(SH_PATH, pargv, NULL);
 	if (pid < 0) {
 
-		fprintf(stderr, "%s: pexec('%s'): %s\n", argv[0], linebuf, strerror(errno));
+		fprintf(stderr, "%s: Can't load '" SH_PATH "': %s\n", argv[0], strerror(errno));
 		return 1;
 	}
 
@@ -52,7 +39,7 @@ extern int main(int argc, const char **argv) {
 	int status = 0;
 	while (!(ECW_ISEXITED(status)))
 		ec_pwait(pid, &status, NULL);
-	printf("%s: '%s' exited with code %d\n", argv[0], linebuf, ECW_TOEXITCODE(status));
+	printf("%s: '" SH_PATH "' exited with code %d\n", argv[0], ECW_TOEXITCODE(status));
 
 	ec_panic("You're not supposed to be here");
 }

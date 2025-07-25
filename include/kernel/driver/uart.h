@@ -1,4 +1,10 @@
-/* credit for most of this driver goes to the xv6 project */
+/*
+ * Copyright 2025, Elliot Kohlmyer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * Credit for most of this driver goes to the xv6 project
+ */
 #ifndef ECLAIR_DRIVER_UART_H
 #define ECLAIR_DRIVER_UART_H
 

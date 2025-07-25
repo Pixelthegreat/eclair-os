@@ -18,6 +18,13 @@ static const char *progname = "sh";
 
 static ec_uinfo_t uinfo; /* user info */
 
+/* options */
+enum {
+	OPT_REPL = 0x1,
+};
+static int opt_flags = 0;
+static const char *runpath = NULL;
+
 /* miscellaneous buffers */
 #define LASTRETSZ 4
 static char lastret[LASTRETSZ] = "0";
@@ -348,14 +355,51 @@ static void print_prompt(void) {
 	}
 }
 
+/* parse arguments */
+static int parse_args(int argc, const char **argv) {
+
+	for (int i = 1; i < argc; i++) {
+
+		const char *arg = argv[i];
+		if (*arg == '-') {
+
+			arg++;
+			while (*arg) {
+
+				char c = *arg++;
+				switch (c) {
+					case 'r':
+						opt_flags |= OPT_REPL;
+						break;
+					default:
+						fprintf(stderr, "%s: Invalid option '-%c'\nUsage: %s [-r] [path]", progname, c, progname);
+						return -1;
+				}
+			}
+		}
+		else {
+			runpath = arg;
+			break;
+		}
+	}
+	return 0;
+}
+
 /* main repl */
 int main(int argc, const char **argv) {
+
+	progname = argv[0];
+	if (parse_args(argc, argv) < 0)
+		return 1;
 
 	ec_getuser(&uinfo);
 	ec_getcwd(cwdbuf, EC_PATHSZ);
 
-	if (argc) progname = argv[0];
-	if (argc >= 2) eval_file(argv[1]);
+	if (runpath) {
+		
+		eval_file(runpath);
+		if (!(opt_flags & OPT_REPL)) return 0;
+	}
 
 	linebuf[0] = 0;
 	while (running) {
@@ -366,5 +410,5 @@ int main(int argc, const char **argv) {
 		fgets(linebuf, LINEBUFSZ, stdin);
 		eval_line(linebuf, "<stdin>", 1);
 	}
-	return 123;
+	return ec_getpid() == 2? 123: 0;
 }

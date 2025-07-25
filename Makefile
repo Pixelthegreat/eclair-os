@@ -48,7 +48,9 @@ bootdisk: kernel bin
 
 # setup routines #
 setup_common:
-	@mkdir -pv build/kernel build/boot build/libc build/lib-obj build/lib build/bin-obj build/bin build/tools
+	@mkdir -pv build/kernel build/boot build/libc build/lib-obj
+	@mkdir -pv build/lib build/bin-obj build/bin build/tools
+	@mkdir -pv build/bin-obj/wm
 	@./pybuild $(PYBUILDARGS_ALL)
 
 setup_init_common:

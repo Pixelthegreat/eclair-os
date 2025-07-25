@@ -69,4 +69,43 @@ typedef struct ecio_fbinfo {
  */
 #define ECIO_INP_FLUSH 0x03
 
+/*
+ * == Channel devices ==
+ */
+#define ECIO_CHNL_BUFSZ 65536 /* The maximum message size */
+
+/*
+ * Set destination pid for next write.
+ *   arg: Pid of destination process
+ *   return: Zero if successful, negative on error
+ *     -EAGAIN: A message has already been written, try again
+ * The default destiniation is the owning process.
+ */
+#define ECIO_CHNL_SETDEST 0x02
+
+/*
+ * Wait for a message to be readable.
+ *   arg: A timeout (ec_timeval_t) or NULL to indicate no timeout
+ *   return: Zero if successful, negative on error or timeout
+ */
+#define ECIO_CHNL_WAITREAD 0x03
+
+/*
+ * Get pid of source (the message writer).
+ *   return: Pid if successful, negative if there is no message to be read
+ */
+#define ECIO_CHNL_GETSOURCE 0x04
+
+/*
+ * Lock writing to channel to current process.
+ *   return: Zero if successful, negative on error
+ */
+#define ECIO_CHNL_LOCKW 0x05
+
+/*
+ * Unlock writing to channel.
+ *   return: Zero if successful, negative on error
+ */
+#define ECIO_CHNL_UNLOCKW 0x06
+
 #endif /* EC_DEVICE_H */

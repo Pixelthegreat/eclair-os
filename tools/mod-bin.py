@@ -1,14 +1,21 @@
-def gen_bin(name, cfiles=None, ldflags=None):
+import os
+
+def gen_bin(name, cfiles=None, ldflags=None, subdir=None):
     if cfiles is None:
         cfiles = (f'{name}.c',)
     if ldflags is None:
         ldflags = ''
-    return {
+    target = {
             'name': name,
             'out': f'build/bin/{name}',
             'c-files': cfiles,
             'ldflags': ldflags + ' build/libc.a -lgcc',
         }
+    if subdir is not None:
+        target['srcdir'] = f'bin/{name}'
+        target['objdir'] = f'build/bin-obj/{subdir}'
+        target['depsdir'] = 'include'
+    return target
 
 def module():
     return {
@@ -35,5 +42,15 @@ def module():
                 gen_bin('sleep'),
                 gen_bin('su'),
                 gen_bin('sysinfo'),
+
+                # window manager #
+                gen_bin('wm-test'),
+                gen_bin('wm', ldflags='-Ofast', cfiles=(
+                    ('input.c', 'wm/input.h'),
+                    ('main.c'),
+                    ('screen.c', 'wm/screen.h'),
+                    ('server.c', 'wm/server.h', 'ec/wm.h'),
+                    ('window.c', 'wm/window.h'),
+                ), subdir='wm')
             )
         }

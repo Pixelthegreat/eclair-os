@@ -88,22 +88,22 @@ extern void idt_init(void) {
 	_wait();
 
 	/* setup irqs */
-	idt_set_gate(32, irq0, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(33, irq1, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(34, irq2, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(35, irq3, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(36, irq4, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(37, irq5, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(38, irq6, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(39, irq7, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(40, irq8, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(41, irq9, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(42, irq10, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(43, irq11, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(44, irq12, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(45, irq13, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(46, irq14, IDT_GATE_TYPE_TRAP);
-	idt_set_gate(47, irq15, IDT_GATE_TYPE_TRAP);
+	idt_set_gate(32, irq0, IDT_GATE_TYPE_INT);
+	idt_set_gate(33, irq1, IDT_GATE_TYPE_INT);
+	idt_set_gate(34, irq2, IDT_GATE_TYPE_INT);
+	idt_set_gate(35, irq3, IDT_GATE_TYPE_INT);
+	idt_set_gate(36, irq4, IDT_GATE_TYPE_INT);
+	idt_set_gate(37, irq5, IDT_GATE_TYPE_INT);
+	idt_set_gate(38, irq6, IDT_GATE_TYPE_INT);
+	idt_set_gate(39, irq7, IDT_GATE_TYPE_INT);
+	idt_set_gate(40, irq8, IDT_GATE_TYPE_INT);
+	idt_set_gate(41, irq9, IDT_GATE_TYPE_INT);
+	idt_set_gate(42, irq10, IDT_GATE_TYPE_INT);
+	idt_set_gate(43, irq11, IDT_GATE_TYPE_INT);
+	idt_set_gate(44, irq12, IDT_GATE_TYPE_INT);
+	idt_set_gate(45, irq13, IDT_GATE_TYPE_INT);
+	idt_set_gate(46, irq14, IDT_GATE_TYPE_INT);
+	idt_set_gate(47, irq15, IDT_GATE_TYPE_INT);
 
 	/* setup syscall interrupt */
 	idt_set_gate(IDT_INT_SYSCALL, sysint, IDT_GATE_TYPE_INT);
