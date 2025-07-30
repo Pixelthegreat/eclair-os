@@ -125,6 +125,26 @@ extern void image_resize(image_t *image, size_t width, size_t height) {
 	image->data = malloc(image->pitch * height);
 }
 
+/* set image data */
+extern void image_set_data(image_t *image, uint32_t format, size_t offset, size_t size, uint8_t *data) {
+
+	size_t p = 0;
+	uint8_t buf[4];
+	for (size_t i = offset; i < offset+size; i++, (p += (size_t)format+2)) {
+
+		size_t y = i / image->width;
+		size_t x = i % image->width;
+
+		if (y >= image->height)
+			return;
+
+		color_t color = {*(data+p), *(data+p+1), *(data+p+2)};
+		screen_convert_color(buf, color);
+
+		memcpy(image->data + y * image->pitch + x * image->depth_bytes, buf, image->depth_bytes);
+	}
+}
+
 /* destroy image */
 extern void image_destroy(image_t *image) {
 

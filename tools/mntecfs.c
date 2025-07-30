@@ -56,7 +56,7 @@ typedef enum nflag {
 	NFLAG_FILLED = 0x1, /* directory already filled */
 } nflag_t;
 
-#define N_TRACKEXT 8 /* keep track of this many extension blocks */
+#define N_TRACKEXT 64 /* keep track of this many extension blocks */
 typedef struct node {
 	char name[NAMESZ]; /* name */
 	uint32_t blk; /* file entry block */

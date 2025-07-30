@@ -21,41 +21,8 @@ int main() {
 	if (server_host() < 0)
 		return 1;
 
-	/* create test window */
-	resource_t *window = window_resource_new();
-	if (!window) return 1;
-
-	resource_t *rimage = image_resource_new(WM_CLASS_WINDOW, 512, 384);
-	if (!rimage) return 1;
-
-	image_t *image = image_resource_get_image(rimage);
-	color_t color = {0xaa, 0xcc, 0xee};
-	image_fill(image, color);
-
-	wm_window_attributes_t attributes = {
-		.x = 24, .y = 24,
-		.width = 512, .height = 384,
-		.events = 0,
-		.image = rimage->id,
-		.stack = WM_STACK_CENTER,
-	};
-	window_resource_set_attributes(window, &attributes, WM_WINDOW_ATTRIBUTE_ALL);
-
-	window = window_resource_new();
-	if (!window) return 1;
-
-	rimage = image_resource_new(WM_CLASS_WINDOW, 512, 384);
-	if (!rimage) return 1;
-
-	image = image_resource_get_image(rimage);
-	color = (color_t){0xcc, 0xaa, 0xee};
-	image_fill(image, color);
-
-	attributes.x = 240;
-	attributes.y = 180;
-	attributes.image = rimage->id;
-
-	window_resource_set_attributes(window, &attributes, WM_WINDOW_ATTRIBUTE_ALL);
+	const char *argv[] = {"/bin/wm-test", NULL};
+	ec_pexec(argv[0], argv, NULL);
 
 	while (true) server_update();
 }

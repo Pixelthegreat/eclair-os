@@ -25,6 +25,25 @@ extern void *memcpy(void *restrict s1, const void *restrict s2, size_t n) {
 	return p;
 }
 
+/* initialize memory */
+extern void *memset(void *dst, int ch, size_t cnt) {
+
+	void *p = dst;
+	uint32_t d = (uint32_t)ch * 0x01010101;
+	while (cnt) {
+		if (cnt > 4) {
+			*(uint32_t *)dst = d;
+			dst += 4;
+			cnt -= 4;
+		}
+		else {
+			*(uint8_t *)dst++ = (uint8_t)ch;
+			cnt--;
+		}
+	}
+	return p;
+}
+
 /* copy string */
 extern char *strcpy(char *restrict s1, const char *restrict s2) {
 

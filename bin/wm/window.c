@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wm/server.h>
 #include <wm/window.h>
 
@@ -31,6 +32,7 @@ extern resource_t *image_resource_new(uint32_t cls, size_t width, size_t height)
 	image_init(&image->image, width, height);
 
 	resource->data = image;
+	resource->type = WM_RESOURCE_IMAGE;
 	return resource;
 }
 
@@ -93,6 +95,7 @@ extern resource_t *window_resource_new(void) {
 	window_draw = true;
 
 	resource->data = window;
+	resource->type = WM_RESOURCE_WINDOW;
 	return resource;
 }
 
@@ -148,8 +151,38 @@ extern int window_resource_set_attributes(resource_t *resource, wm_window_attrib
 	}
 
 	/* stack position */
-	if (mask & WM_WINDOW_ATTRIBUTE_STACK)
+	if (mask & WM_WINDOW_ATTRIBUTE_STACK) {
+
+		if (window->attributes.stack != WM_STACK_CENTER)
+			return -1;
+
 		window->attributes.stack = attributes->stack;
+
+		/* move to below section */
+		if (attributes->stack == WM_STACK_BELOW) {
+
+			for (int i = firstabove-1; i > firstcenter; i++)
+				windows[i] = windows[i-1];
+			windows[firstcenter++] = resource->id;
+		}
+
+		/* move to above section */
+		else if (attributes->stack == WM_STACK_ABOVE) {
+
+			for (int i = firstabove-1; i < nwindows-1; i++)
+				windows[i] = windows[i+1];
+			windows[nwindows-1] = resource->id;
+			firstabove--;
+		}
+
+		/* refocus */
+		if (resource->id == focus && attributes->stack != WM_STACK_CENTER) {
+
+			oldfocus = focus;
+			focus = firstcenter < firstabove? windows[firstcenter]: WM_NULL;
+		}
+		window_draw = true;
+	}
 
 	return 0;
 }
@@ -212,6 +245,26 @@ extern wm_event_t *window_resource_get_last_event(resource_t *resource) {
 /* free window */
 extern void window_resource_free(resource_t *resource) {
 
+	int i = 0;
+	for (; i < nwindows && windows[i] != resource->id; i++);
+	if (i < nwindows) {
+
+		for (int j = i; j < nwindows-1; j++)
+			windows[j] = windows[j+1];
+		if (i < firstabove) firstabove--;
+		if (i < firstcenter) firstcenter--;
+		nwindows--;
+	}
+
+	/* refocus */
+	if (resource->id == focus) {
+
+		oldfocus = focus;
+		focus = firstcenter < firstabove? windows[firstabove-1]: WM_NULL;
+		window_draw = true;
+	}
+
+	/* free resources */
 	window_resource_t *window = (window_resource_t *)resource->data;
 
 	if (window->image) window->image->refcnt++;
@@ -228,6 +281,9 @@ extern void window_update(void) {
 
 	/* redraw all */
 	if (focus != oldfocus) {
+
+		color_t color = {0, 0, 0};
+		screen_clear(color);
 
 		for (int i = 0; i < nwindows; i++) {
 
@@ -256,10 +312,13 @@ extern void window_update(void) {
 /* process event */
 extern bool window_process_event(wm_event_t *event) {
 
+	int x = 0, y = 0;
+	uint32_t wid = focus;
+
 	switch (event->type) {
 		/* mouse button */
 		case WM_EVENT_BUTTON:
-			if (!firstabove || event->button.action != WM_ACTION_PRESSED)
+			if (!nwindows || event->button.action != WM_ACTION_PRESSED)
 				break;
 			for (int i = nwindows-1; i >= 0; i--) {
 
@@ -270,6 +329,10 @@ extern bool window_process_event(wm_event_t *event) {
 				if (rx < 0 || rx >= window->attributes.width ||
 				    ry < 0 || ry >= window->attributes.height)
 					continue;
+
+				x = rx;
+				y = ry;
+				wid = windows[i];
 
 				/* refocus */
 				if (i >= firstcenter && i < firstabove && windows[i] != focus) {
@@ -285,6 +348,44 @@ extern bool window_process_event(wm_event_t *event) {
 				break;
 			}
 			break;
+		/* mouse motion */
+		case WM_EVENT_MOTION:
+			if (!nwindows) break;
+			for (int i = nwindows-1; i >= 0; i--) {
+
+				window_resource_t *window = (window_resource_t *)server_get_resource(windows[i])->data;
+				int rx = event->motion.position.x - window->attributes.x;
+				int ry = event->motion.position.y - window->attributes.y;
+
+				if (rx < 0 || rx >= window->attributes.width ||
+				    ry < 0 || ry >= window->attributes.height)
+					continue;
+
+				x = rx;
+				y = rx;
+				wid = windows[i];
+				break;
+			}
+			break;
 	}
-	return true;
+
+	/* add event */
+	resource_t *resource = server_get_resource(wid);
+	if (!resource) return true;
+
+	wm_event_t *new = window_resource_get_last_event(resource);
+	memcpy(new, event, sizeof(wm_event_t));
+
+	/* set position */
+	switch (event->type) {
+		case WM_EVENT_BUTTON:
+			new->button.position.x = x;
+			new->button.position.y = y;
+			break;
+		case WM_EVENT_MOTION:
+			new->motion.position.x = x;
+			new->motion.position.y = y;
+			break;
+	}
+	return false;
 }

@@ -9,6 +9,7 @@
 #include <stddef.h>
 
 extern void *memcpy(void *restrict s1, const void *restrict s2, size_t n);
+extern void *memset(void *dst, int ch, size_t cnt);
 extern char *strcpy(char *restrict s1, const char *restrict s2);
 extern char *strncpy(char *restrict s1, const char *restrict s2, size_t n);
 

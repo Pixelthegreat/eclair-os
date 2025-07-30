@@ -140,6 +140,11 @@ typedef struct wm_create_image_request {
  */
 #define WM_FUNCTION_DESTROY_IMAGE 0x102
 
+typedef struct wm_destroy_image_request {
+	wm_message_t base;
+	uint32_t id; /* image resource id */
+} wm_destroy_image_request_t;
+
 /*
  * Resize an image.
  *
@@ -269,6 +274,11 @@ typedef struct wm_get_window_attributes_response {
  *   fit within the message, or WM_FAILURE on error
  */
 #define WM_FUNCTION_GET_QUEUED_WINDOW_EVENTS 0x305
+
+typedef struct wm_get_queued_window_events_request {
+	wm_message_t base;
+	uint32_t id; /* window resource id */
+} wm_get_queued_window_events_request_t;
 
 typedef struct wm_get_queued_window_events_response {
 	wm_message_t base;

@@ -32,6 +32,7 @@ extern void image_init(image_t *image, size_t width, size_t height); /* initiali
 extern void image_fill(image_t *image, color_t color); /* fill image with color */
 extern void image_copy_area(image_t *dest, image_t *source, int x, int y, int sx, int sy, int sw, int sh); /* copy image area */
 extern void image_resize(image_t *image, size_t width, size_t height); /* resize image */
+extern void image_set_data(image_t *image, uint32_t format, size_t offset, size_t size, uint8_t *data); /* set image data */
 extern void image_destroy(image_t *image); /* destroy image */
 
 extern int screen_init(void); /* initialize screen */
