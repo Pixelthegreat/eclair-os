@@ -2,21 +2,23 @@ import enum
 
 USAGE_STRING="""Kernel Arguments:
     kernel-drivers=<drivers>  Specify a (comma separated) list of optional drivers to include in build:
-                                all (default), bga, uhci, ext2
+                                all (default), bga, uhci, ext2, ac97
     kernel-debug              Build the kernel with debug symbols"""
 
 class Driver(enum.Enum):
     BGA = 0x1
     UHCI = 0x2
     EXT2 = 0x4
+    AC97 = 0x8
     
-    ALL = BGA | UHCI | EXT2
+    ALL = BGA | UHCI | EXT2 | AC97
 
     def get_directory(self):
         return {
                 'bga': 'driver',
                 'uhci': 'driver',
                 'ext2': 'fs',
+                'ac97': 'driver',
                 }[self.name.lower()]
 
 # get optional driver info #

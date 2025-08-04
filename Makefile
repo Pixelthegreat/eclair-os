@@ -4,8 +4,8 @@ include common.mk
 .PHONY: bootdisk setup_common setup_init_common setup setup_init
 .PHONY: clean install_boot run run_uart_stdout run_debug help
 
-QEMUARGS_ALL=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw -vga cirrus $(QEMUARGS)
-PYBUILDARGS_ALL= mk-outdir=build kernel-drivers=bga,ext2 $(PYBUILDARGS)
+QEMUARGS_ALL=-drive if=ide,id=ata0.0,file=bootdisk.img,format=raw -vga cirrus -device ac97 $(QEMUARGS)
+PYBUILDARGS_ALL= mk-outdir=build kernel-drivers=bga,ext2,ac97 $(PYBUILDARGS)
 BOOTDISKARGS_ALL=initrd $(BOOTDISKARGS)
 
 # primary targets #
@@ -68,6 +68,9 @@ setup_init: setup_common tools setup_init_common boot install_boot
 	@echo "\e[32mSetup complete\e[39m"
 
 clean:
+	@rm -v build/kernel/* build/boot/* build/bin-obj/* build/bin/* build/e.clair build/boot.bin
+
+clean_all:
 	@rm -v build/kernel/* build/boot/* build/bin-obj/* build/bin/* build/e.clair build/boot.bin build/bootimage build/mkecfs build/mntecfs
 
 # re-install bootloader #
@@ -95,6 +98,7 @@ help:
 	"    setup_init      - Prepare for build\n"\
 	"    setup           - Update build system\n"\
 	"    clean           - Remove built objects\n"\
+	"    clean_all       - Remove all built objects\n"\
 	"    run             - Run the OS in QEMU\n"\
 	"Other commands:\n"\
 	"    kernel          - Build kernel\n"\

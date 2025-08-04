@@ -38,6 +38,7 @@ def module():
                 gen_bin('hexd'),
                 gen_bin('init'),
                 gen_bin('ls'),
+                gen_bin('playsnd', ldflags='-lsound'),
                 gen_bin('sh'),
                 gen_bin('sleep'),
                 gen_bin('su'),

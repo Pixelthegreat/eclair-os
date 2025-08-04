@@ -80,6 +80,11 @@ typedef struct device_storage {
 	device_storage_write_t write; /* write to storage device */
 } device_storage_t;
 
+/* audio device */
+typedef struct device_audio {
+	device_t base;
+} device_audio_t;
+
 /* video device */
 typedef struct device_video {
 	device_t base;
@@ -114,6 +119,7 @@ extern devclass_t devclass_storage; /* storage class */
 extern devclass_t devclass_keyboard; /* keyboard class */
 extern devclass_t devclass_mouse; /* mouse class */
 extern devclass_t devclass_terminal; /* terminal class (stub) */
+extern devclass_t devclass_audio; /* audio controller class */
 extern devclass_t devclass_video; /* video adapter class */
 
 /* functions */
@@ -128,6 +134,7 @@ extern device_t *device_storage_new(const char *desc); /* create storage device 
 extern device_t *device_keyboard_new(const char *desc); /* create keyboard device */
 extern device_t *device_mouse_new(const char *desc); /* create mouse device */
 extern device_t *device_terminal_new(const char *desc); /* create terminal device (stub) */
+extern device_t *device_audio_new(const char *desc); /* create audio device */
 extern device_t *device_video_new(const char *desc); /* create video device */
 
 extern void device_storage_read(device_t *dev, uint32_t addr, size_t n, void *buf); /* read n blocks from storage device */

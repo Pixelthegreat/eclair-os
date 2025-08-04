@@ -67,8 +67,6 @@ fs32_call_bios:
 .read_block:
 	mov eax, ebx
 	call ecfs_read_block
-	mov al, '.'
-	call printc
 	jmp .done
 ; finished ;
 .done:

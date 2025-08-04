@@ -11,6 +11,7 @@
 #include <kernel/driver/uart.h>
 #include <kernel/driver/ata.h>
 #include <kernel/driver/fb.h>
+#include <kernel/driver/pci.h>
 #include <kernel/vfs/chnlfs.h>
 #include <kernel/vfs/devfs.h>
 
@@ -65,6 +66,8 @@ extern void devfs_init(void) {
 	ata_init_devfs();
 	tty_init_devfs();
 	if (fb_addr) fb_init_devfs();
+
+	pci_init_devfs();
 
 	/* initialize channel filesystem */
 	chnl = fs_node_new(NULL, FS_DIRECTORY);

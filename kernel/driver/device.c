@@ -30,6 +30,7 @@ devclass_t devclass_storage = DEVCLASS_INIT(sizeof(device_storage_t), "Storage")
 devclass_t devclass_keyboard = DEVCLASS_INIT(sizeof(device_keyboard_t), "Keyboards");
 devclass_t devclass_mouse = DEVCLASS_INIT(sizeof(device_mouse_t), "Mice");
 devclass_t devclass_terminal = DEVCLASS_INIT(sizeof(device_t), "Terminals");
+devclass_t devclass_audio = DEVCLASS_INIT(sizeof(device_audio_t), "Audio Controllers");
 devclass_t devclass_video = DEVCLASS_INIT(sizeof(device_video_t), "Video Adapters");
 
 /* initialize tty devices */
@@ -111,6 +112,7 @@ extern void device_print_all(void) {
 	device_print_class(&devclass_keyboard);
 	device_print_class(&devclass_mouse);
 	device_print_class(&devclass_terminal);
+	device_print_class(&devclass_audio);
 	device_print_class(&devclass_video);
 }
 
@@ -169,6 +171,12 @@ extern device_t *device_mouse_new(const char *desc) {
 extern device_t *device_terminal_new(const char *desc) {
 
 	return device_new(&devclass_terminal, desc);
+}
+
+/* create audio device */
+extern device_t *device_audio_new(const char *desc) {
+
+	return device_new(&devclass_audio, desc);
 }
 
 /* create video device */

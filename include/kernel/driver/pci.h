@@ -8,6 +8,7 @@
 
 #include <kernel/types.h>
 #include <kernel/driver/device.h>
+#include <kernel/vfs/fs.h>
 
 #define PCI_PORT_ADDR 0xcf8
 #define PCI_PORT_DATA 0xcfc
@@ -76,9 +77,12 @@
 #define PCI_SUBCLASS_PCI2PCI_BRIDGE 0x4
 
 /* pci driver */
+struct pci_driver;
+
 typedef struct pci_device {
 	bool present; /* present indicator for buses */
 	device_t *devs[8]; /* kernel device per function */
+	struct pci_driver *drivers[8]; /* associated drivers */
 	uint32_t nbus, ndev; /* pci device location */
 	uint32_t func; /* available functions bitfield */
 } pci_device_t;
@@ -100,6 +104,7 @@ typedef struct pci_match_info {
 typedef struct pci_driver {
 	bool (*match)(pci_match_info_t *); /* match driver with device */
 	device_t *(*init)(pci_device_t *, uint32_t, pci_match_info_t *); /* initialize driver with device */
+	fs_node_t *(*init_devfs)(device_t *); /* initialize vfs node */
 	struct pci_driver *next; /* next driver in list */
 } pci_driver_t;
 
@@ -118,5 +123,6 @@ extern void pci_check_bus(uint32_t bus); /* check pci bus */
 extern void pci_register_driver(pci_driver_t *driver); /* register driver */
 extern pci_driver_t *pci_match_driver(pci_match_info_t *info); /* match device to driver */
 extern void pci_init(void); /* initialize pci */
+extern void pci_init_devfs(void); /* initialize pci vfs nodes */
 
 #endif /* ECLAIR_PCI_H */

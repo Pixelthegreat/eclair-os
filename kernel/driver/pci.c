@@ -128,7 +128,12 @@ extern void pci_check_device(uint32_t bus, uint32_t dev) {
 
 				driver = pci_match_driver(&minfo);
 				if (driver && driver->init) pdev->devs[i] = driver->init(pdev, i, &minfo);
-				if (pdev->devs[i]) device_bus_add(buses[bus]->bus, pdev->devs[i]);
+				if (pdev->devs[i]) {
+
+					pdev->drivers[i] = driver;
+					kprintf(LOG_INFO, "[pci] Detected device '%s'", pdev->devs[i]->desc);
+					device_bus_add(buses[bus]->bus, pdev->devs[i]);
+				}
 			}
 		}
 	}
@@ -143,8 +148,16 @@ extern void pci_check_device(uint32_t bus, uint32_t dev) {
 		minfo.progif = pci_inb(PCI_ADDR(bus, dev, 0, PCI_REG_PROGIF), 0);
 
 		driver = pci_match_driver(&minfo);
-		if (driver && driver->init) pdev->devs[0] = driver->init(pdev, 0, &minfo);
-		if (pdev->devs[0]) device_bus_add(buses[bus]->bus, pdev->devs[0]);
+		if (driver && driver->init) {
+			
+			pdev->devs[0] = driver->init(pdev, 0, &minfo);
+		}
+		if (pdev->devs[0]) {
+
+			pdev->drivers[0] = driver;
+			kprintf(LOG_INFO, "[pci] Detected device '%s'", pdev->devs[0]->desc);
+			device_bus_add(buses[bus]->bus, pdev->devs[0]);
+		}
 	}
 }
 
@@ -197,4 +210,29 @@ extern void pci_init(void) {
 		}
 	}
 	else pci_check_bus(0);
+}
+
+/* initialize pci vfs nodes */
+extern void pci_init_devfs(void) {
+
+	for (int i = 0; i < 256; i++) {
+
+		pci_bus_t *bus = buses[i];
+		if (!bus) continue;
+
+		for (int j = 0; j < 32; j++) {
+
+			pci_device_t *pdev = &bus->devs[j];
+			if (!pdev) continue;
+
+			for (int k = 0; k < 8; k++) {
+
+				device_t *dev = pdev->devs[k];
+				pci_driver_t *driver = pdev->drivers[k];
+				if (!dev || !driver) continue;
+
+				if (driver->init_devfs) driver->init_devfs(dev);
+			}
+		}
+	}
 }
