@@ -53,6 +53,7 @@ static void handle_set_window_attributes(void);
 static void handle_get_window_attributes(void);
 static void handle_get_queued_window_events(void);
 static void handle_post_window(void);
+static void handle_draw_batch(void);
 
 static void (*handlers[])(void) = {
 	[WM_FUNCTION_ACKNOWLEDGE] = handle_acknowledge,
@@ -71,6 +72,7 @@ static void (*handlers[])(void) = {
 	[WM_FUNCTION_GET_WINDOW_ATTRIBUTES] = handle_get_window_attributes,
 	[WM_FUNCTION_GET_QUEUED_WINDOW_EVENTS] = handle_get_queued_window_events,
 	[WM_FUNCTION_POST_WINDOW] = handle_post_window,
+	[WM_FUNCTION_DRAW_BATCH] = handle_draw_batch,
 };
 
 /* acknowledge connection */
@@ -265,6 +267,59 @@ static void handle_post_window(void) {
 	}
 
 	window_draw = true;
+	result.result = WM_SUCCESS;
+	send_response(&result, sizeof(result));
+	return;
+}
+
+/* process batch of drawing commands */
+static void handle_draw_batch(void) {
+
+	wm_draw_batch_request_t *request = (wm_draw_batch_request_t *)message;
+	resource_t *resource = server_get_resource(request->id);
+	if (!resource || resource->type != WM_RESOURCE_IMAGE ||
+	    size != (size_t)(request->count * sizeof(wm_draw_command_t)) + sizeof(wm_draw_batch_request_t)) {
+
+		result.result = WM_FAILURE;
+		send_response(&result, sizeof(result));
+		return;
+	}
+	for (uint32_t i = 0; i < request->count; i++) {
+
+		wm_draw_command_t *command = request->commands+i;
+
+		/* copy area */
+		if (command->type == WM_DRAW_COPY_AREA) {
+
+			resource_t *source = server_get_resource(command->copy_area.id);
+			if (!source || source->type != WM_RESOURCE_IMAGE) {
+
+				result.result = WM_FAILURE;
+				break;
+			}
+
+			image_t *imgdst = image_resource_get_image(resource);
+			image_t *imgsrc = image_resource_get_image(source);
+
+			image_copy_area(imgdst, imgsrc,
+					(int)command->copy_area.x,
+					(int)command->copy_area.y,
+					(int)command->copy_area.sx,
+					(int)command->copy_area.sy,
+					(int)command->copy_area.sw,
+					(int)command->copy_area.sh);
+		}
+
+		/* fill area */
+		else if (command->type == WM_DRAW_FILL) {
+
+			color_t color = {command->fill.color[0], command->fill.color[1], command->fill.color[2]};
+
+			image_t *image = image_resource_get_image(resource);
+			image_fill(image, color);
+		}
+	}
+
 	result.result = WM_SUCCESS;
 	send_response(&result, sizeof(result));
 	return;

@@ -24,6 +24,9 @@ static wm_event_t events[MAX_EVENTS]; /* event ringbuffer */
 static size_t ev_start = 0, ev_end = 0; /* ringbuffer positions */
 
 static bool state[ECB_COUNT]; /* button state */
+static bool leftctrl = false; /* left control key state */
+
+static int mspeed = 8; /* emulated mouse speed */
 
 /* initialize input */
 extern int input_init(void) {
@@ -53,6 +56,76 @@ extern void input_update(void) {
 		event->key.code = (uint32_t)(keycode & ECK_CODE);
 		event->key.action = (keycode & ECK_RELEASE)? WM_ACTION_RELEASED: WM_ACTION_PRESSED;
 
+		/* mouse emulation with keyboard */
+		if ((keycode & ECK_CODE) == ECK_LEFT_CONTROL)
+			leftctrl = (keycode & ECK_RELEASE)? false: true;
+
+		if (leftctrl && !(keycode & ECK_RELEASE)) {
+
+			bool move = false, button = false;
+			int movex = 0, movey = 0;
+			uint32_t nbutton = 0;
+			switch (keycode) {
+				/* movement */
+				case ECK_LEFT:
+					move = true;
+					movex -= mspeed;
+					break;
+				case ECK_RIGHT:
+					move = true;
+					movex += mspeed;
+					break;
+				case ECK_UP:
+					move = true;
+					movey -= mspeed;
+					break;
+				case ECK_DOWN:
+					move = true;
+					movey += mspeed;
+					break;
+				/* buttons */
+				case ECK_RETURN:
+					button = true;
+					nbutton = ECB_LEFT;
+					break;
+				case ECK_BACKSPACE:
+					button = true;
+					nbutton = ECB_RIGHT;
+					break;
+			}
+
+			/* create events */
+			if (move) {
+
+				event = input_get_last_event();
+
+				event->type = WM_EVENT_MOTION;
+				event->motion.move.x = (int32_t)movex;
+				event->motion.move.y = (int32_t)movey;
+				event->motion.position.x = 0;
+				event->motion.position.y = 0;
+			}
+			else if (button) {
+
+				event = input_get_last_event();
+
+				event->type = WM_EVENT_BUTTON;
+				event->button.code = nbutton;
+				event->button.action = WM_ACTION_PRESSED;
+				event->button.position.x = 0;
+				event->button.position.y = 0;
+
+				/* needs a release event as well */
+				event = input_get_last_event();
+
+				event->type = WM_EVENT_BUTTON;
+				event->button.code = nbutton;
+				event->button.action = WM_ACTION_RELEASED;
+				event->button.position.x = 0;
+				event->button.position.y = 0;
+			}
+		}
+
 		keycode = ec_ioctl(kfd, ECIO_INP_GETEVENT, 0);
 	}
 
@@ -81,6 +154,8 @@ extern void input_update(void) {
 				event->type = WM_EVENT_BUTTON;
 				event->button.code = i;
 				event->button.action = msevent.state[i]? WM_ACTION_PRESSED: WM_ACTION_RELEASED;
+				event->button.position.x = 0;
+				event->button.position.y = 0;
 
 				state[i] = msevent.state[i];
 			}
@@ -104,6 +179,7 @@ extern wm_event_t *input_get_next_event(void) {
 extern wm_event_t *input_get_last_event(void) {
 
 	wm_event_t *event = &events[ev_end];
+	memset(event, 0, sizeof(wm_event_t));
 
 	ev_end = (ev_end + 1) % MAX_EVENTS;
 	return event;

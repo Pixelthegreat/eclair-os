@@ -21,5 +21,6 @@ def module():
         'targets': (
                 gen_lib('image'),
                 gen_lib('sound'),
+                gen_lib('wm'),
             )
         }

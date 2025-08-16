@@ -131,6 +131,7 @@ static kssize_t write_fs(fs_node_t *node, uint32_t offset, size_t size, uint8_t 
 	uint32_t pos = (device->pos + (++device->nwritten)) % 31;
 	memcpy(device->buffers[pos], buf, size);
 
+	port_outb(device->nabm+AC97_NABM_PCM_OUT+AC97_NABM_BOX_NDESC, 31);
 	return (kssize_t)size;
 }
 

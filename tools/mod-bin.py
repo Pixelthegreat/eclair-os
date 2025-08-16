@@ -45,7 +45,7 @@ def module():
                 gen_bin('sysinfo'),
 
                 # window manager #
-                gen_bin('wm-test'),
+                gen_bin('wm-test', ldflags='-lwm'),
                 gen_bin('wm', ldflags='-Ofast', cfiles=(
                     ('input.c', 'wm/input.h'),
                     ('main.c'),

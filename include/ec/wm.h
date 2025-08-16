@@ -31,6 +31,12 @@
  * structure. If there is no associated request or
  * response structure, then the base wm_message_t
  * structure is used directly.
+ *
+ * Function prototypes are provided for each of the
+ * protocol functions. To use them, a program must link
+ * with libwm. Unless otherwise specified, these
+ * functions should return zero upon success or a
+ * negative value on error.
  */
 #define WM_REQUEST 1
 #define WM_RESPONSE 2
@@ -58,8 +64,11 @@ typedef struct wm_message {
  *
  * - Has no arguments
  * - Should be sent after a client connects
+ * - 'wm_open' sends this message automatically
  */
 #define WM_FUNCTION_ACKNOWLEDGE 0x001
+
+extern int wm_open(void);
 
 /*
  * Forget the existence of a client.
@@ -68,8 +77,11 @@ typedef struct wm_message {
  * - The window manager should clean up any resources
  *   that the client left behind
  * - Should be sent before a client disconnects
+ * - 'wm_close' sends this message automatically
  */
 #define WM_FUNCTION_FORGET 0x002
+
+extern void wm_close(void);
 
 /*
  * == Events ==
@@ -120,6 +132,7 @@ typedef struct {
  *   other images
  * - Should return the image resource ID on success or
  *   WM_NULL on error
+ * - 'wm_create_image' returns the message result
  */
 #define WM_FUNCTION_CREATE_IMAGE 0x101
 
@@ -131,6 +144,8 @@ typedef struct wm_create_image_request {
 	uint32_t width, height; /* image size */
 	uint32_t cls; /* image class */
 } wm_create_image_request_t;
+
+extern uint32_t wm_create_image(uint32_t width, uint32_t height, uint32_t cls);
 
 /*
  * Destroy a image.
@@ -144,6 +159,8 @@ typedef struct wm_destroy_image_request {
 	wm_message_t base;
 	uint32_t id; /* image resource id */
 } wm_destroy_image_request_t;
+
+extern void wm_destroy_image(uint32_t id);
 
 /*
  * Resize an image.
@@ -160,6 +177,8 @@ typedef struct wm_resize_image_request {
 	uint32_t id; /* image resource id */
 	uint32_t width, height; /* new image size */
 } wm_resize_image_request_t;
+
+extern int wm_resize_image(uint32_t id, uint32_t width, uint32_t height);
 
 /*
  * Set image data.
@@ -183,6 +202,10 @@ typedef struct wm_set_image_data_request {
 	uint8_t data[]; /* image data */
 } wm_set_image_data_request_t;
 
+#define WM_SET_IMAGE_DATA_MAX (ECIO_CHNL_BUFSZ - sizeof(wm_set_image_data_request_t))
+
+extern int wm_set_image_data(uint32_t id, uint32_t format, uint32_t offset, uint32_t size, uint8_t *data);
+
 /*
  * == Window functions ==
  */
@@ -194,8 +217,11 @@ typedef struct wm_set_image_data_request {
  *   yet associated with it
  * - Should return the window resource ID on success or
  *   WM_NULL on error
+ * - 'wm_create_window' returns the message result
  */
 #define WM_FUNCTION_CREATE_WINDOW 0x301
+
+extern uint32_t wm_create_window(void);
 
 /*
  * Destroy a window.
@@ -209,6 +235,8 @@ typedef struct wm_destroy_window_request {
 	wm_message_t base;
 	uint32_t id; /* window resource id */
 } wm_destroy_window_request_t;
+
+extern void wm_destroy_window(uint32_t id);
 
 /*
  * Configure a window/set window attributes.
@@ -247,6 +275,8 @@ typedef struct wm_set_window_attributes_request {
 	wm_window_attributes_t attributes; /* window attributes */
 } wm_set_window_attributes_request_t;
 
+extern int wm_set_window_attributes(uint32_t id, uint32_t mask, wm_window_attributes_t *attributes);
+
 /*
  * Get window attributes.
  *
@@ -266,12 +296,18 @@ typedef struct wm_get_window_attributes_response {
 	wm_window_attributes_t attributes; /* window attributes */
 } wm_get_window_attributes_response_t;
 
+extern int wm_get_window_attributes(uint32_t id, uint32_t mask, wm_window_attributes_t *attributes);
+
 /*
  * Get queued window events.
  *
  * - Should return WM_SUCCESS on success along with as
  *   many queued window events are available and can
  *   fit within the message, or WM_FAILURE on error
+ * - 'wm_get_queued_window_events' returns a temporary
+ *   pointer to the response event list, and the
+ *   pointer becomes invalid after sending another
+ *   message
  */
 #define WM_FUNCTION_GET_QUEUED_WINDOW_EVENTS 0x305
 
@@ -286,6 +322,8 @@ typedef struct wm_get_queued_window_events_response {
 	uint32_t remaining; /* remaining events if any */
 	wm_event_t events[]; /* event data */
 } wm_get_queued_window_events_response_t;
+
+extern wm_event_t *wm_get_queued_window_events(uint32_t id, uint32_t *count);
 
 /*
  * Draw window image.
@@ -303,5 +341,51 @@ typedef struct wm_post_window_request {
 	wm_message_t base;
 	uint32_t id; /* window resource id */
 } wm_post_window_request_t;
+
+extern int wm_post_window(uint32_t id);
+
+/*
+ * == Drawing functions ==
+ */
+
+/*
+ * Send drawing commands to image.
+ *
+ * - Should return WM_SUCCESS on success or WM_FAILURE
+ *   on error
+ */
+#define WM_FUNCTION_DRAW_BATCH 0x401
+
+#define WM_DRAW_COPY_AREA 0x1
+#define WM_DRAW_FILL 0x2
+
+typedef struct wm_draw_command {
+	uint32_t type; /* command type */
+	union {
+		struct {
+			uint32_t id; /* source image id */
+			int32_t x; /* destination x position */
+			int32_t y; /* destination y position */
+			uint32_t sx; /* source x position */
+			uint32_t sy; /* source y position */
+			uint32_t sw; /* source area width */
+			uint32_t sh; /* source area height */
+		} copy_area; /* copy area of source image to image */
+		struct {
+			uint8_t color[3]; /* fill color as rgb triple */
+		} fill; /* fill image with color */
+	};
+} wm_draw_command_t;
+
+typedef struct wm_draw_batch_request {
+	wm_message_t base;
+	uint32_t id; /* image resource id */
+	uint32_t count; /* command count */
+	wm_draw_command_t commands[]; /* drawing commands */
+} wm_draw_batch_request_t;
+
+#define WM_DRAW_BATCH_MAX ((ECIO_CHNL_BUFSZ - sizeof(wm_draw_batch_request_t)) / sizeof(wm_draw_command_t))
+
+extern int wm_draw_batch(uint32_t id, uint32_t count, wm_draw_command_t *commands);
 
 #endif /* EC_WM_H */
