@@ -154,12 +154,13 @@ extern int ec_image_read_colors(ec_image_t *image, uint8_t *buffer, size_t count
 	if (!image || !image->fp || !buffer || format < 0 || format >= EC_IMAGE_DATA_COUNT)
 		SETERRNO(-EINVAL);
 
-	for (size_t i = 0; i < count && i+image->position < image->width * image->height; i++) {
+	size_t i = 0;
+	for (; i < count && i+image->position < image->width * image->height; i++) {
 
 		if (image->ops->read_color(image, buffer + i * (format+3), format) < 0)
 			return -1;
 	}
-	return 0;
+	return (int)i;
 }
 
 /* close image */

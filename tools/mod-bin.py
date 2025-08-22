@@ -17,6 +17,10 @@ def gen_bin(name, cfiles=None, ldflags=None, subdir=None):
         target['depsdir'] = 'include'
     return target
 
+def gen_app(name, cfiles=None, ldflags=None, subdir=None):
+    ldflags = ldflags if ldflags is not None else ''
+    return gen_bin(name, cfiles=cfiles, ldflags=f'{ldflags} -lcrepe -limage -lwm', subdir=subdir)
+
 def module():
     return {
         'name': 'bin',
@@ -45,13 +49,16 @@ def module():
                 gen_bin('sysinfo'),
 
                 # window manager #
-                gen_bin('wm-test', ldflags='-lwm'),
+                gen_bin('wm-test', ldflags='-lcrepe -limage -lwm'),
                 gen_bin('wm', ldflags='-Ofast', cfiles=(
                     ('input.c', 'wm/input.h'),
                     ('main.c'),
                     ('screen.c', 'wm/screen.h'),
                     ('server.c', 'wm/server.h', 'ec/wm.h'),
                     ('window.c', 'wm/window.h'),
-                ), subdir='wm')
+                ), subdir='wm'),
+
+                # graphical apps #
+                gen_app('about'),
             )
         }

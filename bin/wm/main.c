@@ -21,8 +21,5 @@ int main() {
 	if (server_host() < 0)
 		return 1;
 
-	const char *argv[] = {"/bin/wm-test", NULL};
-	ec_pexec(argv[0], argv, NULL);
-
 	while (true) server_update();
 }

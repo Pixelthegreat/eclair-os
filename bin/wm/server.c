@@ -43,6 +43,7 @@ static void send_response(wm_message_t *response, size_t rsize) {
 /* message function handlers */
 static void handle_acknowledge(void);
 static void handle_forget(void);
+static void handle_get_screen_info(void);
 static void handle_create_image(void);
 static void handle_destroy_image(void);
 static void handle_resize_image(void);
@@ -58,6 +59,7 @@ static void handle_draw_batch(void);
 static void (*handlers[])(void) = {
 	[WM_FUNCTION_ACKNOWLEDGE] = handle_acknowledge,
 	[WM_FUNCTION_FORGET] = handle_forget,
+	[WM_FUNCTION_GET_SCREEN_INFO] = handle_get_screen_info,
 	[WM_FUNCTION_CREATE_IMAGE] = handle_create_image,
 	[WM_FUNCTION_DESTROY_IMAGE] = handle_destroy_image,
 	[WM_FUNCTION_RESIZE_IMAGE] = handle_resize_image,
@@ -87,6 +89,23 @@ static void handle_forget(void) {
 
 	result.result = WM_SUCCESS;
 	send_response(&result, sizeof(result));
+}
+
+/* get screen info */
+static void handle_get_screen_info(void) {
+
+	wm_get_screen_info_response_t response = {
+		.base = {
+			.type = WM_REQUEST,
+			.size = sizeof(response),
+			.result = WM_SUCCESS,
+		},
+		.info = {
+			(uint32_t)screen_image.width,
+			(uint32_t)screen_image.height,
+		},
+	};
+	send_response(&response.base, sizeof(response));
 }
 
 /* create image */
@@ -317,6 +336,20 @@ static void handle_draw_batch(void) {
 
 			image_t *image = image_resource_get_image(resource);
 			image_fill(image, color);
+		}
+
+		/* also fill area? */
+		else if (command->type == WM_DRAW_FILL_RECT) {
+
+			color_t color = {command->fill_rect.color[0], command->fill_rect.color[1], command->fill_rect.color[2]};
+
+			image_t *image = image_resource_get_image(resource);
+			image_fill_rect(image,
+					(int)command->fill_rect.x,
+					(int)command->fill_rect.y,
+					(int)command->fill_rect.w,
+					(int)command->fill_rect.h,
+					color);
 		}
 	}
 

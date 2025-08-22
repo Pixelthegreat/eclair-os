@@ -1,7 +1,10 @@
 #!/bin/sh
 echo Starting /bin/gfx...
 #playsnd /usr/share/boot1.wav &
-#gfx
-#clear
+gfx
+clear
 echo Starting /bin/wm...
-wm
+wm &
+sleep 1
+echo Starting /bin/about...
+about

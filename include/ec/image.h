@@ -86,7 +86,7 @@ extern int ec_image_open(ec_image_t *image, const char *path, ec_image_format_t 
  *
  * 'format' is the data format to read (rgb8, rgba8, ...).
  *
- * Returns zero if successful, negative on error.
+ * Returns number of colors read if successful, negative on error.
  */
 extern int ec_image_read_colors(ec_image_t *image, uint8_t *buffer, size_t count, ec_image_data_t format);
 

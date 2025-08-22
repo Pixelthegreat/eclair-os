@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <ec/keycode.h>
+#include <ec/device.h>
 
 /*
  * == Miscellaneous definitions ==
@@ -82,6 +83,25 @@ extern int wm_open(void);
 #define WM_FUNCTION_FORGET 0x002
 
 extern void wm_close(void);
+
+/*
+ * Request information about the screen.
+ *
+ * - Should return WM_SUCCESS on success or WM_FAILURE
+ *   on error
+ */
+#define WM_FUNCTION_GET_SCREEN_INFO 0x003
+
+typedef struct wm_screen_info {
+	uint32_t width, height; /* screen size */
+} wm_screen_info_t;
+
+typedef struct wm_get_screen_info_response {
+	wm_message_t base;
+	wm_screen_info_t info; /* screen info */
+} wm_get_screen_info_response_t;
+
+extern int wm_get_screen_info(wm_screen_info_t *info);
 
 /*
  * == Events ==
@@ -202,7 +222,7 @@ typedef struct wm_set_image_data_request {
 	uint8_t data[]; /* image data */
 } wm_set_image_data_request_t;
 
-#define WM_SET_IMAGE_DATA_MAX (ECIO_CHNL_BUFSZ - sizeof(wm_set_image_data_request_t))
+#define WM_SET_IMAGE_DATA_MAX(format) ((ECIO_CHNL_BUFSZ - sizeof(wm_set_image_data_request_t)) / ((format) + 2))
 
 extern int wm_set_image_data(uint32_t id, uint32_t format, uint32_t offset, uint32_t size, uint8_t *data);
 
@@ -358,6 +378,7 @@ extern int wm_post_window(uint32_t id);
 
 #define WM_DRAW_COPY_AREA 0x1
 #define WM_DRAW_FILL 0x2
+#define WM_DRAW_FILL_RECT 0x3
 
 typedef struct wm_draw_command {
 	uint32_t type; /* command type */
@@ -374,6 +395,13 @@ typedef struct wm_draw_command {
 		struct {
 			uint8_t color[3]; /* fill color as rgb triple */
 		} fill; /* fill image with color */
+		struct {
+			int32_t x; /* x position */
+			int32_t y; /* y position */
+			uint32_t w; /* width */
+			uint32_t h; /* height */
+			uint8_t color[3]; /* fill color as rgb triple */
+		} fill_rect; /* fill image area with color */
 	};
 } wm_draw_command_t;
 

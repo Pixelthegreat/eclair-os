@@ -76,7 +76,40 @@ extern void image_fill(image_t *image, color_t color) {
 			((uint8_t *)image->data)[x * image->depth_bytes + i] = buf[i];
 	}
 	for (size_t y = 1; y < image->height; y++)
-		memcpy(image->data + y * image->pitch, image->data, image->pitch);
+		memcpy(image->data + y * image->pitch, image->data, image->width * image->depth_bytes);
+}
+
+/* fill rect with color */
+extern void image_fill_rect(image_t *image, int x, int y, int w, int h, color_t color) {
+
+	uint8_t buf[4];
+	screen_convert_color(buf, color);
+
+	if (!image->height) return;
+
+	if (x < 0) {
+		w -= x;
+		x = 0;
+		if (w < 0) return;
+	}
+	if ((x + w) >= (int)image->width)
+		w = (int)image->width - x;
+	if (y < 0) {
+		h -= y;
+		y = 0;
+		if (h < 0) return;
+	}
+	if ((y + h) >= (int)image->height)
+		h = (int)image->height - y;
+	if (w <= 0 || h <= 0) return;
+
+	/* fill area */
+	for (int px = x; px < x+w; px++) {
+		for (size_t i = 0; i < image->depth_bytes; i++)
+			((uint8_t *)image->data)[(size_t)y * image->pitch + (size_t)px * image->depth_bytes + i] = buf[i];
+	}
+	for (int py = y+1; py < y+h; py++)
+		memcpy(image->data + py * (int)image->pitch + x * (int)image->depth_bytes, image->data + y * (int)image->pitch + x * (int)image->depth_bytes, (size_t)w * image->depth_bytes);
 }
 
 /* copy image area */

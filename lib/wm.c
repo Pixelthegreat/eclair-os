@@ -69,6 +69,25 @@ extern void wm_close(void) {
 	fd = -1;
 }
 
+/* get screen info */
+extern int wm_get_screen_info(wm_screen_info_t *info) {
+
+	if (fd < 0) SETERRNO(-ENOTCONN, -1);
+
+	wm_message_t *message = (wm_message_t *)reqbuf;
+
+	message->type = WM_REQUEST;
+	message->size = sizeof(wm_message_t);
+	message->function = WM_FUNCTION_GET_SCREEN_INFO;
+
+	if (send_message(message, sizeof(wm_message_t)) < 0)
+		return -1;
+
+	wm_get_screen_info_response_t *response = (wm_get_screen_info_response_t *)rspbuf;
+	memcpy(info, &response->info, sizeof(wm_screen_info_t));
+	return 0;
+}
+
 /* create image */
 extern uint32_t wm_create_image(uint32_t width, uint32_t height, uint32_t cls) {
 

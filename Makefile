@@ -50,7 +50,7 @@ bootdisk: kernel bin
 setup_common:
 	@mkdir -pv build/kernel build/boot build/libc build/lib-obj
 	@mkdir -pv build/lib build/bin-obj build/bin build/tools
-	@mkdir -pv build/bin-obj/wm
+	@mkdir -pv build/bin-obj/wm build/lib-obj/crepe
 	@./pybuild $(PYBUILDARGS_ALL)
 
 setup_init_common:
@@ -68,10 +68,10 @@ setup_init: setup_common tools setup_init_common boot install_boot
 	@echo "\e[32mSetup complete\e[39m"
 
 clean:
-	@rm -v build/kernel/* build/boot/* build/bin-obj/* build/bin/* build/e.clair build/boot.bin
+	@rm -rv build/kernel/* build/boot/* build/bin-obj/* build/bin/* build/lib/* build/lib-obj/* build/e.clair build/boot.bin
 
 clean_all:
-	@rm -v build/kernel/* build/boot/* build/bin-obj/* build/bin/* build/e.clair build/boot.bin build/bootimage build/mkecfs build/mntecfs
+	@rm -rv build/kernel/* build/boot/* build/bin-obj/* build/bin/* build/lib/* build/lib-obj/* build/e.clair build/boot.bin build/bootimage build/mkecfs build/mntecfs
 
 # re-install bootloader #
 install_boot:
