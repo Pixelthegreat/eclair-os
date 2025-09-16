@@ -48,6 +48,7 @@ crepe_widget_ops_t crepe_widget_ops_window = {
 static void window_minimum_size(crepe_widget_t *widget, crepe_draw_context_t *dc) {
 
 	crepe_window_t *window = CREPE_WINDOW(widget);
+	size_t decor = (size_t)window->decorations;
 
 	size_t width = 0;
 	size_t height = 0;
@@ -63,11 +64,11 @@ static void window_minimum_size(crepe_widget_t *widget, crepe_draw_context_t *dc
 	if (window->widget) {
 		
 		crepe_widget_minimum_size(window->widget, dc);
-		width = CREPE_MAX(width, window->widget->mwidth + (CHILD_BORDER_WIDTH - TITLE_BORDER_WIDTH));
-		height += window->widget->mheight + (CHILD_BORDER_WIDTH - TITLE_BORDER_WIDTH);
+		width = CREPE_MAX(width, window->widget->mwidth + (CHILD_BORDER_WIDTH - TITLE_BORDER_WIDTH) * 2 * decor);
+		height += window->widget->mheight + (CHILD_BORDER_WIDTH - TITLE_BORDER_WIDTH) * 2 * decor;
 	}
-	width += TITLE_BORDER_WIDTH*2;
-	height += CHILD_BORDER_WIDTH + (window->title? CHILD_BORDER_START: TITLE_BORDER_WIDTH);
+	width += TITLE_BORDER_WIDTH*2 * decor;
+	height += CHILD_BORDER_WIDTH + (window->title? CHILD_BORDER_START: TITLE_BORDER_WIDTH) * decor;
 
 	widget->mwidth = CREPE_MAX(width, window->mwidth);
 	widget->mheight = CREPE_MAX(height, window->mheight);
@@ -77,14 +78,15 @@ static void window_minimum_size(crepe_widget_t *widget, crepe_draw_context_t *dc
 static void window_final_size(crepe_widget_t *widget, crepe_draw_context_t *dc, size_t bwidth, size_t bheight) {
 
 	crepe_window_t *window = CREPE_WINDOW(widget);
+	size_t decor = (size_t)window->decorations;
 
 	if (window->title)
-		crepe_widget_final_size(window->title, dc, widget->mwidth - TITLE_BORDER_WIDTH*2, widget->mheight - TITLE_BORDER_WIDTH*2);
+		crepe_widget_final_size(window->title, dc, widget->mwidth - TITLE_BORDER_WIDTH*2 * decor, widget->mheight - TITLE_BORDER_WIDTH*2 * decor);
 	size_t theight = window->title? window->title->height: 0;
 	size_t tstart = window->title? CHILD_BORDER_START: TITLE_BORDER_WIDTH;
 
-	bwidth = widget->mwidth - CHILD_BORDER_START*2;
-	bheight = widget->mheight - CHILD_BORDER_START - tstart - 1 - theight;
+	bwidth = widget->mwidth - CHILD_BORDER_START*2 * decor;
+	bheight = widget->mheight - (CHILD_BORDER_START + tstart + 1) * decor - theight;
 	if (window->widget)
 		crepe_widget_final_size(window->widget, dc, bwidth, bheight);
 
@@ -94,14 +96,14 @@ static void window_final_size(crepe_widget_t *widget, crepe_draw_context_t *dc, 
 	/* position title and child */
 	if (window->title) {
 
-		window->title->x = TITLE_BORDER_WIDTH;
-		window->title->y = TITLE_BORDER_WIDTH;
+		window->title->x = TITLE_BORDER_WIDTH * decor;
+		window->title->y = TITLE_BORDER_WIDTH * decor;
 	}
 
 	if (window->widget) {
 
-		window->widget->x = CHILD_BORDER_START + (window->widget->halign * (int)(bwidth - window->widget->width)) / 2;
-		window->widget->y = (int)tstart + 1 + (int)theight + (window->widget->valign * (int)(bheight - window->widget->height)) / 2;
+		window->widget->x = CHILD_BORDER_START * (int)decor + (window->widget->halign * (int)(bwidth - window->widget->width)) / 2;
+		window->widget->y = ((int)tstart + 1) * (int)decor + (int)theight + (window->widget->valign * (int)(bheight - window->widget->height)) / 2;
 	}
 }
 
@@ -149,10 +151,15 @@ static void window_draw(crepe_widget_t *widget, crepe_draw_context_t *dc) {
 
 		/* draw border */
 		crepe_draw_context_clear(dc, CREPE_COLOR(0xb9, 0xbe, 0xd4));
-		crepe_draw_context_position(dc, 0, 0);
-		crepe_draw_context_border(dc, dc->ui, outer[0], outer[1], (size_t)outer[2], (size_t)outer[3], widget->width, widget->height, 2);
-		crepe_draw_context_position(dc, TITLE_BORDER_WIDTH, (int)tstart + (int)theight);
-		crepe_draw_context_border(dc, dc->ui, inner[0], inner[1], (size_t)inner[2], (size_t)inner[3], widget->width - TITLE_BORDER_WIDTH*2, widget->height - tstart - TITLE_BORDER_WIDTH - theight, 1);
+		if (window->drawn) window->drawn(widget, dc);
+
+		if (window->decorations) {
+
+			crepe_draw_context_position(dc, 0, 0);
+			crepe_draw_context_border(dc, dc->ui, outer[0], outer[1], (size_t)outer[2], (size_t)outer[3], widget->width, widget->height, 2);
+			crepe_draw_context_position(dc, TITLE_BORDER_WIDTH, (int)tstart + (int)theight);
+			crepe_draw_context_border(dc, dc->ui, inner[0], inner[1], (size_t)inner[2], (size_t)inner[3], widget->width - TITLE_BORDER_WIDTH*2, widget->height - tstart - TITLE_BORDER_WIDTH - theight, 1);
+		}
 	}
 	if (window->title) crepe_widget_draw(window->title, dc);
 	if (window->widget) crepe_widget_draw(window->widget, dc);
@@ -180,8 +187,6 @@ static void window_destroy(crepe_widget_t *widget) {
 	wm_destroy_window(window->window);
 }
 
-/* close pressed callback */
-
 /* create window */
 extern crepe_widget_t *crepe_window_new(crepe_context_t *context, size_t mwidth, size_t mheight) {
 
@@ -205,6 +210,9 @@ extern crepe_widget_t *crepe_window_new(crepe_context_t *context, size_t mwidth,
 	window->mwidth = mwidth;
 	window->mheight = mheight;
 	window->close = false;
+	window->decorations = true;
+	window->stack = WM_STACK_CENTER;
+	window->drawn = NULL;
 
 	return CREPE_WIDGET(window);
 }
@@ -233,7 +241,7 @@ extern void crepe_window_present(crepe_window_t *window) {
 	/* create image */
 	if (!window->image) {
 
-		window->image = wm_create_image((uint32_t)window->base.width, (uint32_t)window->base.height, WM_CLASS_WINDOW);
+		window->image = wm_create_image((uint32_t)widget->width, (uint32_t)widget->height, WM_CLASS_WINDOW);
 		if (!window->image) return;
 
 		wm_window_attributes_t attributes = {
@@ -243,7 +251,7 @@ extern void crepe_window_present(crepe_window_t *window) {
 			.height = (uint32_t)widget->height,
 			.events = 0,
 			.image = window->image,
-			.stack = WM_STACK_CENTER,
+			.stack = window->stack,
 		};
 		wm_set_window_attributes(window->window, WM_WINDOW_ATTRIBUTE_ALL, &attributes);
 	}
@@ -279,6 +287,11 @@ extern crepe_result_t crepe_context_init(crepe_context_t *context) {
 /* main context loop */
 extern void crepe_context_main_loop(crepe_context_t *context) {
 
+	ec_timeval_t oldtv;
+	ec_timens(&oldtv);
+
+	uint64_t fps = 1000000000 / FPS;
+
 	while (context->first) {
 
 		crepe_window_t *window = context->first;
@@ -297,11 +310,18 @@ extern void crepe_context_main_loop(crepe_context_t *context) {
 			window = next;
 		}
 
+		/* cap framerate */
+		ec_timeval_t newtv;
+		ec_timens(&newtv);
+
+		uint64_t diff = newtv.nsec - oldtv.nsec;
+
 		ec_timeval_t tv = {
 			.sec = 0,
-			.nsec = 1000000000 / FPS,
+			.nsec = fps - diff,
 		};
 		ec_sleepns(&tv);
+		ec_timens(&oldtv);
 	}
 }
 

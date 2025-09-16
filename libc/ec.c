@@ -7,6 +7,7 @@
 #include <string.h>
 #include <errno.h>
 #include <ec.h>
+#include <ec/keycode.h>
 
 static char pathbuf[EC_PATHSZ];
 static char tempbuf[EC_PATHSZ];
@@ -241,5 +242,20 @@ extern int ec_chdir(const char *path) {
 extern int ec_getcwd(char *buf, size_t bufsz) {
 
 	strncpy(buf, pathbuf, bufsz);
+	return 0;
+}
+
+/* ec/keycode.h */
+static const char ascii[ECK_COUNT+1] = "?0123456789abcdefghijklmnopqrstuvwxyz`;\'()[]/\\,.=- ????????????????????????0123456789/*-+.?????????????";
+
+extern int eck_aschar(ec_keycode_t code) {
+
+	if (code > 0 && code < ECK_COUNT) {
+
+		int ch = (int)ascii[code];
+		if (ch == '?')
+			return 0;
+		return ch;
+	}
 	return 0;
 }

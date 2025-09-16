@@ -282,9 +282,6 @@ extern void window_update(void) {
 	/* redraw all */
 	if (focus != oldfocus) {
 
-		color_t color = {0, 0, 0};
-		screen_clear(color);
-
 		for (int i = 0; i < nwindows; i++) {
 
 			window_resource_t *window = (window_resource_t *)server_get_resource(windows[i])->data;

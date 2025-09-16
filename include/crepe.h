@@ -16,5 +16,7 @@
 #include <crepe/box.h>
 #include <crepe/margin.h>
 #include <crepe/image.h>
+#include <crepe/entry.h>
+#include <crepe/message.h>
 
 #endif /* CREPE_H */

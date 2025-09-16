@@ -486,19 +486,8 @@ static atomic_int fs_lock = 0;
 
 static inline int fs_lock_acquire(void) {
 
-	struct timespec ts;
-	ts.tv_sec = 0;
-	ts.tv_nsec = 10000;
-
-	int i = 0;
-	for (; i < 100000; i++) {
-
-		if (fs_lock) nanosleep(&ts, NULL);
-		else break;
-	}
-	if (i >= 100000) return -1;
-
-	fs_lock = 1;
+	int val = 1;
+	while (val) val = atomic_exchange(&fs_lock, val);
 	return 0;
 }
 

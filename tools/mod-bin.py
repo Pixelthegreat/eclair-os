@@ -60,5 +60,6 @@ def module():
 
                 # graphical apps #
                 gen_app('about'),
+                gen_app('login'),
             )
         }

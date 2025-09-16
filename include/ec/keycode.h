@@ -149,4 +149,11 @@ typedef struct ec_msevent {
 	bool state[ECB_COUNT]; /* button state */
 } ec_msevent_t;
 
+/*
+ * Convert a key code into a unicode character.
+ * - Only processes printable characters correctly,
+ *   will return 0 if a keycode is not printable
+ */
+extern int eck_aschar(ec_keycode_t code);
+
 #endif /* EC_KEYCODE_H */

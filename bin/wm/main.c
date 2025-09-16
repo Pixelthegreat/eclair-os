@@ -12,6 +12,8 @@
 #include <wm/window.h>
 #include <wm/server.h>
 
+#define STARTUP "/bin/login"
+
 int main() {
 
 	if (input_init() < 0)
@@ -20,6 +22,9 @@ int main() {
 		return 1;
 	if (server_host() < 0)
 		return 1;
+
+	const char *argv[] = {STARTUP, NULL};
+	ec_pexec(STARTUP, argv, NULL);
 
 	while (true) server_update();
 }

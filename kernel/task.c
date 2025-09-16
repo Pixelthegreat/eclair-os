@@ -466,7 +466,7 @@ extern void task_free(void) {
 	}
 
 	/* free frames */
-	uint32_t brkp = ALIGN(task_active->brkp, 4096) >> 12;
+	uint32_t brkp = ALIGN(task_active->brkp, 0x1000) >> 12;
 	for (uint32_t i = 0; i < brkp; i++) {
 
 		page_frame_id_t f = page_get_frame(i);
@@ -474,7 +474,7 @@ extern void task_free(void) {
 	}
 
 	/* fun fact: the lack of this block of code was the cause of a memory leak */
-	brkp = ALIGN(brkp, 1024) >> 10;
+	brkp = ALIGN(brkp, 0x400) >> 10;
 	for (uint32_t i = 0; i < brkp; i++) {
 
 		page_frame_id_t f = page_get_table_frame(i);

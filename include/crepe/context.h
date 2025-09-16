@@ -26,6 +26,9 @@ typedef struct crepe_window {
 	bool visible; /* wm visible state */
 	size_t mwidth, mheight; /* default minimum width and height */
 	bool close; /* destroy window */
+	bool decorations; /* has decorations */
+	uint32_t stack; /* wm stack position */
+	void (*drawn)(crepe_widget_t *, crepe_draw_context_t *); /* draw callback */
 } crepe_window_t;
 
 #define CREPE_WINDOW(p) ((crepe_window_t *)(p))
