@@ -6,7 +6,7 @@ INITRD_OUTPUT='build/initrd.tar'
 
 echo Preparing staging area...
 mkdir -pv "$INITRD_DIR"
-mkdir -pv "$INITRD_DIR/dev"
+mkdir -pv "$INITRD_DIR/dev" "$INITRD_DIR/tmp"
 cp -uRv build/bin "$INITRD_DIR"
 cp -uRTv base "$INITRD_DIR"
 

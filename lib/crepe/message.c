@@ -59,11 +59,12 @@ extern crepe_widget_t *crepe_message_box_new(crepe_context_t *context, crepe_mes
 	crepe_widget_t *margin = crepe_margin_new(5, 5, 6, 6);
 	crepe_widget_t *box = crepe_box_new(CREPE_BOX_ORIENTATION_VERTICAL);
 
+	crepe_widget_t *inner = crepe_margin_new(10, 10, 10, 10);
 	crepe_widget_t *label = crepe_label_new(CREPE_TEXT_STYLE_NORMAL, message);
 
 	/* create buttons */
 	crepe_widget_t *hbox = crepe_box_new(CREPE_BOX_ORIENTATION_HORIZONTAL);
-	hbox->valign = CREPE_WIDGET_ALIGN_END;
+	hbox->halign = CREPE_WIDGET_ALIGN_END;
 
 	for (crepe_message_button_t i = 0; i < CREPE_MESSAGE_BUTTON_COUNT; i++) {
 
@@ -79,7 +80,9 @@ extern crepe_widget_t *crepe_message_box_new(crepe_context_t *context, crepe_mes
 	}
 
 	/* pack widgets */
-	crepe_box_item(CREPE_BOX(box), label);
+	crepe_margin_child(CREPE_MARGIN(inner), label);
+
+	crepe_box_item(CREPE_BOX(box), inner);
 	crepe_box_item(CREPE_BOX(box), hbox);
 
 	crepe_margin_child(CREPE_MARGIN(margin), box);

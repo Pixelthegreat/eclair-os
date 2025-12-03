@@ -73,7 +73,19 @@ static void parse_cmdline(void) {
 					const char *param = arg+13;
 					size_t plen = len-13;
 
-					strncpy(cmdline.init_profile, param, BOOT_CMDLINE_PARAM_MAX_CHARS);
+					strncpy(cmdline.init_profile, param, MIN(plen, BOOT_CMDLINE_PARAM_MAX_CHARS));
+				}
+			}
+
+			/* ramfs mountpoint */
+			else if (!strncmp("ramfs", arg, MIN(len, 5))) {
+
+				if (arg[5] == '=') {
+
+					const char *param = arg+6;
+					size_t plen = len-6;
+
+					strncpy(cmdline.ramfs_mount, param, MIN(plen, BOOT_CMDLINE_PARAM_MAX_CHARS));
 				}
 			}
 		}
@@ -179,6 +191,7 @@ extern void boot_init(void) {
 /* log boot info */
 extern void boot_log(void) {
 
+	kprintf(LOG_INFO, "[boot] Command line: '%s'", saved.cmdline);
 	kprintf(LOG_INFO, "[boot] Reserved frames: 0x%x", memmap_reserved_frames);
 	kprintf(LOG_INFO, "[boot] Total frames: 0x%x", page_frame_max_count);
 }

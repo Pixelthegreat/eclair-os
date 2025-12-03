@@ -33,7 +33,7 @@ build/mntecfs "$bootdisk" tmp -m
 exit_on_error
 
 # copy files #
-mkdir -pv tmp/boot/grub tmp/dev
+mkdir -pv tmp/boot/grub tmp/dev tmp/tmp
 
 cp -uv boot/s3b/menu.cfg tmp/boot
 cp -uv build/e.clair tmp/boot

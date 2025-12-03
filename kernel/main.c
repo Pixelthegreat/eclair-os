@@ -15,6 +15,7 @@
 #include <kernel/driver/device.h>
 #include <kernel/vfs/fs.h>
 #include <kernel/vfs/devfs.h>
+#include <kernel/vfs/ramfs.h>
 #include <kernel/fs/mbr.h>
 #include <kernel/task.h>
 
@@ -36,6 +37,7 @@ extern void kernel_main() {
 	boot_log();
 	mbr_fs_mount_root();
 	devfs_init();
+	ramfs_init();
 	user_init();
 	task_init();
 	init_load();

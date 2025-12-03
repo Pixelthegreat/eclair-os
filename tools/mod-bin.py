@@ -36,6 +36,7 @@ def module():
         'targets': (
                 gen_bin('cat'),
                 gen_bin('clear'),
+                gen_bin('cp'),
                 gen_bin('gfx-mouse'),
                 gen_bin('gfx', ldflags='-limage'),
                 gen_bin('hello'),
@@ -45,8 +46,10 @@ def module():
                 gen_bin('playsnd', ldflags='-lsound'),
                 gen_bin('sh'),
                 gen_bin('sleep'),
+                gen_bin('stat'),
                 gen_bin('su'),
                 gen_bin('sysinfo'),
+                gen_bin('touch'),
 
                 # window manager #
                 gen_bin('wm-test', ldflags='-lcrepe -limage -lwm'),

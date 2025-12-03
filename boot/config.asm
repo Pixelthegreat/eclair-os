@@ -6,7 +6,7 @@
 %ifndef CONFIG_ASM
 %define CONFIG_ASM
 
-%define CONFIG_STRING_SZ 32
+%define CONFIG_STRING_SZ 64
 %define CONFIG_KERNEL_BASE 0x1000
 
 ; entry types ;

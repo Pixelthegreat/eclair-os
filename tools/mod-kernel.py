@@ -111,6 +111,7 @@ def module():
                             ('vfs/chnlfs.c', 'vfs/chnlfs.h'),
                             ('vfs/devfs.c', 'vfs/devfs.h'),
                             ('vfs/fs.c', 'vfs/fs.h'),
+                            ('vfs/ramfs.c', 'vfs/ramfs.h'),
 
                             # general #
                             ('boot.c', 'boot.h'),

@@ -99,6 +99,7 @@ typedef struct boot_cmdline {
 	bool uart_tty; /* initialize uart as tty device */
 	bool quiet; /* do not display log messages under info or warning */
 	char init_profile[BOOT_CMDLINE_PARAM_MAX_CHARS]; /* profile for init to load */
+	char ramfs_mount[BOOT_CMDLINE_PARAM_MAX_CHARS]; /* mountpoint for ramfs */
 } boot_cmdline_t;
 
 extern boot_protocol_t boot_protocol;
