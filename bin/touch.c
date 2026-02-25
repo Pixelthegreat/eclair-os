@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025-2026, Elliot Kohlymer
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
