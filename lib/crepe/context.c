@@ -183,8 +183,31 @@ static void window_destroy(crepe_widget_t *widget) {
 	crepe_widget_free(window->widget);
 	crepe_widget_free(window->title);
 
-	if (window->image) wm_destroy_image(window->image);
 	wm_destroy_window(window->window);
+	if (window->image) wm_destroy_image(window->image);
+}
+
+/* title bar dragged */
+static void title_dragged(crepe_widget_t *title, int x, int y, void *data) {
+
+	crepe_window_t *window = CREPE_WINDOW(data);
+
+	int newx = window->posx + x;
+	int newy = window->posy + y;
+
+	if (newx < 0) newx = 0;
+	if (newy < 0) newy = 0;
+
+	wm_window_attributes_t attributes = {
+		.x = (uint32_t)newx,
+		.y = (uint32_t)newy,
+	};
+	wm_set_window_attributes(window->window,
+				 WM_WINDOW_ATTRIBUTE_POSITION,
+				 &attributes);
+
+	window->posx = newx;
+	window->posy = newy;
 }
 
 /* create window */
@@ -213,6 +236,7 @@ extern crepe_widget_t *crepe_window_new(crepe_context_t *context, size_t mwidth,
 	window->decorations = true;
 	window->stack = WM_STACK_CENTER;
 	window->drawn = NULL;
+	window->update = NULL;
 
 	return CREPE_WIDGET(window);
 }
@@ -238,6 +262,12 @@ extern void crepe_window_present(crepe_window_t *window) {
 	crepe_widget_final_size(widget, window->context->dc, 0, 0);
 	crepe_widget_position(widget, NULL);
 
+	if (window->title) {
+
+		CREPE_TITLE(window->title)->userdata = window;
+		CREPE_TITLE(window->title)->dragged = title_dragged;
+	}
+
 	/* create image */
 	if (!window->image) {
 
@@ -254,6 +284,9 @@ extern void crepe_window_present(crepe_window_t *window) {
 			.stack = window->stack,
 		};
 		wm_set_window_attributes(window->window, WM_WINDOW_ATTRIBUTE_ALL, &attributes);
+
+		window->posx = (int)attributes.x;
+		window->posy = (int)attributes.y;
 	}
 
 	/* draw image */
@@ -296,6 +329,8 @@ extern void crepe_context_main_loop(crepe_context_t *context) {
 
 		crepe_window_t *window = context->first;
 		while (window) {
+
+			if (window->update) window->update(CREPE_WIDGET(window));
 
 			crepe_window_t *next = window->next;
 

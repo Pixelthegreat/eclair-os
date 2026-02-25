@@ -25,6 +25,9 @@ typedef struct crepe_title {
 	crepe_widget_t base;
 	crepe_widget_t *label; /* title label */
 	crepe_widget_t *buttons[CREPE_TITLE_BUTTON_COUNT]; /* title bar buttons */
+	void *userdata; /* user callback data */
+	bool pressed; /* button pressed */
+	void (*dragged)(crepe_widget_t *, int, int, void *); /* title bar dragged */
 } crepe_title_t;
 
 #define CREPE_TITLE(p) ((crepe_title_t *)(p))

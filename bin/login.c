@@ -4,7 +4,14 @@
 #include <ec/wm.h>
 #include <crepe.h>
 
-#define DESKTOP_PATH "/bin/about"
+#define DESKTOP_PATH "/bin/desktop"
+#define BGIMAGE_PATH "/usr/share/wallpaper1.rbn"
+
+#define STATE_NORMAL 0
+#define STATE_WAITING 1
+
+static int state = STATE_NORMAL;
+static int pid = -1;
 
 static size_t width = 0, height = 0; /* screen size */
 
@@ -12,6 +19,8 @@ static crepe_context_t context = CREPE_CONTEXT_INIT; /* ui context */
 
 static crepe_widget_t *bgwindow; /* background window */
 static crepe_widget_t *color; /* background color */
+static uint32_t bgimage; /* background image */
+static size_t bgwidth, bgheight; /* background image size */
 
 static crepe_widget_t *window; /* main login window */
 static crepe_widget_t *title; /* title bar */
@@ -26,6 +35,8 @@ static crepe_widget_t *pswdlabel; /* password label */
 static crepe_widget_t *pswdentry; /* password entry */
 static crepe_widget_t *loginbtn; /* login button */
 
+static int create_login_window(void);
+
 /* close pressed */
 static void close_pressed(crepe_widget_t *widget) {
 
@@ -36,6 +47,29 @@ static void close_pressed(crepe_widget_t *widget) {
 static void bgwindow_drawn(crepe_widget_t *widget, crepe_draw_context_t *dc) {
 
 	crepe_draw_context_clear(dc, CREPE_COLOR(0xee, 0xcc, 0xaa));
+
+	int x = ((int)width - (int)bgwidth) / 2;
+	int y = ((int)height - (int)bgheight) / 2;
+
+	crepe_draw_context_position(dc, x, y);
+	crepe_draw_context_image(dc, bgimage, 0, 0, bgwidth, bgheight);
+}
+
+/* background window updated */
+static void bgwindow_update(crepe_widget_t *widget) {
+
+	if (state == STATE_WAITING) {
+
+		int status;
+		ec_timeval_t timeout = {0, 0};
+		ec_pwait(pid, &status, &timeout);
+
+		if (ECW_ISEXITED(status)) {
+
+			create_login_window();
+			state = STATE_NORMAL;
+		}
+	}
 }
 
 /* login button pressed */
@@ -46,12 +80,16 @@ static void login_pressed(crepe_widget_t *widget) {
 
 	if (ec_setuser(name, pswd) < 0) {
 
-		crepe_widget_t *message = crepe_message_box_new(&context, NULL, CREPE_MESSAGE_BUTTON_OKAY_BIT, "Login failed", "Incorrect username or password");
+		crepe_widget_t *message = crepe_message_box_new(&context, NULL,
+				CREPE_MESSAGE_BUTTON_OKAY_BIT, "Login failed",
+				"Incorrect username or password");
 		return;
 	}
+	crepe_window_close(CREPE_WINDOW(window));
+	state = STATE_WAITING;
 
 	const char *argv[] = {DESKTOP_PATH, NULL};
-	ec_pexec(DESKTOP_PATH, argv, NULL);
+	pid = ec_pexec(DESKTOP_PATH, argv, NULL);
 }
 
 /* create login window */
@@ -108,6 +146,13 @@ static int run(void) {
 	if (crepe_context_init(&context) != CREPE_RESULT_SUCCESS)
 		return 1;
 
+	uint32_t bgw, bgh;
+	bgimage = crepe_load_image(BGIMAGE_PATH, &bgw, &bgh);
+	if (!bgimage) return 1;
+
+	bgwidth = (size_t)bgw;
+	bgheight = (size_t)bgh;
+
 	wm_screen_info_t scinfo;
 	wm_get_screen_info(&scinfo);
 
@@ -121,6 +166,7 @@ static int run(void) {
 	CREPE_WINDOW(bgwindow)->decorations = false;
 	CREPE_WINDOW(bgwindow)->stack = WM_STACK_BELOW;
 	CREPE_WINDOW(bgwindow)->drawn = bgwindow_drawn;
+	CREPE_WINDOW(bgwindow)->update = bgwindow_update;
 
 	color = crepe_label_new(CREPE_TEXT_STYLE_NORMAL, "");
 	crepe_window_child(CREPE_WINDOW(bgwindow), color);
@@ -139,6 +185,7 @@ static int run(void) {
 /* clean up resources */
 static void cleanup(void) {
 
+	if (bgimage) wm_destroy_image(bgimage);
 	crepe_context_destroy(&context);
 }
 

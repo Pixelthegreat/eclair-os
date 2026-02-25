@@ -10,6 +10,7 @@
 #include <wm/window.h>
 
 bool window_draw = false; /* need to draw windows */
+bool window_moved = false; /* window moved or resized */
 
 #define MAX_WINDOWS 1024
 static uint32_t windows[MAX_WINDOWS]; /* window stack */
@@ -116,6 +117,7 @@ extern int window_resource_set_attributes(resource_t *resource, wm_window_attrib
 		window->attributes.y = attributes->y;
 
 		window_draw = true;
+		window_moved = true;
 	}
 
 	/* size */
@@ -128,6 +130,7 @@ extern int window_resource_set_attributes(resource_t *resource, wm_window_attrib
 		window->attributes.height = attributes->height;
 
 		window_draw = true;
+		window_moved = true;
 	}
 
 	/* event mask */
@@ -267,7 +270,7 @@ extern void window_resource_free(resource_t *resource) {
 	/* free resources */
 	window_resource_t *window = (window_resource_t *)resource->data;
 
-	if (window->image) window->image->refcnt++;
+	if (window->image) window->image->refcnt--;
 	free(window);
 
 	server_destroy_resource(resource);
@@ -280,7 +283,7 @@ extern void window_update(void) {
 	window_resource_t *wfocus = rfocus? (window_resource_t *)rfocus->data: NULL;
 
 	/* redraw all */
-	if (focus != oldfocus) {
+	if (focus != oldfocus || window_moved) {
 
 		for (int i = 0; i < nwindows; i++) {
 
@@ -304,6 +307,7 @@ extern void window_update(void) {
 	}
 	oldfocus = focus;
 	window_draw = false;
+	window_moved = false;
 }
 
 /* process event */

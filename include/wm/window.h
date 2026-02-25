@@ -32,6 +32,7 @@ typedef struct window_resource {
 } window_resource_t;
 
 extern bool window_draw; /* need to draw windows */
+extern bool window_moved; /* window has moved */
 
 /* functions */
 extern resource_t *image_resource_new(uint32_t cls, size_t width, size_t height); /* create image */

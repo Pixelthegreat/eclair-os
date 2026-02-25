@@ -16,6 +16,7 @@ static size_t stylesizes[] = {
 	13, 13, /* show */
 	13, 13, /* hide */
 	48, 32, /* icon */
+	65, 15, /* menu */
 };
 static int styleposes[CREPE_BUTTON_STATE_COUNT][CREPE_BUTTON_STYLE_COUNT * 2] = {
 	{
@@ -24,6 +25,7 @@ static int styleposes[CREPE_BUTTON_STATE_COUNT][CREPE_BUTTON_STYLE_COUNT * 2] = 
 		20, 5, /* show */
 		35, 5, /* hide */
 		126, 214, /* icon */
+		179, 228, /* menu */
 	}, /* normal */
 	{
 		176, 202, /* normal */
@@ -31,6 +33,7 @@ static int styleposes[CREPE_BUTTON_STATE_COUNT][CREPE_BUTTON_STYLE_COUNT * 2] = 
 		65, 5, /* show */
 		80, 5, /* hide */
 		76, 214, /* icon */
+		9, 231, /* menu */
 	}, /* pressed */
 };
 
@@ -107,8 +110,6 @@ static bool process_event(crepe_widget_t *widget, wm_event_t *event) {
 
 					prop = false;
 					button->state = CREPE_BUTTON_STATE_PRESSED;
-					if (button->pressed)
-						button->pressed(widget);
 				}
 			}
 			/* button release */
@@ -116,6 +117,9 @@ static bool process_event(crepe_widget_t *widget, wm_event_t *event) {
 
 				prop = false;
 				button->state = CREPE_BUTTON_STATE_NORMAL;
+
+				if (button->pressed)
+					button->pressed(widget);
 			}
 			break;
 	}

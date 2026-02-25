@@ -116,6 +116,28 @@ static bool process_event(crepe_widget_t *widget, wm_event_t *event) {
 			break;
 		}
 	}
+
+	/* drag window */
+	if (prop) {
+
+		if (event->type == WM_EVENT_BUTTON)
+			title->pressed = event->button.action == WM_ACTION_PRESSED;
+
+		else if (event->type == WM_EVENT_MOTION &&
+			 event->motion.position.x >= widget->absx &&
+			 event->motion.position.x < widget->absx + (int)widget->width &&
+			 event->motion.position.y >= widget->absy &&
+			 event->motion.position.y < widget->absy + (int)widget->height &&
+			 title->pressed &&
+			 title->dragged) {
+
+			title->dragged(widget,
+				       event->motion.move.x,
+				       event->motion.move.y,
+				       title->userdata);
+			prop = false;
+		}
+	}
 	return prop;
 }
 

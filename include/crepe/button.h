@@ -16,6 +16,7 @@ typedef enum crepe_button_style {
 	CREPE_BUTTON_STYLE_SHOW,
 	CREPE_BUTTON_STYLE_HIDE,
 	CREPE_BUTTON_STYLE_ICON,
+	CREPE_BUTTON_STYLE_MENU,
 
 	CREPE_BUTTON_STYLE_COUNT,
 } crepe_button_style_t;

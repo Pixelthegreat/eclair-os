@@ -5,14 +5,14 @@
 
 [_more screenshots_](res/screenshots)
 
-Éclair OS is a hobby unix-like OS project. It is currently very early in its development, and as such, it is not yet capable of a lot. My primary inspiration comes from other hobby projects like [ToaruOS](https://github.com/klange/toaruos) and QuafiOS (which mysteriously disappeared some time ago), as well as educational resources like the [xv6 project](https://github.com/mit-pdos/xv6-public).
+Éclair OS is a hobby unix-like OS project. My primary inspiration comes from other hobby projects like [ToaruOS](https://github.com/klange/toaruos) and QuafiOS (which mysteriously disappeared some time ago), as well as educational resources like the [xv6 project](https://github.com/mit-pdos/xv6-public).
 
 ## Build Requirements
 There are a few requirements for the build to work. Here they are:
 
  - A UNIX-like environment (Linux, BSD, etc)
  - Python 3
- - Make
+ - GNU Make or compatible
  - NASM (Netwide Assembler)
  - Host GCC (GCC that runs on your system and compiles for your system, available with most package managers as just `gcc`)
 

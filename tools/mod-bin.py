@@ -1,15 +1,21 @@
 import os
 
-def gen_bin(name, cfiles=None, ldflags=None, subdir=None):
+def gen_bin(name, cfiles=None, links=None, ldflags=None, subdir=None):
     if cfiles is None:
         cfiles = (f'{name}.c',)
+    if links is None:
+        links = ()
     if ldflags is None:
         ldflags = ''
+
+    liblinks = tuple(f'build/lib/lib{link}.a' for link in links)
+
     target = {
             'name': name,
             'out': f'build/bin/{name}',
             'c-files': cfiles,
-            'ldflags': ldflags + ' build/libc.a -lgcc',
+            'ldflags': ' '.join(liblinks) + f' {ldflags} build/libc.a -lgcc',
+            'depends': liblinks + ('build/libc.a',),
         }
     if subdir is not None:
         target['srcdir'] = f'bin/{name}'
@@ -17,9 +23,11 @@ def gen_bin(name, cfiles=None, ldflags=None, subdir=None):
         target['depsdir'] = 'include'
     return target
 
-def gen_app(name, cfiles=None, ldflags=None, subdir=None):
+def gen_app(name, cfiles=None, links=None, ldflags=None, subdir=None):
+    links = links if links is not None else ()
     ldflags = ldflags if ldflags is not None else ''
-    return gen_bin(name, cfiles=cfiles, ldflags=f'{ldflags} -lcrepe -limage -lwm', subdir=subdir)
+
+    return gen_bin(name, cfiles=cfiles, links=links + ('crepe', 'image', 'wm'), ldflags=ldflags, subdir=subdir)
 
 def module():
     return {
@@ -38,12 +46,12 @@ def module():
                 gen_bin('clear'),
                 gen_bin('cp'),
                 gen_bin('gfx-mouse'),
-                gen_bin('gfx', ldflags='-limage'),
+                gen_bin('gfx', links=('image',)),
                 gen_bin('hello'),
                 gen_bin('hexd'),
                 gen_bin('init'),
                 gen_bin('ls'),
-                gen_bin('playsnd', ldflags='-lsound'),
+                gen_bin('playsnd', links=('sound',)),
                 gen_bin('sh'),
                 gen_bin('sleep'),
                 gen_bin('stat'),
@@ -52,7 +60,7 @@ def module():
                 gen_bin('touch'),
 
                 # window manager #
-                gen_bin('wm-test', ldflags='-lcrepe -limage -lwm'),
+                gen_bin('wm-test', links=('crepe', 'image', 'wm')),
                 gen_bin('wm', ldflags='-Ofast', cfiles=(
                     ('input.c', 'wm/input.h'),
                     ('main.c'),
@@ -63,6 +71,7 @@ def module():
 
                 # graphical apps #
                 gen_app('about'),
+                gen_app('desktop'),
                 gen_app('login'),
             )
         }

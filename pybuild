@@ -134,6 +134,7 @@ class TargetObject:
             'extrac',
             'extraasm',
             'extrald',
+            'depends',
             )
 
     def __init__(self, module, target):
@@ -151,6 +152,7 @@ class TargetObject:
         self.extrac = module.extrac + target.get('extra-c', ())
         self.extraasm = module.extraasm + target.get('extra-asm', ())
         self.extrald = module.extrald + target.get('extra-ld', ())
+        self.depends = module.depends + target.get('depends', ())
 
 # module object #
 class ModuleObject:
@@ -167,6 +169,7 @@ class ModuleObject:
             'extrac',
             'extraasm',
             'extrald',
+            'depends',
             )
 
     def __init__(self, module):
@@ -182,6 +185,7 @@ class ModuleObject:
         self.extrac = module.get('extra-c', ())
         self.extraasm = module.get('extra-asm', ())
         self.extrald = module.get('extra-ld', ())
+        self.depends = module.get('depends', ())
 
         self.targets = tuple(TargetObject(self, target) for target in self.targets)
 
@@ -268,9 +272,10 @@ class MakefileGenerator:
 
         name = target.name.upper()
         out = target.out
+        depends = ' ' + ' '.join(target.depends) if target.depends else ''
 
         if not nolink:
-            self.string += f'\n\n{out}: $({name}_OBJFILES)\n\t$(DST_FILENAME)\n\t'
+            self.string += f'\n\n{out}: $({name}_OBJFILES){depends}\n\t$(DST_FILENAME)\n\t'
 
             if not buildar:
                 linker = ('HOST_CC' if hostcc else 'LD')

@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <crepe/core.h>
 #include <crepe/widget.h>
 
@@ -12,20 +13,12 @@
 extern crepe_widget_t *crepe_widget_new(crepe_widget_ops_t *ops) {
 
 	crepe_widget_t *widget = (crepe_widget_t *)malloc(ops->size);
+	memset(widget, 0, ops->size);
 
 	widget->ops = ops;
-	widget->x = 0;
-	widget->y = 0;
-	widget->absx = 0;
-	widget->absy = 0;
-	widget->mwidth = 0;
-	widget->mheight = 0;
-	widget->width = 0;
-	widget->height = 0;
 	widget->draw = true;
 	widget->halign = CREPE_WIDGET_ALIGN_CENTER;
 	widget->valign = CREPE_WIDGET_ALIGN_CENTER;
-	widget->userdata = NULL;
 
 	return widget;
 }
