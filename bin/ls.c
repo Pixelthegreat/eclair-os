@@ -7,7 +7,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 #include <ec.h>
+
+enum {
+	OPT_HELP_BIT = 0x1,
+	OPT_LONG_BIT = 0x2,
+	OPT_ALL_BIT = 0x4,
+};
+static int opt_flags = 0;
 
 /* print file mode */
 static void print_mode(uint32_t mask) {
@@ -30,7 +38,24 @@ static void print_mode(uint32_t mask) {
 int main(int argc, const char **argv) {
 
 	const char *path = getenv("PWD");
-	if (argc >= 2) path = argv[1];
+
+	int opt;
+	while ((opt = getopt(argc, argv, "hla")) != -1) {
+		switch (opt) {
+			case 'l':
+				opt_flags |= OPT_LONG_BIT;
+				break;
+			case 'a':
+				opt_flags |= OPT_ALL_BIT;
+				break;
+			case 'h':
+				opt_flags |= OPT_HELP_BIT;
+			default:
+				fprintf(stderr, "Usage: %s [-h] [-la] [path]\n", argv[0]);
+				return opt_flags & OPT_HELP_BIT? 0: 1;
+		}
+	}
+	if (optind < argc) path = argv[optind];
 
 	if (!path) return 1;
 
@@ -41,13 +66,18 @@ int main(int argc, const char **argv) {
 	while (!(res = ec_readdir(pstr, &dent))) {
 
 		pstr = NULL;
+		if (!(opt_flags & OPT_ALL_BIT) && *dent.name == '.')
+			continue;
 
-		if (dent.flags & ECS_DIR) printf(" <DIR> ");
-		else printf("       ");
+		if (opt_flags & OPT_LONG_BIT) {
 
-		print_mode(dent.mask);
+			if (dent.flags & ECS_DIR) printf(" <DIR> ");
+			else printf("       ");
 
-		printf(" %s\n", dent.name);
+			print_mode(dent.mask);
+			fputc(' ', stdout);
+		}
+		printf("%s\n", dent.name);
 	}
 	if (res < 0) {
 

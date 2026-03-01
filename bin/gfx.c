@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 #include <ec/device.h>
 #include <ec/image.h>
 #include <ec.h>
@@ -14,6 +15,34 @@
 static int fd = -1; /* framebuffer file descriptor */
 static void *fb_addr = NULL; /* framebuffer address */
 static int cursor = 1; /* cursor state */
+
+enum {
+	OPT_HELP_BIT = 0x1,
+};
+static int opt_flags = 0;
+
+static const char *arg_time = "25";
+static const char *arg_path = "/usr/share/logo1.rbn";
+
+/* parse arguments */
+static int parse_args(int argc, const char **argv) {
+
+	int opt;
+	while ((opt = getopt(argc, argv, "ht:")) != -1) {
+		switch (opt) {
+			case 't':
+				arg_time = optarg;
+				break;
+			case 'h':
+				opt_flags |= OPT_HELP_BIT;
+			default:
+				fprintf(stderr, "Usage: %s [-h] [-t time] [path]\n", argv[0]);
+				return opt_flags & OPT_HELP_BIT? 0: -1;
+		}
+	}
+	if (optind < argc) arg_path = argv[optind];
+	return 0;
+}
 
 /* flip cursor state */
 static int flipcursor(void) {
@@ -58,7 +87,12 @@ static void clearscreen(ecio_fbinfo_t *fbinfo) {
 }
 
 /* run application */
-static int run(void) {
+static int run(int argc, const char **argv) {
+
+	if (parse_args(argc, argv) < 0)
+		return 1;
+	if (opt_flags & OPT_HELP_BIT)
+		return 0;
 
 	(void)flipcursor();
 
@@ -101,7 +135,7 @@ static int run(void) {
 
 	/* load image */
 	ec_image_t image = EC_IMAGE_INIT;
-	if (ec_image_open(&image, "/usr/share/logo1.rbn", EC_IMAGE_FORMAT_RBN)) {
+	if (ec_image_open(&image, arg_path, EC_IMAGE_FORMAT_RBN)) {
 
 		fprintf(stderr, "Failed to load image: %s\n", strerror(errno));
 		return 1;
@@ -133,9 +167,15 @@ static int run(void) {
 
 	/* wait and clear screen */
 	ec_timeval_t tv = {
-		.sec = 2,
-		.nsec = 500000000,
+		.sec = 0,
+		.nsec = 0,
 	};
+	for (; *arg_time >= '0' && *arg_time <= '9'; arg_time++) {
+
+		if (!*(arg_time+1))
+			tv.nsec = (uint64_t)(*arg_time-'0') * 100000000;
+		else tv.sec = (tv.sec * 10) + (uint64_t)(*arg_time-'0');
+	}
 	ec_sleepns(&tv);
 
 	clearscreen(&fbinfo);
@@ -149,9 +189,9 @@ static void cleanup(void) {
 	if (!cursor) (void)flipcursor();
 }
 
-int main() {
+int main(int argc, const char **argv) {
 
-	int code = run();
+	int code = run(argc, argv);
 	cleanup();
 	return code;
 }

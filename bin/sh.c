@@ -8,6 +8,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <ec.h>
 
 #define PATH "/bin"
@@ -20,7 +21,8 @@ static ec_uinfo_t uinfo; /* user info */
 
 /* options */
 enum {
-	OPT_REPL = 0x1,
+	OPT_HELP_BIT = 0x1,
+	OPT_REPL_BIT = 0x2,
 };
 static int opt_flags = 0;
 static const char *runpath = NULL;
@@ -358,30 +360,20 @@ static void print_prompt(void) {
 /* parse arguments */
 static int parse_args(int argc, const char **argv) {
 
-	for (int i = 1; i < argc; i++) {
-
-		const char *arg = argv[i];
-		if (*arg == '-') {
-
-			arg++;
-			while (*arg) {
-
-				char c = *arg++;
-				switch (c) {
-					case 'r':
-						opt_flags |= OPT_REPL;
-						break;
-					default:
-						fprintf(stderr, "%s: Invalid option '-%c'\nUsage: %s [-r] [path]", progname, c, progname);
-						return -1;
-				}
-			}
-		}
-		else {
-			runpath = arg;
-			break;
+	int opt;
+	while ((opt = getopt(argc, argv, "hr")) != -1) {
+		switch (opt) {
+			case 'r': /* repl */
+				opt_flags |= OPT_REPL_BIT;
+				break;
+			case 'h': /* help */
+				opt_flags |= OPT_HELP_BIT;
+			default:
+				fprintf(stderr, "Usage: %s [-h] [-r] [path]\n", progname);
+				return opt_flags & OPT_HELP_BIT? 0: 1;
 		}
 	}
+	if (optind < argc) runpath = argv[optind];
 	return 0;
 }
 
@@ -398,7 +390,7 @@ int main(int argc, const char **argv) {
 	if (runpath) {
 		
 		eval_file(runpath);
-		if (!(opt_flags & OPT_REPL)) return 0;
+		if (!(opt_flags & OPT_REPL_BIT)) return 0;
 	}
 
 	linebuf[0] = 0;

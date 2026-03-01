@@ -20,6 +20,7 @@ def module():
                             ('crt0.c'),
                             ('ec.c', 'ec.h'),
                             ('errno.c', 'errno.h'),
+                            ('getopt.c', 'unistd.h'),
                             ('printf.c', 'stdio.h'),
                             ('stdio.c', 'stdio.h'),
                             ('stdlib.c', 'stdlib.h'),
