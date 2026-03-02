@@ -31,4 +31,7 @@ extern void _Exit(int status);
 extern char *getenv(const char *name);
 extern int system(const char *string);
 
+/* miscellaneous */
+extern int atoi(const char *nptr);
+
 #endif /* _STDLIB_H */

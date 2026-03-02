@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <ec/hmap.h>
 #include <ec.h>
 
 #define PATH "/bin"
@@ -40,8 +41,18 @@ static char linebuf[LINEBUFSZ];
 static char argbuf[ARGBUFSZ];
 static char argbuf2[ARGBUFSZ];
 
-#define PROMPTBUFSZ 128
-static char promptbuf[PROMPTBUFSZ] = "[\e[1;32m\"$USER@$PWD\"\e[0m] '$ '";
+/* variable hashmap */
+struct ec_hmap_var;
+static void ec_hmap_var_set(struct ec_hmap_var *hmap, const char *val);
+
+ec_hmap_define_type(var, char val[256]);
+
+static void ec_hmap_var_set(struct ec_hmap_var *hmap, const char *val) {
+
+	strncpy(hmap->val, val, sizeof(hmap->val));
+}
+
+static struct ec_hmap_var *varmap = NULL;
 
 /* raw getenv */
 extern const char **environ;
@@ -104,8 +115,11 @@ static void addarg(int ch) {
 /* get variable value */
 static const char *getvar(const char *name) {
 
+	struct ec_hmap_var *item = ec_hmap_get(varmap, name);
+	if (item) return item->val;
+
 	/* last error code */
-	if (!strcmp(name, "?"))
+	else if (!strcmp(name, "?"))
 		return lastret;
 
 	/* current working directory */
@@ -129,12 +143,12 @@ static const char *getvar(const char *name) {
 #define ISDIGIT(c) ((c) >= '0' && (c) <= '9')
 #define ISIDENT(c) (ISALPHA(c) || ISDIGIT(c) || ((c) == '_') || ((c) == '?'))
 
-#define NEXTCC ((int)*line++)
+#define NEXTCC ((int)*++line)
 
-static void parse_line(const char *line, const char *file, int nline) {
+static const char *parse_line(const char *line, const char *file, int nline) {
 
 	nargs = 0;
-	int cc = NEXTCC;
+	int cc = *line;
 	int lit = 0; /* literal character */
 	bool exp = false; /* expecting new argument */
 	while (cc) {
@@ -145,9 +159,6 @@ static void parse_line(const char *line, const char *file, int nline) {
 			cc = NEXTCC;
 		}
 
-		/* comment */
-		else if (cc == '#') break;
-
 		/* newline */
 		else if (cc == '\n') cc = NEXTCC;
 
@@ -156,6 +167,36 @@ static void parse_line(const char *line, const char *file, int nline) {
 
 			addarg(cc);
 			cc = NEXTCC;
+		}
+
+		/* escape charactere */
+		else if (cc == '\\') {
+
+			cc = NEXTCC;
+			if (!cc) break;
+
+			switch (cc) {
+				case 'n': cc = '\n';
+				case 'r': cc = '\r';
+				case 't': cc = '\t';
+				case 'e': cc = '\x1b';
+			}
+			addarg(cc);
+			cc = NEXTCC;
+		}
+
+		/* break */
+		else if (!lit && cc == ';') {
+
+			line++;
+			break;
+		}
+
+		/* comment */
+		else if (!lit && cc == '#') {
+
+			while (cc) cc = NEXTCC;
+			break;
 		}
 
 		/* variable */
@@ -196,7 +237,7 @@ static void parse_line(const char *line, const char *file, int nline) {
 		}
 
 		/* literal */
-		else if (strchr("'\"", cc)) {
+		else if (!lit && strchr("'\"", cc)) {
 
 			if (exp) {
 				newarg();
@@ -219,17 +260,50 @@ static void parse_line(const char *line, const char *file, int nline) {
 		}
 	}
 	finarg();
+	return line;
 }
 
 /* execute command */
 #define FLAG_BG 0x1
 
-static void cmd_exec(int argc, const char **argv, int flags) {
+static int if_block = 0;
+static bool if_skip = false;
+
+static int cmd_exec(int argc, const char **argv, int flags) {
+
+	const char *varset = strchr(argv[0], '=');
+	if (varset && !if_skip) {
+
+		char key[256];
+		size_t len = (size_t)(varset-argv[0]);
+		if (len > sizeof(key)-1) len = sizeof(key)-1;
+
+		memcpy(key, argv[0], len);
+		key[len] = 0;
+
+		ec_hmap_set(varmap, key, ++varset);
+		argv++; argc--;
+	}
+
+	if (!argc) return 0;
 
 	const char *bin = argv[0];
-	
+
+	/* inside if block */
+	if (if_block && !strcmp(bin, "fi")) {
+
+		if_block--;
+		if (if_skip && !if_block)
+			if_skip = false;
+	}
+
+	else if (if_block && !strcmp(bin, "else"))
+		if_skip = !if_skip;
+
+	else if (if_skip || (if_block && !strcmp(bin, "then")));
+
 	/* exit shell */
-	if (!strcmp(bin, "exit"))
+	else if (!strcmp(bin, "exit"))
 		running = false;
 
 	/* print message */
@@ -243,8 +317,11 @@ static void cmd_exec(int argc, const char **argv, int flags) {
 	}
 
 	/* bad idea */
-	else if (!strcmp(bin, "init"))
+	else if (!strcmp(bin, "init")) {
+
 		fprintf(stderr, "%s: Bad idea\n", progname);
+		return 0xff;
+	}
 
 	/* change directory */
 	else if (!strcmp(bin, "cd")) {
@@ -252,14 +329,96 @@ static void cmd_exec(int argc, const char **argv, int flags) {
 		if (argc != 2) {
 			
 			fprintf(stderr, "%s: cd: Invalid arguments\n", progname);
-			return;
+			return 0xff;
 		}
 		if (ec_chdir(argv[1]) < 0) {
 
 			fprintf(stderr, "%s: cd: %s\n", progname, strerror(errno));
-			return;
+			return 0xff;
 		}
 		ec_getcwd(cwdbuf, EC_PATHSZ);
+	}
+
+	/* test condition */
+	else if (!strcmp(bin, "test") || !strcmp(bin, "[")) {
+
+		int expa = 3 + (*bin == '[');
+		int expb = expa+1;
+
+		if ((argc != expa && argc != expb) ||
+		    (*bin == '[' && !!strcmp(argv[argc-1], "]"))) {
+
+			fprintf(stderr, "%s: %s: Invalid arguments\n", progname, bin);
+			return 0xff;
+		}
+		int result = 1;
+
+		int index = 1;
+		const char *left = argc == expa? NULL: argv[index++];
+		const char *op = argv[index++];
+		const char *right = argv[index++];
+
+		/* binary operation */
+		if (left) {
+
+			if (!strcmp(op, "="))
+				result = !strcmp(left, right);
+			else {
+				int ileft = atoi(left);
+				int iright = atoi(right);
+
+				if (!strcmp(op, "-eq"))
+					result = (ileft == iright);
+				else if (!strcmp(op, "-ne"))
+					result = (ileft != iright);
+				else if (!strcmp(op, "-lt"))
+					result = (ileft < iright);
+				else if (!strcmp(op, "-gt"))
+					result = (ileft > iright);
+				else {
+					fprintf(stderr, "%s: %s: Invalid operation '%s'\n",
+						progname, bin, op);
+					return 0xff;
+				}
+			}
+		}
+
+		/* unary operation */
+		else {
+			ec_stat_t stat;
+			int stat_res = ec_stat(right, &stat);
+
+			if (!strcmp(op, "-e"))
+				result = (stat_res >= 0);
+			else if (!strcmp(op, "-f"))
+				result = (stat_res >= 0 && stat.flags & ECS_REG);
+			else if (!strcmp(op, "-d"))
+				result = (stat_res >= 0 && stat.flags & ECS_DIR);
+			else if (!strcmp(op, "-x"))
+				result = (stat_res >= 0 && stat.mode & 0111);
+			else {
+				fprintf(stderr, "%s: %s: Invalid operation '%s'\n",
+					progname, bin, op);
+				return 0xff;
+			}
+		}
+		return !result;
+	}
+
+	/* if statement */
+	else if (!strcmp(bin, "if")) {
+
+		int result = cmd_exec(argc-1, argv+1, flags);
+
+		if_block++;
+		if (result >= 1) if_skip = true;
+	}
+
+	/* not */
+	else if (!strcmp(bin, "!")) {
+
+		int result = cmd_exec(argc-1, argv+1, flags);
+		return !result;
 	}
 
 	/* other */
@@ -280,7 +439,7 @@ static void cmd_exec(int argc, const char **argv, int flags) {
 		if (pid < 0) {
 
 			fprintf(stderr, "%s: Command '%s' not found\n", progname, bin);
-			return;
+			return 0xff;
 		}
 
 		/* wait for process */
@@ -290,34 +449,40 @@ static void cmd_exec(int argc, const char **argv, int flags) {
 			while (!ECW_ISEXITED(status))
 				ec_pwait(pid, &status, NULL);
 
-			snprintf(lastret, LASTRETSZ, "%d", ECW_TOEXITCODE(status));
+			return ECW_TOEXITCODE(status);
 		}
 	}
+	return 0;
 }
 
 /* evaluate line of code */
-static void eval_line(const char *line, const char *file, int nline) {
+static int eval_line(const char *line, const char *file, int nline) {
 
-	parse_line(line, file, nline);
-	if (nargs) {
+	do {
+		line = parse_line(line, file, nline);
 
-		/* construct argv array */
-		const char *argv[MAX_ARGS+1] = {};
-		int argc = 0;
-		for (int i = 0; i < nargs; i++) {
-			if (args[i].value)
-				argv[argc++] = args[i].value;
+		if (nargs) {
+
+			/* construct argv array */
+			const char *argv[MAX_ARGS+1] = {};
+			int argc = 0;
+			for (int i = 0; i < nargs; i++) {
+				if (args[i].value)
+					argv[argc++] = args[i].value;
+			}
+			argv[argc] = NULL;
+
+			int flags = 0;
+			if (argc && !strcmp(argv[argc-1], "&")) {
+
+				argv[--argc] = NULL;
+				flags |= FLAG_BG;
+			}
+			int result = cmd_exec(argc, argv, flags);
+			snprintf(lastret, LASTRETSZ, "%d", result);
 		}
-		argv[argc] = NULL;
-
-		int flags = 0;
-		if (argc && !strcmp(argv[argc-1], "&")) {
-
-			argv[--argc] = NULL;
-			flags |= FLAG_BG;
-		}
-		cmd_exec(argc, argv, flags);
-	}
+	} while(*line);
+	return 0;
 }
 
 /* evaluate file */
@@ -335,7 +500,7 @@ static void eval_file(const char *path) {
 	while (pstr) {
 
 		pstr = fgets(linebuf, LINEBUFSZ, fp);
-		eval_line(linebuf, path, line++);
+		int ret = eval_line(linebuf, path, line++);
 	}
 	fclose(fp);
 }
@@ -343,12 +508,19 @@ static void eval_file(const char *path) {
 /* print prompt */
 static void print_prompt(void) {
 
-	parse_line(promptbuf, "<prompt>", 1);
+	const char *prompt;
+	struct ec_hmap_var *var = ec_hmap_get(varmap, "PS1");
+
+	if (var) prompt = var->val;
+	else prompt = !strcmp(uinfo.uname, "root")? "'# '": "'$ '";
+
+	parse_line(prompt, "<prompt>", 1);
 
 	int n = 0;
 	for (int i = 0; i < nargs; i++) {
 
 		struct arg *arg = &args[i];
+
 		if (arg->len) {
 
 			if (n++) fputc(' ', stdout);
@@ -370,19 +542,23 @@ static int parse_args(int argc, const char **argv) {
 				opt_flags |= OPT_HELP_BIT;
 			default:
 				fprintf(stderr, "Usage: %s [-h] [-r] [path]\n", progname);
-				return opt_flags & OPT_HELP_BIT? 0: 1;
+				return opt_flags & OPT_HELP_BIT? 0: -1;
 		}
 	}
 	if (optind < argc) runpath = argv[optind];
 	return 0;
 }
 
-/* main repl */
-int main(int argc, const char **argv) {
+/* run application */
+static int run(int argc, const char **argv) {
+
+	ec_hmap_init(varmap, var);
 
 	progname = argv[0];
 	if (parse_args(argc, argv) < 0)
 		return 1;
+	if (opt_flags & OPT_HELP_BIT)
+		return 0;
 
 	ec_getuser(&uinfo);
 	ec_getcwd(cwdbuf, EC_PATHSZ);
@@ -393,6 +569,7 @@ int main(int argc, const char **argv) {
 		if (!(opt_flags & OPT_REPL_BIT)) return 0;
 	}
 
+	/* main repl */
 	linebuf[0] = 0;
 	while (running) {
 
@@ -400,7 +577,23 @@ int main(int argc, const char **argv) {
 		fflush(stdout);
 
 		fgets(linebuf, LINEBUFSZ, stdin);
-		eval_line(linebuf, "<stdin>", 1);
+		int ret = eval_line(linebuf, "<stdin>", 1);
+
+		if_block = 0;
+		if_skip = false;
 	}
 	return ec_getpid() == 2? 123: 0;
+}
+
+/* clean up resources */
+static void cleanup(void) {
+
+	ec_hmap_free(varmap);
+}
+
+int main(int argc, const char **argv) {
+
+	int code = run(argc, argv);
+	cleanup();
+	return code;
 }

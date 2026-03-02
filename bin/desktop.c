@@ -17,6 +17,14 @@ static crepe_widget_t *panelwindow; /* panel window */
 static crepe_widget_t *panelmargin; /* panel margin area */
 static crepe_widget_t *panelbox; /* panel box */
 static crepe_widget_t *panelmenubtn; /* panel menu button */
+static crepe_widget_t *panelrunbtn; /* panel run button */
+
+static crepe_widget_t *runwindow; /* run window */
+static crepe_widget_t *runtitle; /* run window title */
+static crepe_widget_t *runmargin; /* run margin area */
+static crepe_widget_t *runbox; /* run main box */
+static crepe_widget_t *runinner; /* run inner margin */
+static crepe_widget_t *runhbox; /* run button box */
 
 /* menu button pressed */
 static void panelmenubtn_pressed(crepe_widget_t *widget) {
@@ -24,6 +32,12 @@ static void panelmenubtn_pressed(crepe_widget_t *widget) {
 	crepe_widget_t *message = crepe_message_box_new(&context, NULL,
 			CREPE_MESSAGE_BUTTON_YES_BIT | CREPE_MESSAGE_BUTTON_NO_BIT,
 			"Are you sure?", "Are you sure you want to continue?");
+}
+
+/* run button pressed */
+static void panelrunbtn_pressed(crepe_widget_t *widget) {
+
+	if (runwindow) return;
 }
 
 /* run application */
@@ -50,7 +64,11 @@ static int run(void) {
 	panelmenubtn = crepe_button_new_with_label(CREPE_BUTTON_STYLE_MENU, "Menu");
 	CREPE_BUTTON(panelmenubtn)->pressed = panelmenubtn_pressed;
 
+	panelrunbtn = crepe_button_new_with_label(CREPE_BUTTON_STYLE_MENU, "Run...");
+	CREPE_BUTTON(panelrunbtn)->pressed = panelrunbtn_pressed;
+
 	crepe_box_item(CREPE_BOX(panelbox), panelmenubtn);
+	crepe_box_item(CREPE_BOX(panelbox), panelrunbtn);
 
 	crepe_margin_child(CREPE_MARGIN(panelmargin), panelbox);
 	crepe_window_child(CREPE_WINDOW(panelwindow), panelmargin);

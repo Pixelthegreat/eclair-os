@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 #include <ec.h>
 
 #define SH_PATH "/bin/sh"
@@ -17,13 +18,16 @@ static char namebuf[BUFSZ];
 static char pswdbuf[BUFSZ];
 
 /* execute shell */
-static int exec_shell(const char *progname) {
+static int exec_shell(const char *progname, const char **argv) {
 
-	const char *argv[] = {SH_PATH, "-r", RC_PATH, NULL};
-	int pid = ec_pexec(SH_PATH, argv, NULL);
+	const char *sh_argv[] = {SH_PATH, NULL};
+	if (!argv) argv = sh_argv;
+
+	int pid = ec_pexec(argv[0], argv, NULL);
 	if (pid < 0) {
 
-		fprintf(stderr, "%s: Can't execute '%s': %s\n", progname, SH_PATH, strerror(errno));
+		fprintf(stderr, "%s: Can't execute '%s': %s\n",
+			progname, argv[0], strerror(errno));
 		return 1;
 	}
 
@@ -37,8 +41,42 @@ static int exec_shell(const char *progname) {
 /* main */
 int main(int argc, const char **argv) {
 
-	if (argc != 2) {
-		while (1) {
+	int opt, fhelp = 0, fretry = 0;
+	int usrind = argc, endind = argc;
+
+	while ((opt = getopt(argc, argv, "hr-")) != -1) {
+		switch (opt) {
+			case 'r':
+				fretry++;
+				break;
+			case '-':
+				usrind = optind-1;
+				if (usrind > 1 && *argv[usrind-1] != '-')
+					usrind--;
+				endind = optind;
+				goto next;
+			case 'h':
+				fhelp++;
+			default:
+				fprintf(stderr, "Usage: %s [-h] [-r] [user] [--] [command]\n",
+					argv[0]);
+				return fhelp? 0: 1;
+		}
+	}
+	if (usrind == argc) {
+		
+		usrind = optind;
+		endind = usrind+1;
+	}
+next:
+	const char *user = usrind < argc? argv[usrind]: NULL;
+	const char **cmd_argv = endind < argc? argv+endind: NULL;
+
+	/* loop */
+	if (!user || !strcmp(user, "--")) {
+
+		int result = 0;
+		do {
 
 			printf("Username: ");
 			fflush(stdout);
@@ -56,17 +94,19 @@ int main(int argc, const char **argv) {
 			if (pswdbuf[len-1] == '\n')
 				pswdbuf[--len] = 0;
 
-			if (ec_setuser(namebuf, pswdbuf) < 0)
-				fprintf(stderr, "%s: Can't set user '%s': %s\n", argv[0], namebuf, strerror(errno));
-			else exec_shell(argv[0]);
-		}
+			if (ec_setuser(namebuf, pswdbuf) < 0) {
+
+				fprintf(stderr, "%s: Can't set user '%s': %s\n",
+					argv[0], namebuf, strerror(errno));
+				result = 1;
+			}
+			else exec_shell(argv[0], cmd_argv);
+
+		} while (fretry);
 	}
 
 	/* enter just password */
 	else {
-
-		const char *name = argv[1];
-
 		printf("Password: ");
 		fflush(stdout);
 
@@ -75,12 +115,13 @@ int main(int argc, const char **argv) {
 		if (pswdbuf[len-1] == '\n')
 			pswdbuf[--len] = 0;
 
-		if (ec_setuser(name, pswdbuf) < 0) {
+		if (ec_setuser(user, pswdbuf) < 0) {
 
-			fprintf(stderr, "%s: Can't set user '%s': %s\n", argv[0], name, strerror(errno));
+			fprintf(stderr, "%s: Can't set user '%s': %s\n",
+				argv[0], user, strerror(errno));
 			return 1;
 		}
-		return exec_shell(argv[0]);
+		return exec_shell(argv[0], cmd_argv);
 	}
 	return 0;
 }

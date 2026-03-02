@@ -96,3 +96,16 @@ extern char *getenv(const char *name) {
 	}
 	return NULL;
 }
+
+/* miscellaneous */
+extern int atoi(const char *nptr) {
+
+	int result = 0;
+	int mul = 1;
+	if (*nptr == '-') { mul = -1; nptr++; }
+
+	while (*nptr >= '0' && *nptr <= '9')
+		result = (result * 10) + (int)(*nptr++ - '0');
+
+	return result * mul;
+}
